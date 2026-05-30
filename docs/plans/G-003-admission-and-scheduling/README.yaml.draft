@@ -1,0 +1,80 @@
+step_id: G-003
+name: Token Accounting, Admission, Queue, and Scheduling
+description: Define the request preflight path from final prompt token 
+  accounting through capacity estimation, conservative admission, queue 
+  placement, largest-fit scheduling, and launch-time recheck. This step includes
+  the request dynamic VRAM formula and the LMCache admission constraint only as 
+  admission semantics, not as cache storage management.
+concepts:
+- C-010
+- C-011
+- C-012
+- C-013
+- C-014
+- C-047
+- C-048
+relations:
+- from_concept: C-009
+  to_concept: C-012
+  type: depends_on
+- from_concept: C-010
+  to_concept: C-011
+  type: produces
+- from_concept: C-011
+  to_concept: C-012
+  type: depends_on
+- from_concept: C-012
+  to_concept: C-013
+  type: produces
+- from_concept: C-013
+  to_concept: C-014
+  type: uses
+- from_concept: C-012
+  to_concept: C-015
+  type: depends_on
+- from_concept: C-047
+  to_concept: C-044
+  type: uses
+- from_concept: C-047
+  to_concept: C-011
+  type: depends_on
+- from_concept: C-012
+  to_concept: C-046
+  type: uses
+- from_concept: C-012
+  to_concept: C-047
+  type: uses
+- from_concept: C-012
+  to_concept: C-048
+  type: uses
+- from_concept: C-048
+  to_concept: C-025
+  type: depends_on
+- from_concept: C-048
+  to_concept: C-045
+  type: depends_on
+source_labels:
+- '{tok1}'
+- '{tok2}'
+- '{tok3}'
+- '{lim1}'
+- '{lim2}'
+- '{lim3}'
+- '{adm1}'
+- '{adm2}'
+- '{adm3}'
+- '{que1}'
+- '{que2}'
+- '{que3}'
+- '{rech}'
+- '{inv1}'
+- '{inv2}'
+- '{resv1}'
+- '{lmc1}'
+- '{lmcache2}'
+- '{lmcache6}'
+- '{inv5}'
+depends_on:
+- G-002
+tactical_steps: []
+status: draft
