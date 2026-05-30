@@ -1,0 +1,194 @@
+meta:
+  artifact: tactical_step_concept_matrix
+  source_layers:
+  - GS
+  - TS
+  - MRS
+  status: draft
+rows:
+- global_step: G-001
+  tactical_step: T-001
+  path: docs/plans/G-001-service-boundary/T-001-service-boundary/README.yaml
+  concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-022
+- global_step: G-001
+  tactical_step: T-002
+  path: 
+    docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/README.yaml
+  concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-004
+- global_step: G-002
+  tactical_step: T-001
+  path: 
+    docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/README.yaml
+  concepts:
+  - C-005
+  - C-006
+  - C-021
+  - C-044
+  - C-045
+- global_step: G-002
+  tactical_step: T-002
+  path: 
+    docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/README.yaml
+  concepts:
+  - C-007
+  - C-008
+  - C-009
+  - C-046
+- global_step: G-002
+  tactical_step: T-003
+  path: 
+    docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/README.yaml
+  concepts:
+  - C-020
+  - C-011
+- global_step: G-003
+  tactical_step: T-001
+  path: 
+    docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/README.yaml
+  concepts:
+  - C-010
+  - C-011
+  - C-047
+  - C-044
+  - C-046
+- global_step: G-003
+  tactical_step: T-002
+  path: 
+    docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/README.yaml
+  concepts:
+  - C-011
+  - C-012
+  - C-013
+  - C-047
+  - C-048
+- global_step: G-003
+  tactical_step: T-003
+  path: 
+    docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/README.yaml
+  concepts:
+  - C-012
+  - C-013
+  - C-014
+- global_step: G-004
+  tactical_step: T-001
+  path: 
+    docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/README.yaml
+  concepts:
+  - C-023
+  - C-005
+  - C-017
+- global_step: G-004
+  tactical_step: T-002
+  path: 
+    docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/README.yaml
+  concepts:
+  - C-024
+  - C-023
+  - C-008
+  - C-017
+- global_step: G-004
+  tactical_step: T-003
+  path: 
+    docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/README.yaml
+  concepts:
+  - C-025
+  - C-049
+  - C-019
+  - C-021
+  - C-015
+  - C-012
+- global_step: G-005
+  tactical_step: T-001
+  path: 
+    docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/README.yaml
+  concepts:
+  - C-015
+  - C-016
+- global_step: G-005
+  tactical_step: T-002
+  path: 
+    docs/plans/G-005-runtime-contracts/T-002-command-error-contract/README.yaml
+  concepts:
+  - C-017
+  - C-018
+  - C-012
+  - C-010
+  - C-013
+  - C-023
+  - C-024
+- global_step: G-005
+  tactical_step: T-003
+  path: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/README.yaml
+  concepts:
+  - C-019
+  - C-020
+- global_step: G-006
+  tactical_step: T-001
+  path: 
+    docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/README.yaml
+  concepts:
+  - C-026
+  - C-027
+  - C-003
+- global_step: G-006
+  tactical_step: T-002
+  path: 
+    docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/README.yaml
+  concepts:
+  - C-028
+  - C-029
+- global_step: G-006
+  tactical_step: T-003
+  path: 
+    docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/README.yaml
+  concepts:
+  - C-030
+  - C-031
+  - C-032
+  - C-033
+  - C-021
+- global_step: G-007
+  tactical_step: T-001
+  path: 
+    docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/README.yaml
+  concepts:
+  - C-034
+  - C-035
+  - C-036
+  - C-037
+  - C-039
+  - C-030
+  - C-031
+- global_step: G-007
+  tactical_step: T-002
+  path: 
+    docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/README.yaml
+  concepts:
+  - C-038
+  - C-036
+  - C-035
+  - C-039
+- global_step: G-007
+  tactical_step: T-003
+  path: 
+    docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/README.yaml
+  concepts:
+  - C-040
+  - C-041
+  - C-042
+  - C-043
+  - C-027
+  - C-028
+  - C-029
+  - C-032
+  - C-034
+  - C-035
+  - C-038

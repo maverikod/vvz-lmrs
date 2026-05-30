@@ -1,0 +1,37 @@
+step_id: T-001
+parent_global_step: G-007
+name: Network and Registration Endpoint Contract
+description: 'Create the network registration contract: define Server Listen Endpoint
+  (C-034), Advertised Server URL (C-035), Proxy Registration Endpoint (C-036), Registration
+  Protocol Resolution (C-037), and Registration Payload (C-039) as the protocol-aware
+  address and payload model used by adapter startup and proxy discovery.'
+concepts:
+- C-034
+- C-035
+- C-036
+- C-037
+- C-039
+- C-030
+- C-031
+inputs:
+- name: network_registration_claims
+  type: source_labels
+  description: Binding claims {lstn}, {radv}, {rprx}, {rpro}, and {rpay} 
+    defining listener settings, advertised address rules, registration 
+    endpoints, protocol selection, and payload fields.
+- name: adapter_configuration_contract
+  type: configuration_contract
+  description: Generated and validated configuration sections for listen and 
+    registration settings.
+outputs:
+- name: listen_endpoint_contract
+  type: network_contract
+  description: A contract for host, port, protocol, server name, advertised 
+    host, and SSL or mTLS listener settings.
+- name: proxy_registration_payload_contract
+  type: registration_contract
+  description: A contract for registration URL, protocol, credentials, server 
+    identity, advertised URL, capabilities, metadata, and payload content.
+atomic_steps:
+- A-001
+status: draft

@@ -1,0 +1,30 @@
+step_id: A-004
+parent_tactical_step: T-001
+name: Add default ServiceBoundary factory
+target_file: lmrs/contracts.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-001
+- C-002
+- C-003
+- C-022
+objects:
+- build_default_service_boundary
+prompt: "Target file: lmrs/contracts.py\nOperation: modify_file\nCurrent file content
+  before this step: the file contains AdapterExposure, MVPScope, and ServiceBoundary
+  exactly as produced by A-001 through A-003.\n\nMRS excerpt: C-001 owns local runtime
+  access and capacity proof; C-002 delegates universal provider gateway duties; C-003
+  requires adapter command exposure; C-022 limits MVP capabilities.\n\nAdd only function
+  build_default_service_boundary() -> ServiceBoundary after ServiceBoundary. It must
+  construct AdapterExposure, MVPScope, and ServiceBoundary with explicit tuples for
+  command surface, included MVP capabilities, excluded MVP capabilities, owned responsibilities,
+  delegated responsibilities, and invariants. Do not add boundary_snapshot or __all__."
+verification:
+  type: import
+  target: lmrs.contracts.build_default_service_boundary
+  expected: Factory returns a ServiceBoundary with adapter exposure and MVP 
+    scope populated.
+status: draft

@@ -1,0 +1,40 @@
+step_id: T-003
+parent_global_step: G-006
+name: Configuration Generator, Validator, and Runtime Hook
+description: 'Create the adapter configuration and runtime hook contract: define Adapter
+  Configuration Generator (C-030), Adapter Configuration Validator (C-031), Adapter
+  Runtime Entrypoint (C-032), and Adapter Documentation Baseline (C-033) as the generated
+  configuration, validation, startup hook, and reference baseline that integrate LMRS
+  with the adapter runtime.'
+concepts:
+- C-030
+- C-031
+- C-032
+- C-033
+- C-021
+inputs:
+- name: runtime_configuration_needs
+  type: configuration_requirement_set
+  description: LMRS runtime configuration requirements for hardware, resident 
+    services, models, backends, tokenizer profiles, admission, disk cache, 
+    LMCache, telemetry, lifecycle, queue, and registration.
+- name: adapter_reference_material
+  type: standard_reference
+  description: Adapter documentation and rules used as integration baseline for 
+    generator, validator, and runtime entrypoint behavior.
+outputs:
+- name: configuration_generation_contract
+  type: configuration_contract
+  description: A contract for generating adapter base sections and LMRS-specific
+    runtime sections.
+- name: configuration_validation_contract
+  type: validation_contract
+  description: A contract for validating adapter sections and LMRS-specific 
+    consistency before startup.
+- name: runtime_hook_contract
+  type: startup_contract
+  description: A startup contract for registering hooks, loading configuration, 
+    starting lifecycle services, and handing control to the adapter runtime.
+atomic_steps:
+- A-001
+status: draft

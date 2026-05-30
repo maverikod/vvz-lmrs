@@ -80,5 +80,8 @@ source_labels:
 - '{inv3}'
 depends_on:
 - G-001
-tactical_steps: []
+tactical_steps:
+- T-001
+- T-002
+- T-003
 status: draft

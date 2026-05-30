@@ -1,0 +1,37 @@
+step_id: T-002
+parent_global_step: G-005
+name: Public Command and Error Contract
+description: 'Create the public command and error contract: define Public Command
+  Contract (C-017) and Structured Error Contract (C-018) as the domain command surface
+  for health, model status, capacity, token count, estimate, chat, queue, cancellation,
+  disk cache, and memory lifecycle operations with stable machine-readable outcomes.'
+concepts:
+- C-017
+- C-018
+- C-012
+- C-010
+- C-013
+- C-023
+- C-024
+inputs:
+- name: domain_operation_requests
+  type: command_request_set
+  description: Requests for admission, token accounting, queue state, model 
+    cache, model lifecycle, and runtime-backed chat operations.
+- name: domain_failure_signals
+  type: error_input_set
+  description: Failure signals from tokenization, admission, queueing, model 
+    cache, lifecycle, LMCache, and runtime execution.
+outputs:
+- name: public_command_contract
+  type: command_contract
+  description: A domain-level contract for command names, accepted operation 
+    categories, success result shapes, queue result shapes, and rejection result
+    shapes.
+- name: structured_error_catalog
+  type: error_contract
+  description: A stable catalog of machine-readable error codes and their 
+    triggering conditions.
+atomic_steps:
+- A-001
+status: draft

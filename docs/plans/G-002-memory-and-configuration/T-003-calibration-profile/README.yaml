@@ -1,0 +1,31 @@
+step_id: T-003
+parent_global_step: G-002
+name: Calibration Feedback Contract
+description: 'Create the calibration feedback contract: define Calibration Profile
+  (C-020) as the domain object that stores empirical KV-cache and overhead observations
+  and supplies corrected facts to Request Capacity Estimate (C-011) without owning
+  request admission or runtime execution.'
+concepts:
+- C-020
+- C-011
+inputs:
+- name: calibration_claims
+  type: source_labels
+  description: Binding claims {cal1} and {cal2} defining empirical calibration 
+    and profile invalidation conditions.
+- name: telemetry_observations
+  type: telemetry_fact_set
+  description: Observed runtime token, VRAM, and overhead facts consumed by 
+    calibration without redefining Telemetry (C-019).
+outputs:
+- name: calibration_profile_contract
+  type: domain_contract
+  description: A contract for storing calibrated KV and overhead costs by model,
+    runtime, quantization/profile, and hardware profile.
+- name: capacity_estimate_adjustment
+  type: calibration_output
+  description: Corrected estimate inputs made available to Request Capacity 
+    Estimate (C-011).
+atomic_steps:
+- A-001
+status: draft

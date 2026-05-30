@@ -1,0 +1,31 @@
+step_id: T-001
+parent_global_step: G-005
+name: Runtime Client Execution Contract
+description: 'Create the runtime execution contract: define Runtime Backend (C-015)
+  and Runtime Client (C-016) as the execution abstraction that accepts admitted requests,
+  hides backend differences, and produces normalized model results without owning
+  public command metadata or admission decisions.'
+concepts:
+- C-015
+- C-016
+inputs:
+- name: admitted_request
+  type: execution_candidate
+  description: A request already accepted by admission or scheduling and ready 
+    for runtime execution.
+- name: runtime_profile
+  type: runtime_profile
+  description: Runtime backend selection and model profile facts needed to call 
+    the selected backend.
+outputs:
+- name: normalized_runtime_result
+  type: runtime_result
+  description: A normalized assistant message, usage data, runtime metadata, and
+    execution status independent of backend-specific shape.
+- name: runtime_failure_signal
+  type: error_input
+  description: A structured failure signal consumed by the command and error 
+    contract when runtime execution fails.
+atomic_steps:
+- A-001
+status: draft

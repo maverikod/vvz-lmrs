@@ -1,0 +1,33 @@
+step_id: T-002
+parent_global_step: G-007
+name: Proxy Registration Lifecycle
+description: 'Create the proxy registration lifecycle contract: define Proxy Registration
+  Lifecycle (C-038) as the startup, heartbeat, re-registration, retry, and shutdown
+  behavior that uses Proxy Registration Endpoint (C-036), Advertised Server URL (C-035),
+  and Registration Payload (C-039).'
+concepts:
+- C-038
+- C-036
+- C-035
+- C-039
+inputs:
+- name: registration_endpoint_contract
+  type: registration_contract
+  description: Registration endpoint and payload contracts consumed by 
+    registration lifecycle policy.
+- name: adapter_runtime_state
+  type: runtime_state
+  description: Runtime listener readiness and shutdown state emitted by the 
+    adapter runtime entrypoint.
+outputs:
+- name: registration_lifecycle_policy
+  type: lifecycle_contract
+  description: A policy for waiting until listener readiness, registering, 
+    heartbeating, retrying, re-registering, and unregistering during shutdown.
+- name: registration_state_snapshot
+  type: status_contract
+  description: A structured status object for registered state, heartbeat 
+    freshness, instance identity, and proxy recognition.
+atomic_steps:
+- A-001
+status: draft

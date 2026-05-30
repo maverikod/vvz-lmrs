@@ -1,0 +1,32 @@
+step_id: A-003
+parent_tactical_step: T-001
+name: Add ServiceBoundary contract object
+target_file: lmrs/contracts.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-001
+- C-002
+- C-003
+- C-022
+objects:
+- ServiceBoundary
+prompt: "Target file: lmrs/contracts.py\nOperation: modify_file\nCurrent file content
+  before this step: the file contains AdapterExposure and MVPScope exactly as produced
+  by A-001 and A-002.\n\nMRS excerpt: C-001 defines LMRS as a standalone local model
+  runtime service; C-002 defines external provider gateway delegation; C-003 defines
+  adapter exposure; C-022 defines MVP boundaries.\n\nModify imports to include field
+  from dataclasses. Add only frozen dataclass ServiceBoundary after MVPScope. Fields:
+  service_name: str, owned_responsibilities: tuple[str, ...], delegated_responsibilities:
+  tuple[str, ...], adapter_exposure: AdapterExposure, mvp_scope: MVPScope, invariants:
+  tuple[str, ...] = field(default_factory=tuple). Add methods owns(self, responsibility:
+  str) -> bool and delegates(self, responsibility: str) -> bool. Add docstrings. Do
+  not add factory or snapshot."
+verification:
+  type: import
+  target: lmrs.contracts.ServiceBoundary
+  expected: Module imports and ServiceBoundary links AdapterExposure and 
+    MVPScope.
+status: draft

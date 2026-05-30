@@ -1,0 +1,76 @@
+meta:
+  artifact: concept_atomic_step_matrix
+  source_layers:
+  - HRS
+  - MRS
+  - GS
+  - TS
+  - AS
+  status: draft
+  coverage_scope: partial_first_triple
+rows:
+- concept: C-001
+  atomic_steps:
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-003-service-boundary.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-005-boundary-snapshot.yaml
+  objects:
+  - ServiceBoundary
+  - build_default_service_boundary
+  - boundary_snapshot
+- concept: C-002
+  atomic_steps:
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-003-service-boundary.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
+  objects:
+  - ServiceBoundary
+  - build_default_service_boundary
+- concept: C-003
+  atomic_steps:
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-001-adapter-exposure.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-003-service-boundary.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-005-boundary-snapshot.yaml
+  objects:
+  - AdapterExposure
+  - ServiceBoundary
+  - build_default_service_boundary
+  - boundary_snapshot
+- concept: C-022
+  atomic_steps:
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-002-mvp-scope.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-003-service-boundary.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
+  - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-005-boundary-snapshot.yaml
+  objects:
+  - MVPScope
+  - ServiceBoundary
+  - build_default_service_boundary
+  - boundary_snapshot
+checks:
+- scope: G-001/T-001
+  t_concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-022
+  a_concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-022
+  result: green
+- scope: G-001/T-001
+  t_objects:
+  - AdapterExposure
+  - MVPScope
+  - ServiceBoundary
+  - build_default_service_boundary
+  - boundary_snapshot
+  a_objects:
+  - AdapterExposure
+  - MVPScope
+  - ServiceBoundary
+  - build_default_service_boundary
+  - boundary_snapshot
+  result: green

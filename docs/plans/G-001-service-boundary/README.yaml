@@ -37,5 +37,7 @@ source_labels:
 - '{mvp2}'
 - '{mvp3}'
 depends_on: []
-tactical_steps: []
+tactical_steps:
+- T-001
+- T-002
 status: draft

@@ -1,0 +1,40 @@
+step_id: T-001
+parent_global_step: G-001
+name: Service Boundary Contract
+description: 'Create the LMRS service boundary contract: define the Local Model Runtime
+  Service (C-001) as an independent runtime authority, bind its provider-gateway role
+  through Provider Gateway Integration (C-002), expose it through the Adapter-Based
+  MCP Interface (C-003), and encode the MVP Scope (C-022) as execution limits and
+  invariants for the rest of the plan.'
+concepts:
+- C-001
+- C-002
+- C-003
+- C-022
+inputs:
+- name: service_boundary_claims
+  type: source_labels
+  description: Binding claims {lmrs}, {sep1}, {goal}, {adpt}, {mvp1}, {mvp2}, 
+    and {mvp3} defining service identity, separation, adapter exposure, and MVP 
+    limits.
+- name: service_boundary_concepts
+  type: concept_set
+  description: MRS concepts C-001, C-002, C-003, and C-022 with their service 
+    boundary relations.
+outputs:
+- name: service_boundary_contract
+  type: domain_contract
+  description: A precise contract that states what LMRS owns, what remains 
+    outside it, how it is exposed, and which MVP capabilities are in or out of 
+    scope.
+- name: top_level_invariants
+  type: invariant_set
+  description: Executor-facing invariants that oversized prompts are blocked 
+    before runtime and that LMRS remains separate from the provider gateway.
+atomic_steps:
+- A-001
+- A-002
+- A-003
+- A-004
+- A-005
+status: draft

@@ -1,0 +1,30 @@
+step_id: A-002
+parent_tactical_step: T-001
+name: Add MVPScope contract object
+target_file: lmrs/contracts.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-022
+objects:
+- MVPScope
+prompt: "Target file: lmrs/contracts.py\nOperation: modify_file\nCurrent file content
+  before this step:\n```python\n\"\"\"Core LMRS service boundary contracts.\"\"\"\n\
+  \nfrom __future__ import annotations\n\nfrom dataclasses import dataclass\nfrom
+  typing import Sequence\n\n\n@dataclass(frozen=True)\nclass AdapterExposure:\n  \
+  \  \"\"\"Adapter-facing exposure requirements for the LMRS public surface.\"\"\"\
+  \n\n    command_surface: tuple[str, ...]\n    requires_schemas: bool\n    requires_metadata:
+  bool\n    requires_structured_errors: bool\n    requires_healthcheck: bool\n   \
+  \ requires_proxy_registration: bool\n```\n\nMRS excerpt: C-022 MVP Scope defines
+  explicit included and excluded capabilities for the initial LMRS implementation.\n\
+  \nAdd only frozen dataclass MVPScope after AdapterExposure. Fields: included_capabilities:
+  tuple[str, ...], excluded_capabilities: tuple[str, ...]. Add methods includes(self,
+  capability: str) -> bool and excludes(self, capability: str) -> bool. Add docstrings.
+  Do not modify AdapterExposure and do not add ServiceBoundary or factory logic."
+verification:
+  type: import
+  target: lmrs.contracts.MVPScope
+  expected: Module imports and MVPScope includes includes/excludes methods.
+status: draft

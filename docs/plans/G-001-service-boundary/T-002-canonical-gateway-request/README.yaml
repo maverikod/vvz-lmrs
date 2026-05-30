@@ -1,0 +1,34 @@
+step_id: T-002
+parent_global_step: G-001
+name: Canonical Gateway Request Contract
+description: 'Create the canonical gateway request contract: define how Provider Gateway
+  Integration (C-002) produces a Canonical Chat Request (C-004), how LMRS (C-001)
+  consumes it, and how the Adapter-Based MCP Interface (C-003) receives enough structured
+  data to route local model execution without taking ownership of provider-gateway
+  responsibilities.'
+concepts:
+- C-001
+- C-002
+- C-003
+- C-004
+inputs:
+- name: gateway_request_claims
+  type: source_labels
+  description: Binding claims {prov} and {sep1} defining gateway-to-LMRS 
+    responsibilities and canonical request fields.
+- name: gateway_request_relations
+  type: relation_set
+  description: MRS relations C-002 produces C-004 and C-001 consumes C-004, plus
+    the adapter interface relation.
+outputs:
+- name: canonical_request_contract
+  type: api_contract
+  description: A structured contract for accepted request fields, ownership 
+    boundaries, and normalized response expectations for local provider routing.
+- name: gateway_boundary_rules
+  type: routing_rule_set
+  description: Rules that prevent LMRS from assuming provider-gateway duties 
+    while still accepting canonical local-model requests.
+atomic_steps:
+- A-001
+status: draft

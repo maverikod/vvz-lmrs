@@ -1,0 +1,35 @@
+step_id: T-001
+parent_global_step: G-002
+name: Profile and Configuration Facts
+description: 'Create the profile and configuration fact model: define Model Profile
+  (C-005), Hardware Profile (C-006), Runtime Configuration (C-021), Model KV Memory
+  Profile (C-045), and KV Cache Byte Formula (C-044) as the configuration-owned facts
+  that downstream capacity logic consumes.'
+concepts:
+- C-005
+- C-006
+- C-021
+- C-044
+- C-045
+inputs:
+- name: profile_claims
+  type: source_labels
+  description: Binding claims {mdl1}, {hw01}, {cfg1}, {kvf1}, and {ctxb} 
+    defining model parameters, hardware parameters, configuration ownership, and
+    KV byte formulas.
+- name: profile_relations
+  type: relation_set
+  description: Relations C-021 owns C-005, C-021 owns C-006, C-021 owns C-045, 
+    C-005 owns C-045, and C-045 uses C-044.
+outputs:
+- name: profile_fact_schema
+  type: data_schema
+  description: A domain schema for model, hardware, runtime configuration, KV 
+    profile parameters, and derived KV byte facts.
+- name: configuration_ownership_rules
+  type: ownership_rule_set
+  description: Rules stating which profile facts are owned by runtime 
+    configuration and how they are made available to capacity calculations.
+atomic_steps:
+- A-001
+status: draft

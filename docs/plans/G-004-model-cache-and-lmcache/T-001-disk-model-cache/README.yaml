@@ -1,0 +1,34 @@
+step_id: T-001
+parent_global_step: G-004
+name: Disk Model Cache Lifecycle
+description: 'Create the disk model cache lifecycle: define Disk Model Cache (C-023)
+  as the owner of cached model profile material, cache states, integrity checks, preload
+  behavior, delete behavior, and cache metadata used by model lifecycle and public
+  commands.'
+concepts:
+- C-023
+- C-005
+- C-017
+inputs:
+- name: model_cache_claims
+  type: source_labels
+  description: Binding claims {dcache1}, {dcache2}, {dcache3}, {dcache4}, and 
+    {inv4} defining disk cache semantics and commands.
+- name: model_profile_facts
+  type: profile_fact_set
+  description: Model Profile (C-005) facts that are stored with cached model 
+    metadata.
+outputs:
+- name: disk_cache_state_contract
+  type: state_machine_contract
+  description: A cache lifecycle contract with explicit states, readiness 
+    markers, integrity checks, metadata updates, and command-visible cache 
+    status.
+- name: cached_model_profile_record
+  type: metadata_record
+  description: A structured cached model record containing model identity, 
+    runtime, tokenizer, revision or checksum, size, compatibility flags, and 
+    cache status.
+atomic_steps:
+- A-001
+status: draft

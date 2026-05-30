@@ -1,0 +1,31 @@
+step_id: T-001
+parent_global_step: G-006
+name: Adapter Command Registration and Wrappers
+description: 'Create the adapter command exposure contract: define Adapter Command
+  Registration (C-026) and Thin Adapter Command (C-027) as the adapter-facing registration
+  and wrapper layer that implements the Adapter-Based MCP Interface (C-003) while
+  delegating business decisions to LMRS domain services.'
+concepts:
+- C-026
+- C-027
+- C-003
+inputs:
+- name: domain_command_contract
+  type: command_contract
+  description: Public command contract exposed through adapter command wrappers.
+- name: adapter_interface_contract
+  type: interface_contract
+  description: Adapter-Based MCP Interface (C-003) requirements for 
+    registration, execution, validation, and structured results.
+outputs:
+- name: registration_hook_contract
+  type: registration_contract
+  description: A contract for idempotent command registration into the adapter 
+    command registry.
+- name: thin_command_wrapper_contract
+  type: adapter_command_contract
+  description: A contract for adapter-facing command wrappers that validate, 
+    call domain executors, and return structured adapter results.
+atomic_steps:
+- A-001
+status: draft

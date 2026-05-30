@@ -1,0 +1,32 @@
+step_id: T-002
+parent_global_step: G-004
+name: Model Memory Lifecycle
+description: 'Create the model memory lifecycle contract: use Model Memory Lifecycle
+  (C-024), Disk Model Cache (C-023), and VRAM Runtime Facts (C-008) to define load,
+  unload, reload, resident status, measured static VRAM, and post-operation VRAM fact
+  updates.'
+concepts:
+- C-024
+- C-023
+- C-008
+- C-017
+inputs:
+- name: memory_lifecycle_claims
+  type: source_labels
+  description: Binding claims {mlife1}, {mlife2}, {mlife3}, {mlife4}, {mlife5}, 
+    {mlife6}, and {inv4} defining memory residency lifecycle.
+- name: disk_cache_state
+  type: cache_status
+  description: Disk model cache status consumed before memory load operations.
+outputs:
+- name: memory_lifecycle_state_contract
+  type: state_machine_contract
+  description: A lifecycle contract for not loaded, loading, loaded, unloading, 
+    reload, failed, and keep-loaded states.
+- name: model_load_vram_fact_update
+  type: runtime_fact_update
+  description: Measured model static VRAM and model-loaded free VRAM facts 
+    emitted after successful lifecycle transitions.
+atomic_steps:
+- A-001
+status: draft

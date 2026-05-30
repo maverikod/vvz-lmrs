@@ -1,0 +1,34 @@
+step_id: T-002
+parent_global_step: G-002
+name: VRAM Runtime Fact Pipeline
+description: 'Create the VRAM fact pipeline: measure Resident GPU Services Baseline
+  (C-007), produce VRAM Runtime Facts (C-008), derive Dynamic VRAM Pool (C-009), and
+  compute Usable Dynamic VRAM Formula (C-046) as the current GPU capacity fact used
+  by admission and scheduling.'
+concepts:
+- C-007
+- C-008
+- C-009
+- C-046
+inputs:
+- name: vram_measurement_claims
+  type: source_labels
+  description: Binding claims {base}, {mem1}, {load}, {stat}, {dyn1}, {dyn2}, 
+    {inv3}, and {vram1} defining baseline, model-loaded facts, dynamic pool, and
+    usable VRAM formula.
+- name: profile_facts
+  type: domain_fact_set
+  description: Profile and configuration facts used by the VRAM fact pipeline 
+    without redefining their ownership.
+outputs:
+- name: vram_fact_lifecycle
+  type: measurement_contract
+  description: A contract for collecting baseline VRAM, model-loaded VRAM, 
+    measured model static VRAM, and dynamic VRAM pool facts.
+- name: usable_dynamic_vram_fact
+  type: capacity_fact
+  description: The computed usable dynamic VRAM value with active reservations, 
+    safety margin, and runtime reserve accounted for.
+atomic_steps:
+- A-001
+status: draft

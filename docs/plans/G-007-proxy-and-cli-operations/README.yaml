@@ -101,5 +101,8 @@ source_labels:
 - '{hlth}'
 depends_on:
 - G-006
-tactical_steps: []
+tactical_steps:
+- T-001
+- T-002
+- T-003
 status: draft

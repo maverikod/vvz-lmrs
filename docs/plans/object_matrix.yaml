@@ -1,0 +1,217 @@
+meta:
+  artifact: concept_python_object_matrix
+  source_layers:
+  - HRS
+  - MRS
+  - GS
+  - TS
+  status: draft
+  note: Matrix is derived from planning concepts and G/T branches, not from 
+    atomic step files.
+packages:
+- package: lmrs
+  role: Local Model Runtime Service implementation package
+modules:
+- module: lmrs.contracts
+  objects:
+  - name: AdapterExposure
+    kind: dataclass
+    concepts:
+    - C-003
+    tactical_steps:
+    - T-001
+    role: Adapter-facing exposure requirements for public MCP surface.
+  - name: MVPScope
+    kind: dataclass
+    concepts:
+    - C-022
+    tactical_steps:
+    - T-001
+    role: Explicit MVP inclusion and exclusion contract.
+  - name: ServiceBoundary
+    kind: dataclass
+    concepts:
+    - C-001
+    - C-002
+    - C-003
+    - C-022
+    tactical_steps:
+    - T-001
+    role: Ownership boundary for LMRS and external provider gateway delegation.
+  - name: build_default_service_boundary
+    kind: function
+    concepts:
+    - C-001
+    - C-002
+    - C-003
+    - C-022
+    tactical_steps:
+    - T-001
+    role: Build the default HRS/MRS service boundary instance.
+  - name: boundary_snapshot
+    kind: function
+    concepts:
+    - C-001
+    - C-003
+    - C-022
+    tactical_steps:
+    - T-001
+    role: Return serializable boundary state for command and telemetry surfaces.
+- module: lmrs.gateway
+  objects:
+  - name: ChatMessage
+    kind: dataclass
+    concepts:
+    - C-004
+    tactical_steps:
+    - T-002
+  - name: CanonicalChatRequest
+    kind: dataclass
+    concepts:
+    - C-001
+    - C-002
+    - C-004
+    tactical_steps:
+    - T-002
+  - name: LocalProviderResponse
+    kind: dataclass
+    concepts:
+    - C-002
+    - C-004
+    tactical_steps:
+    - T-002
+  - name: normalize_messages
+    kind: function
+    concepts:
+    - C-004
+    tactical_steps:
+    - T-002
+  - name: validate_gateway_request
+    kind: function
+    concepts:
+    - C-004
+    tactical_steps:
+    - T-002
+- module: lmrs.configuration
+  objects:
+  - name: HardwareProfile
+    kind: dataclass
+    concepts:
+    - C-006
+    tactical_steps:
+    - T-001
+  - name: KVCacheProfile
+    kind: dataclass
+    concepts:
+    - C-044
+    - C-045
+    tactical_steps:
+    - T-001
+  - name: KVCacheProfile.kv_bytes_per_token
+    kind: method
+    concepts:
+    - C-044
+    tactical_steps:
+    - T-001
+  - name: KVCacheProfile.kv_full_window_bytes
+    kind: method
+    concepts:
+    - C-045
+    tactical_steps:
+    - T-001
+  - name: ModelProfile
+    kind: dataclass
+    concepts:
+    - C-005
+    - C-045
+    tactical_steps:
+    - T-001
+  - name: RuntimeConfiguration
+    kind: dataclass
+    concepts:
+    - C-005
+    - C-006
+    - C-021
+    tactical_steps:
+    - T-001
+  - name: validate_runtime_configuration
+    kind: function
+    concepts:
+    - C-021
+    tactical_steps:
+    - T-001
+- module: lmrs.vram
+  objects:
+  - name: VramRuntimeFacts
+    kind: dataclass
+    concepts:
+    - C-007
+    - C-008
+    tactical_steps:
+    - T-002
+  - name: DynamicVramState
+    kind: dataclass
+    concepts:
+    - C-009
+    - C-046
+    tactical_steps:
+    - T-002
+  - name: calculate_static_vram
+    kind: function
+    concepts:
+    - C-008
+    tactical_steps:
+    - T-002
+  - name: calculate_max_dynamic_pool
+    kind: function
+    concepts:
+    - C-009
+    - C-046
+    tactical_steps:
+    - T-002
+  - name: calculate_usable_dynamic_vram
+    kind: function
+    concepts:
+    - C-009
+    - C-046
+    tactical_steps:
+    - T-002
+  - name: runtime_fact_snapshot
+    kind: function
+    concepts:
+    - C-008
+    tactical_steps:
+    - T-002
+- module: lmrs.calibration
+  objects:
+  - name: CalibrationKey
+    kind: dataclass
+    concepts:
+    - C-020
+    tactical_steps:
+    - T-003
+  - name: CalibrationObservation
+    kind: dataclass
+    concepts:
+    - C-020
+    - C-011
+    tactical_steps:
+    - T-003
+  - name: CalibrationProfile
+    kind: dataclass
+    concepts:
+    - C-020
+    tactical_steps:
+    - T-003
+  - name: build_calibration_profile
+    kind: function
+    concepts:
+    - C-020
+    tactical_steps:
+    - T-003
+  - name: calibration_snapshot
+    kind: function
+    concepts:
+    - C-020
+    tactical_steps:
+    - T-003

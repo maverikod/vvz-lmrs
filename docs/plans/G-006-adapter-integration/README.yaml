@@ -68,5 +68,8 @@ source_labels:
 - '{aread}'
 depends_on:
 - G-005
-tactical_steps: []
+tactical_steps:
+- T-001
+- T-002
+- T-003
 status: draft

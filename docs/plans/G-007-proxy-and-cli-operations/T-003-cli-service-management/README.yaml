@@ -1,0 +1,46 @@
+step_id: T-003
+parent_global_step: G-007
+name: CLI Service Management Contract
+description: 'Create the CLI operations contract: define CLI Command Wrapper Module
+  (C-040), Metadata-Driven CLI Help (C-041), CLI Server Manager (C-042), and Service
+  Health Verification (C-043) as the operator surface for command wrappers, help derived
+  from metadata, start, stop, status, and health checks that use active service probes
+  instead of PID-only evidence.'
+concepts:
+- C-040
+- C-041
+- C-042
+- C-043
+- C-027
+- C-028
+- C-029
+- C-032
+- C-034
+- C-035
+- C-038
+inputs:
+- name: adapter_command_contracts
+  type: adapter_contract_set
+  description: Thin command, schema, metadata, and runtime hook contracts 
+    consumed by CLI operations.
+- name: runtime_registration_status
+  type: status_contract
+  description: Listener, advertised URL, and registration lifecycle status 
+    needed by service health verification.
+outputs:
+- name: cli_wrapper_contract
+  type: operator_contract
+  description: A contract for local command wrappers that call canonical command
+    contracts and expose metadata-derived help.
+- name: server_manager_contract
+  type: operator_lifecycle_contract
+  description: A contract for start, stop, and status operations with exact 
+    service identity and active health verification.
+- name: service_health_probe_contract
+  type: health_contract
+  description: A health verification contract combining process identity, 
+    listener reachability, health response, command/help availability, 
+    registration state, and heartbeat freshness.
+atomic_steps:
+- A-001
+status: draft

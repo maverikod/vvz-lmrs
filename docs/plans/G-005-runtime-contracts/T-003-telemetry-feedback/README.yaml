@@ -1,0 +1,31 @@
+step_id: T-003
+parent_global_step: G-005
+name: Telemetry Feedback Contract
+description: 'Create the telemetry feedback contract: define Telemetry (C-019) as
+  the runtime and admission observation stream that records predicted and actual tokens,
+  predicted and actual VRAM, latency, queue wait, verdicts, reason codes, and produces
+  Calibration Profile (C-020) inputs.'
+concepts:
+- C-019
+- C-020
+inputs:
+- name: execution_observations
+  type: observation_stream
+  description: Observed request, queue, runtime, cache, and capacity facts 
+    emitted by the execution path.
+- name: prediction_context
+  type: estimate_snapshot
+  description: The predicted token, VRAM, queue, and admission facts that 
+    telemetry compares against actual results.
+outputs:
+- name: telemetry_record_contract
+  type: telemetry_contract
+  description: A structured telemetry record for request estimates, actual 
+    usage, latency, queue wait, VRAM snapshots, verdicts, and reason codes.
+- name: calibration_observation_set
+  type: calibration_input
+  description: Aggregated observations made available to Calibration Profile 
+    (C-020) without changing calibration ownership.
+atomic_steps:
+- A-001
+status: draft

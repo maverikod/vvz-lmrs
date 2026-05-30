@@ -1,0 +1,31 @@
+step_id: T-002
+parent_global_step: G-006
+name: Command Schema and Metadata Contracts
+description: 'Create the command discovery contract: define Command Schema Contract
+  (C-028) and Command Metadata Contract (C-029) as the schema, validation, result,
+  error, example, and help metadata surface used by adapter help, proxy discovery,
+  and operator-facing documentation.'
+concepts:
+- C-028
+- C-029
+inputs:
+- name: public_command_contract
+  type: command_contract
+  description: Command names, parameters, result categories, and error codes 
+    consumed by schema and metadata contracts.
+- name: metadata_standard
+  type: standard_reference
+  description: The command metadata standard governing schema, metadata, 
+    examples, error cases, and help output expectations.
+outputs:
+- name: schema_contract_set
+  type: schema_contract
+  description: Request, result, and error schema contracts for every public 
+    command category.
+- name: metadata_contract_set
+  type: metadata_contract
+  description: Discovery metadata for commands, parameters, return values, 
+    examples, error cases, and best practices.
+atomic_steps:
+- A-001
+status: draft

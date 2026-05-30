@@ -47,5 +47,8 @@ source_labels:
 depends_on:
 - G-003
 - G-004
-tactical_steps: []
+tactical_steps:
+- T-001
+- T-002
+- T-003
 status: draft

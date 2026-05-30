@@ -1,0 +1,26 @@
+step_id: A-001
+parent_tactical_step: T-001
+name: Create AdapterExposure contract object
+target_file: lmrs/contracts.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-003
+objects:
+- AdapterExposure
+prompt: "Target file: lmrs/contracts.py\nOperation: create_file\nCurrent file content
+  before this step: file does not exist.\n\nMRS excerpt: C-003 Adapter-Based MCP Interface
+  requires public MCP exposure with schemas, metadata, structured errors, healthcheck,
+  and proxy registration.\n\nCreate lmrs/contracts.py with only module docstring,
+  future annotations import, dataclass import, typing Sequence import, and frozen
+  dataclass AdapterExposure. AdapterExposure fields: command_surface: tuple[str, ...],
+  requires_schemas: bool, requires_metadata: bool, requires_structured_errors: bool,
+  requires_healthcheck: bool, requires_proxy_registration: bool. Add class docstring.
+  Do not add MVP, ServiceBoundary, factory, snapshot, admission, runtime, or gateway
+  logic."
+verification:
+  type: import
+  target: lmrs.contracts.AdapterExposure
+  expected: Module imports and AdapterExposure exists with the listed fields.
+status: draft
