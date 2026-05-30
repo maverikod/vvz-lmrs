@@ -1,0 +1,104 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache/
+cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+.DS_Store 
+
+*.deb
+
+logs/*
+
+*.log
+logs/embedding-service.log
+
+# Local overrides for docker/build.sh (optional; see docker/container.env)
+docker/container.env.local
+# Optional local host mappings for docker run (see docker/extra_hosts.example)
+docker/extra_hosts
+docker/extra_hosts.env
+
+data/*
+
+adapter-examples/
+.model_cache/
+backup/
+
+
+test-env*/
+
+*.key
+*.crt
+*.csr
+*.pem
+*.pem.pub
+*.pem.pub.key
+*.pem.pub.key.crt
+*.pem.pub.key.crt.csr
+*.pem.pub.key.crt.csr.key
+
+mtls_certificates/
+docker/data/certs/
+certs/
+
+
+docker/data/
