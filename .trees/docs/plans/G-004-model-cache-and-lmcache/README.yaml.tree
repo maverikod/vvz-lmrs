@@ -1,0 +1,472 @@
+{
+  "source_sha256": "6be8d79849de2fad4b5858f1be8306668c268f8af4c6c4eaf86fae3903a5ec9d",
+  "root": [
+    {
+      "stable_id": "6dab710d-8a56-49e3-9ede-4fbb5a892668",
+      "type": "object",
+      "children": [
+        {
+          "stable_id": "21b01b6b-db34-4996-a392-1a17deb14c74",
+          "type": "string",
+          "key": "step_id",
+          "value": "G-004"
+        },
+        {
+          "stable_id": "81dbb8e3-7490-4837-8e1e-0e88392dcc78",
+          "type": "string",
+          "key": "name",
+          "value": "Model Disk Cache, Memory Lifecycle, and LMCache Storage"
+        },
+        {
+          "stable_id": "cd5a2fc4-d609-4221-b168-1bd30c678beb",
+          "type": "string",
+          "key": "description",
+          "value": "Define the model disk cache lifecycle, explicit model memory load and unload lifecycle, and vLLM LMCache integration as a cache subsystem. This step separates model files, model residency, LMCache runtime artifacts, CPU and disk cache tiers, and cache telemetry from GPU admission capacity."
+        },
+        {
+          "stable_id": "cb71f1a8-9241-4d95-bcec-859b3991bb13",
+          "type": "array",
+          "key": "concepts",
+          "children": [
+            {
+              "stable_id": "77f58f34-2501-4c76-b103-179c27572727",
+              "type": "string",
+              "value": "C-023"
+            },
+            {
+              "stable_id": "d130640c-e089-4fbd-98e5-53692a12bb6c",
+              "type": "string",
+              "value": "C-024"
+            },
+            {
+              "stable_id": "e88770b3-ef45-4330-8dd9-5db3ad311c8b",
+              "type": "string",
+              "value": "C-025"
+            },
+            {
+              "stable_id": "906c17d4-14d6-4448-913b-09428b5d8634",
+              "type": "string",
+              "value": "C-049"
+            }
+          ]
+        },
+        {
+          "stable_id": "4c6bfa82-2d0c-42b6-b8f1-f7dac7fdca52",
+          "type": "array",
+          "key": "relations",
+          "children": [
+            {
+              "stable_id": "1b13dba8-b20c-4197-b43d-cca639fbabc9",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "d04cc627-708b-4396-8a39-cdedabc63027",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-017"
+                },
+                {
+                  "stable_id": "96af9fb8-88eb-47d4-8b07-4c4aa76824c5",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-023"
+                },
+                {
+                  "stable_id": "ed89222d-6a47-4426-aeb3-400349de40d6",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "5f854406-e053-4fa6-b5f7-d68b9b83660f",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "2192dbc3-eec1-4553-ba1d-02673df362fe",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-017"
+                },
+                {
+                  "stable_id": "04832424-3ca5-47ae-93d4-5834f6f81e34",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-024"
+                },
+                {
+                  "stable_id": "c16dfe00-8829-44ae-b579-7f753e75e0d4",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "7151acbe-7def-4005-a3e3-68012993f8e6",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "fbafd63e-37b4-429f-bc0e-5c84ebab0666",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-023"
+                },
+                {
+                  "stable_id": "c1dcfc65-71e1-4a86-829d-495fe198574a",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-005"
+                },
+                {
+                  "stable_id": "a452e3d2-8c06-436c-99cd-9c57abfd0dc8",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "439fcce9-7c8c-4107-96ae-27591c52bb3e",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "93e515c3-bcb3-4855-a151-a78d6dcf2f8d",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-024"
+                },
+                {
+                  "stable_id": "f9f6fa82-5daf-4e57-8258-ba9ca2953442",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-023"
+                },
+                {
+                  "stable_id": "6a9edfbe-2f24-484d-97ee-5dabe0d9954e",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "e395d7cb-4e90-46b8-8e04-43b557f10072",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "36276168-aacd-487d-8c02-5152c35b8abe",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-024"
+                },
+                {
+                  "stable_id": "0497bbf0-07e5-42cb-bf75-537584f100bd",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-008"
+                },
+                {
+                  "stable_id": "915a8b70-74cd-4cc3-967f-18d7de5d7099",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "d3309d8a-1d96-40a7-abcf-7095947438b6",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "462662d4-0ab7-4cab-a12a-27cedcdd0b3b",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "e4266ac6-5ba8-49e2-815c-00bb4cb79348",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-015"
+                },
+                {
+                  "stable_id": "33a9ddd2-65ea-44f8-8bc3-77ab5e84aef1",
+                  "type": "string",
+                  "key": "type",
+                  "value": "extends"
+                }
+              ]
+            },
+            {
+              "stable_id": "9b62475a-f66c-42b2-a854-b31f3446e707",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "a9c55515-4f92-4656-b82a-4a860be33ae5",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "014d967b-56ca-4269-ac84-8fd802f43a5a",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "3b0ad6f3-bf34-4259-8968-446caa44b643",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "fdaceb73-edc2-48f1-b55b-4ef489e34f30",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "c3925e03-1d89-41e7-b1e1-0f958fd94f67",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "b80c5762-9eb6-4447-8b6e-75ce9b60fa56",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-019"
+                },
+                {
+                  "stable_id": "1ef97be3-960d-4f8c-b509-d9ed57c4367d",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "7863747d-cb08-455f-99d4-b40743c35cf3",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "6983d8cf-1028-44a0-875e-153295a0ef88",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-021"
+                },
+                {
+                  "stable_id": "af8ebb6a-c47d-4d55-a148-aaacf5f08777",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "cb5878c7-135a-4939-a6a7-86f2ae221eb8",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "fdea28f0-83ef-4ca1-a3c3-e1d721015b1e",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "1c1c7ccb-48a9-416b-8481-8912c36d80a3",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-021"
+                },
+                {
+                  "stable_id": "98a8f491-201d-4f81-89a0-f4ba60f9310a",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-049"
+                },
+                {
+                  "stable_id": "6b93007f-9091-49b4-961d-93bb0c014e64",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "d37cf975-43d1-4462-9f75-1c5dfdad3771",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "f148b9e3-cc77-4a9c-a808-c6e5c4447754",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-049"
+                },
+                {
+                  "stable_id": "c48377f2-86ca-4913-bc8c-45ade8d30454",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-019"
+                },
+                {
+                  "stable_id": "b7854951-52fd-486b-8850-3d243e017e2e",
+                  "type": "string",
+                  "key": "type",
+                  "value": "extends"
+                }
+              ]
+            },
+            {
+              "stable_id": "1e43edc4-4eb4-4b8a-9ace-015fc32f8f05",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "aa5c2ef4-e651-4d79-a84d-6095237f567f",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-049"
+                },
+                {
+                  "stable_id": "36e546fa-8cb6-4d8d-a5df-31c062460f6c",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "d4f6d9c1-c6a4-48d1-b45d-c6d23cc6472f",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "stable_id": "33aaf6bb-2c6d-4e0e-a6f5-34dee00dc8dc",
+          "type": "array",
+          "key": "source_labels",
+          "children": [
+            {
+              "stable_id": "b477c982-bbe3-4b6c-bfbd-f89b5716aaa7",
+              "type": "string",
+              "value": "{dcache1}"
+            },
+            {
+              "stable_id": "a8d6e0a0-5ba6-45e3-9fb3-357cc8addf5c",
+              "type": "string",
+              "value": "{dcache2}"
+            },
+            {
+              "stable_id": "11bbda4e-ec68-4756-a0d8-dc6b03a7e304",
+              "type": "string",
+              "value": "{dcache3}"
+            },
+            {
+              "stable_id": "84b034f6-ad8b-4470-a38e-0827516d7bb5",
+              "type": "string",
+              "value": "{dcache4}"
+            },
+            {
+              "stable_id": "8e5c954c-1da4-467b-9297-704356622946",
+              "type": "string",
+              "value": "{mlife1}"
+            },
+            {
+              "stable_id": "9f276932-71c0-41de-ae47-883f7140a9e3",
+              "type": "string",
+              "value": "{mlife2}"
+            },
+            {
+              "stable_id": "36e4fe68-06fb-4b8f-a5f7-8dd0d0ff3b78",
+              "type": "string",
+              "value": "{mlife3}"
+            },
+            {
+              "stable_id": "48bfc9ec-3dca-4c5d-8ad5-b165aa7fbf79",
+              "type": "string",
+              "value": "{mlife4}"
+            },
+            {
+              "stable_id": "d111ea24-fb5b-49c3-a453-a9d23a141819",
+              "type": "string",
+              "value": "{mlife5}"
+            },
+            {
+              "stable_id": "0bacc959-836e-43aa-8a16-09c27e3cea7b",
+              "type": "string",
+              "value": "{mlife6}"
+            },
+            {
+              "stable_id": "04957389-255f-4515-b19d-9faddbaf842f",
+              "type": "string",
+              "value": "{lmcache1}"
+            },
+            {
+              "stable_id": "c575d985-7ddc-444b-b59e-e713b0f7645b",
+              "type": "string",
+              "value": "{lmcache3}"
+            },
+            {
+              "stable_id": "fceceeb3-0374-4ef1-bbee-ea2caa4f50d7",
+              "type": "string",
+              "value": "{lmcache4}"
+            },
+            {
+              "stable_id": "e1c9a237-f6ed-417d-ba94-c06923369f15",
+              "type": "string",
+              "value": "{lmcache5}"
+            },
+            {
+              "stable_id": "ea1f322d-446e-4454-8515-02c5a2e72a9c",
+              "type": "string",
+              "value": "{lmcache7}"
+            },
+            {
+              "stable_id": "81c8fce7-bc9f-403f-883c-733f45ae692f",
+              "type": "string",
+              "value": "{inv4}"
+            },
+            {
+              "stable_id": "d9c01f85-4475-44be-acd8-83614b44225f",
+              "type": "string",
+              "value": "{lmc2}"
+            }
+          ]
+        },
+        {
+          "stable_id": "acb03ecc-a1a6-489e-a7aa-5331477754d0",
+          "type": "array",
+          "key": "depends_on",
+          "children": [
+            {
+              "stable_id": "8e4d4f52-dde2-4e2a-a2ea-34b5edb511f8",
+              "type": "string",
+              "value": "G-002"
+            },
+            {
+              "stable_id": "3a107c8d-1acf-4a80-bdf8-bc2a62e1ba30",
+              "type": "string",
+              "value": "G-003"
+            }
+          ]
+        },
+        {
+          "stable_id": "0fe5d96a-71aa-4152-b3d3-ed0dc5f413c8",
+          "type": "array",
+          "key": "tactical_steps",
+          "children": []
+        },
+        {
+          "stable_id": "374819ff-b9a2-4e15-9956-900e66c34370",
+          "type": "string",
+          "key": "status",
+          "value": "draft"
+        }
+      ]
+    }
+  ]
+}

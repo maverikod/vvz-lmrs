@@ -1,0 +1,570 @@
+meta:
+  title: Local Model Runtime Service Machine Specification
+  version: 0.1.0
+  locale: ru
+  status: draft
+  source_spec: docs/plans/source_spec.md
+  purpose: "Machine-readable projection of the Local Model Runtime Service HRS into
+    canonical concepts, properties, and typed relations.\n"
+concepts:
+- concept_id: C-001
+  name: LocalModelRuntimeService
+  definition: "Separate adapter-based MCP microservice that provides high-level access
+    to locally executed language models.\n"
+  properties:
+  - separate from model_access_core and ollama/model_workspace
+  - exposes adapter-based MCP interface for local model execution
+  - guarantees prompts are not sent to the model runtime until capacity is 
+    proven
+  - owns local runtime, tokenizer, VRAM/RAM capacity, queue, admission, and 
+    execution
+  source_labels:
+  - '{lmrs}'
+  - '{goal}'
+  - '{inv1}'
+- concept_id: C-002
+  name: GatewayBoundary
+  definition: "Responsibility boundary between model_access_core as a universal provider
+    gateway and LocalModelRuntimeService as the local physical executor.\n"
+  properties:
+  - model_access_core does not manage VRAM for local models
+  - model_access_core does not load local models directly
+  - model_access_core does not execute local model requests directly
+  - local provider requests are routed through a dedicated ProviderDriver
+  - runtime service responses must be normalizable into canonical provider 
+    responses
+  source_labels:
+  - '{sep1}'
+  - '{prov}'
+- concept_id: C-003
+  name: AdapterCommandSurface
+  definition: "Public MCP command surface implemented through mcp_proxy_adapter conventions.\n"
+  properties:
+  - exposes public commands with get_schema, validate_params, execute, and 
+    metadata
+  - returns structured responses and structured errors
+  - provides healthcheck and MCP Proxy registration
+  - includes commands for health, model status, capacity, token count, estimate,
+    chat, queue, cancel, disk cache, load, unload, and reload
+  source_labels:
+  - '{adpt}'
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+- concept_id: C-004
+  name: GatewayRequestContract
+  definition: "Request and response contract used by model_access_core when calling
+    the local runtime service as a local provider backend.\n"
+  properties:
+  - accepts session_id, request_id, model_name, messages, tools, 
+    reserved_output_tokens, and options
+  - supports dry-run estimate decisions would_execute, would_queue, and 
+    would_reject
+  - supports chat decisions executed, queued, and rejected
+  - returns reason code, token breakdown, capacity snapshot, queue status, model
+    result, and telemetry as applicable
+  source_labels:
+  - '{prov}'
+  - '{cmd2}'
+  - '{cmd3}'
+- concept_id: C-005
+  name: ModelProfile
+  definition: "Configuration and metadata profile describing one local model independently
+    of any concrete model family.\n"
+  properties:
+  - includes model_name, runtime backend, model path or endpoint
+  - includes declared context window and tokenizer profile
+  - includes load policy, KV-cache profile, and concurrency policy
+  - covers Qwen, Ollama models, GPT-OSS, and other local models as cases
+  source_labels:
+  - '{mdl1}'
+  - '{cfg1}'
+- concept_id: C-006
+  name: HardwareProfile
+  definition: "Description of the target hardware envelope used for local model capacity
+    planning.\n"
+  properties:
+  - initial target is one GPU with 24 GB VRAM and 128 GB RAM
+  - design must allow future larger VRAM cards or multiple GPUs without changing
+    the gateway contract
+  - participates in calibration validity and runtime capacity computation
+  source_labels:
+  - '{hw01}'
+  - '{cal2}'
+  - '{cfg1}'
+- concept_id: C-007
+  name: ResidentServiceBaseline
+  definition: "Measured GPU baseline after always-on services are started and before
+    the main LLM is loaded.\n"
+  properties:
+  - baseline is not an empty GPU
+  - includes vectorizer, chunker, CUDA/runtime buffers, and other always-on 
+    processes
+  - records service_baseline_free_vram
+  - resident service list is part of runtime profile
+  source_labels:
+  - '{base}'
+  - '{mem1}'
+  - '{inv3}'
+- concept_id: C-008
+  name: ModelDiskCache
+  definition: "Local disk cache that stores model files and metadata independently
+    from VRAM model residency.\n"
+  properties:
+  - supports preload by downloading or preparing local model layout
+  - verifies integrity and prepares tokenizer files, runtime metadata, and 
+    readiness marker
+  - stores model_name, runtime, model_path, quantization/profile, declared 
+    context window, tokenizer profile, checksum or revision, disk size, load 
+    date, compatibility flags, and cache status
+  - exposes commands to add, inspect, delete, list, verify, and update cached 
+    models
+  - disk cached state does not imply loaded in VRAM
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{inv4}'
+- concept_id: C-009
+  name: ModelLifecycleManager
+  definition: "Component that manages loading, unloading, reloading, and lifecycle
+    status of a model in memory.\n"
+  properties:
+  - separates disk cache preload from memory load
+  - exposes load_model, unload_model, reload_model, model_status, and 
+    model_lifecycle_status
+  - verifies disk cache presence and runtime compatibility before memory load
+  - supports keep_loaded policy for one resident MVP model
+  - unloading frees VRAM residency without deleting disk cache
+  source_labels:
+  - '{mlife1}'
+  - '{mlife2}'
+  - '{mlife3}'
+  - '{mlife5}'
+  - '{mlife6}'
+  - '{mvp3}'
+  - '{inv4}'
+- concept_id: C-010
+  name: ModelStateMachine
+  definition: "Explicit state model distinguishing disk-cache state from VRAM residency
+    state.\n"
+  properties:
+  - states include not_cached, caching, cached_on_disk, loading_to_memory, 
+    loaded_in_memory, unloading, and failed
+  - model can be cached on disk without being loaded in memory
+  - lifecycle status commands must expose these states explicitly
+  source_labels:
+  - '{dcache2}'
+  - '{mlife2}'
+  - '{inv4}'
+- concept_id: C-011
+  name: VramMeasurementProfile
+  definition: "Runtime fact set derived from measuring VRAM before and after loading
+    a model.\n"
+  properties:
+  - measures model_loaded_free_vram after model load
+  - computes measured_model_static_vram from service_baseline_free_vram minus 
+    model_loaded_free_vram
+  - stores measured static VRAM for model_name plus runtime plus 
+    quantization/profile plus hardware_profile
+  - factual measurement is preferred over theory when available
+  - load lifecycle records VRAM before operation, after operation, and measured 
+    static memory
+  source_labels:
+  - '{load}'
+  - '{stat}'
+  - '{mlife2}'
+  - '{mlife4}'
+  - '{inv3}'
+- concept_id: C-012
+  name: DynamicVramPool
+  definition: "VRAM capacity remaining after resident services and loaded model static
+    memory, used for request-time allocations.\n"
+  properties:
+  - used for KV-cache, runtime buffers, batching overhead, and active requests
+  - max pool subtracts safety margin and runtime reserve from free VRAM after 
+    model load
+  - current pool also subtracts active request reservations
+  - admissible request size is limited by both model context window and tokens 
+    fitting into this pool
+  source_labels:
+  - '{dyn1}'
+  - '{dyn2}'
+  - '{lim3}'
+  - '{inv3}'
+- concept_id: C-013
+  name: TokenCounter
+  definition: "Component that counts tokens before queueing and before running local
+    model requests.\n"
+  properties:
+  - counts final prompt/chat-template, not only user text
+  - includes system messages, role markers, assistant and user messages, tool 
+    schemas, service headers, and reserved output tokens
+  - prefers model/runtime-aligned tokenizer-aware counting
+  - chars/4 is only rough fallback and must be explicitly marked as rough
+  - unavailable exact tokenizer must produce TOKENIZER_UNAVAILABLE or explicitly
+    configured approximate mode
+  source_labels:
+  - '{tok1}'
+  - '{tok2}'
+  - '{tok3}'
+- concept_id: C-014
+  name: RequestCapacityEstimate
+  definition: "Pre-execution estimate of token and dynamic VRAM requirements for one
+    request.\n"
+  properties:
+  - computes required_tokens from input tokens, tool tokens, service tokens, and
+    reserved output tokens
+  - computes required dynamic VRAM from required_tokens, calibrated KV-cache 
+    cost, and per-request overhead
+  - compares request requirements against declared model window and effective 
+    dynamic capacity
+  - estimate command returns token breakdown and capacity snapshot without 
+    queueing or execution
+  source_labels:
+  - '{lim1}'
+  - '{lim2}'
+  - '{lim3}'
+  - '{cmd2}'
+- concept_id: C-015
+  name: AdmissionController
+  definition: "Pre-queue decision component that rejects, queues, or allows execution
+    based on token and VRAM capacity.\n"
+  properties:
+  - runs before queueing
+  - rejects requests exceeding declared model window with CONTEXT_OVERFLOW
+  - rejects requests impossible even with empty dynamic pool using 
+    REQUEST_TOO_LARGE or HARDWARE_VRAM_INSUFFICIENT
+  - queues requests that fit in principle but not in current VRAM due to active 
+    requests
+  - may execute or queue currently fitting requests according to scheduling 
+    policy
+  - LMCache never bypasses conservative admission
+  source_labels:
+  - '{adm1}'
+  - '{adm2}'
+  - '{adm3}'
+  - '{inv1}'
+  - '{inv2}'
+  - '{lmcache2}'
+  - '{lmcache6}'
+  - '{inv5}'
+- concept_id: C-016
+  name: RequestQueue
+  definition: "Queue for admitted requests that can fit in principle but are waiting
+    for sufficient current dynamic VRAM.\n"
+  properties:
+  - stores request_id, session_id, model_name, token counts, required dynamic 
+    VRAM, admission timestamp, expiration timestamp, priority, and status
+  - primary scheduling policy is largest-fit
+  - FIFO is allowed only as fallback or configured mode
+  - queued requests must pass capacity recheck before execution
+  source_labels:
+  - '{que1}'
+  - '{que2}'
+  - '{que3}'
+  - '{rech}'
+- concept_id: C-017
+  name: RuntimeBackendAbstraction
+  definition: "Backend-neutral execution abstraction for local model runtimes.\n"
+  properties:
+  - supports runtime backends such as vLLM, Ollama, llama.cpp, GPT-OSS runtime, 
+    or another local runtime
+  - backend does not make admission decisions
+  - executes only already admitted requests
+  - hides concrete backend differences from the public service contract
+  - returns normalized assistant message, usage, status, runtime metadata, and 
+    telemetry
+  source_labels:
+  - '{run1}'
+  - '{run2}'
+- concept_id: C-018
+  name: VllmLmCacheIntegration
+  definition: "Optional vLLM LMCache integration for reuse of runtime cache artifacts
+    during inference.\n"
+  properties:
+  - acts as runtime/caching backend for repeated or long contexts
+  - configured separately for vLLM with enable flag, cache storage path, policy,
+    limits, eviction policy, namespace/session binding, and model-profile 
+    compatibility
+  - distinct from disk model cache
+  - may expose cache reuse estimates when available before execution
+  - admission treats uncertain cache reuse as full cache miss
+  - telemetry records cache hit/miss, reused tokens, new tokens, cache 
+    lookup/write latency, eviction events, and impact on VRAM or latency
+  source_labels:
+  - '{lmcache1}'
+  - '{lmcache2}'
+  - '{lmcache3}'
+  - '{lmcache4}'
+  - '{lmcache5}'
+  - '{lmcache6}'
+  - '{lmcache7}'
+  - '{inv5}'
+- concept_id: C-019
+  name: StructuredErrorSet
+  definition: "Stable machine-readable error code set returned by service commands
+    and mapped by the gateway.\n"
+  properties:
+  - includes capacity and tokenizer errors
+  - includes model cache and memory lifecycle errors
+  - includes runtime and cancellation errors
+  - includes LMCache availability, lookup, and write failures
+  source_labels:
+  - '{err1}'
+  - '{err2}'
+- concept_id: C-020
+  name: RuntimeTelemetry
+  definition: "Observability data emitted in logs and command responses for calibration,
+    debugging, and runtime analysis.\n"
+  properties:
+  - includes predicted tokens, predicted VRAM, actual prompt tokens, actual 
+    output tokens, latency, queue wait, VRAM snapshots, admission verdict, and 
+    reason code
+  - supports calibration of KV-cache cost, per-request overhead, safety margin, 
+    and scheduler policy
+  - includes LMCache-specific hit/miss and latency data when LMCache is enabled
+  source_labels:
+  - '{obs1}'
+  - '{obs2}'
+  - '{lmcache7}'
+- concept_id: C-021
+  name: KvCacheCalibrationProfile
+  definition: "Calibration profile for estimating KV-cache VRAM cost per token.\n"
+  properties:
+  - supports empirical measurement of VRAM growth across prompt lengths
+  - avoids relying only on theoretical formula
+  - bound to model, runtime backend, quantization/profile, and hardware profile
+  - invalidated or refreshed when model, runtime, or hardware changes
+  source_labels:
+  - '{cal1}'
+  - '{cal2}'
+- concept_id: C-022
+  name: ServiceConfiguration
+  definition: "Configuration object governing hardware, resident services, model profiles,
+    tokenizer, runtime, queue, lifecycle, and LMCache behavior.\n"
+  properties:
+  - defines hardware profile and resident services
+  - defines safety margin and runtime reserve
+  - defines models, runtime backend, tokenizer profile, queue policy, and queue 
+    limits
+  - defines LMCache settings when vLLM backend is used
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+- concept_id: C-023
+  name: MvpScope
+  definition: "Initial implementation scope for the local model runtime service.\n"
+  properties:
+  - includes one resident LLM on one GPU
+  - includes persistent vectorizer/chunker services
+  - includes service baseline measurement, model static measurement, 
+    tokenizer-aware counting, admission, largest-fit queue, one backend, adapter
+    commands, disk cache lifecycle, explicit load/unload, and basic vLLM LMCache
+    configuration
+  - excludes multi-GPU scheduling, multiple resident LLMs, streaming, 
+    speculative decoding, distributed inference, automatic model eviction, and 
+    advanced batching optimizer
+  source_labels:
+  - '{mvp1}'
+  - '{mvp2}'
+  - '{mvp3}'
+relations:
+- from_concept: C-001
+  to_concept: C-002
+  type: implements
+- from_concept: C-001
+  to_concept: C-003
+  type: implements
+- from_concept: C-001
+  to_concept: C-004
+  type: implements
+- from_concept: C-001
+  to_concept: C-005
+  type: uses
+- from_concept: C-001
+  to_concept: C-006
+  type: uses
+- from_concept: C-001
+  to_concept: C-007
+  type: uses
+- from_concept: C-001
+  to_concept: C-008
+  type: owns
+- from_concept: C-001
+  to_concept: C-009
+  type: owns
+- from_concept: C-001
+  to_concept: C-015
+  type: owns
+- from_concept: C-001
+  to_concept: C-016
+  type: owns
+- from_concept: C-001
+  to_concept: C-017
+  type: uses
+- from_concept: C-001
+  to_concept: C-019
+  type: produces
+- from_concept: C-001
+  to_concept: C-020
+  type: produces
+- from_concept: C-002
+  to_concept: C-004
+  type: uses
+- from_concept: C-003
+  to_concept: C-004
+  type: uses
+- from_concept: C-003
+  to_concept: C-019
+  type: produces
+- from_concept: C-005
+  to_concept: C-010
+  type: uses
+- from_concept: C-007
+  to_concept: C-011
+  type: uses
+- from_concept: C-008
+  to_concept: C-010
+  type: produces
+- from_concept: C-009
+  to_concept: C-008
+  type: uses
+- from_concept: C-009
+  to_concept: C-010
+  type: implements
+- from_concept: C-009
+  to_concept: C-011
+  type: produces
+- from_concept: C-009
+  to_concept: C-017
+  type: uses
+- from_concept: C-010
+  to_concept: C-008
+  type: uses
+- from_concept: C-011
+  to_concept: C-012
+  type: produces
+- from_concept: C-012
+  to_concept: C-014
+  type: consumes
+- from_concept: C-013
+  to_concept: C-014
+  type: produces
+- from_concept: C-014
+  to_concept: C-012
+  type: uses
+- from_concept: C-015
+  to_concept: C-014
+  type: consumes
+- from_concept: C-015
+  to_concept: C-012
+  type: uses
+- from_concept: C-015
+  to_concept: C-016
+  type: produces
+- from_concept: C-015
+  to_concept: C-019
+  type: produces
+- from_concept: C-016
+  to_concept: C-014
+  type: consumes
+- from_concept: C-016
+  to_concept: C-017
+  type: uses
+- from_concept: C-017
+  to_concept: C-020
+  type: produces
+- from_concept: C-018
+  to_concept: C-017
+  type: extends
+- from_concept: C-018
+  to_concept: C-014
+  type: uses
+- from_concept: C-018
+  to_concept: C-020
+  type: produces
+- from_concept: C-021
+  to_concept: C-014
+  type: uses
+- from_concept: C-022
+  to_concept: C-005
+  type: uses
+- from_concept: C-022
+  to_concept: C-006
+  type: uses
+- from_concept: C-022
+  to_concept: C-018
+  type: uses
+- from_concept: C-023
+  to_concept: C-001
+  type: depends_on
+source_label_coverage:
+  covered_labels:
+  - '{lmrs}'
+  - '{sep1}'
+  - '{goal}'
+  - '{adpt}'
+  - '{prov}'
+  - '{mdl1}'
+  - '{hw01}'
+  - '{base}'
+  - '{mem1}'
+  - '{load}'
+  - '{stat}'
+  - '{dyn1}'
+  - '{dyn2}'
+  - '{tok1}'
+  - '{tok2}'
+  - '{tok3}'
+  - '{lim1}'
+  - '{lim2}'
+  - '{lim3}'
+  - '{adm1}'
+  - '{adm2}'
+  - '{adm3}'
+  - '{que1}'
+  - '{que2}'
+  - '{que3}'
+  - '{rech}'
+  - '{run1}'
+  - '{run2}'
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{err1}'
+  - '{obs1}'
+  - '{obs2}'
+  - '{cal1}'
+  - '{cal2}'
+  - '{cfg1}'
+  - '{mvp1}'
+  - '{mvp2}'
+  - '{inv1}'
+  - '{inv2}'
+  - '{inv3}'
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{mlife1}'
+  - '{mlife2}'
+  - '{mlife3}'
+  - '{mlife4}'
+  - '{mlife5}'
+  - '{mlife6}'
+  - '{lmcache1}'
+  - '{lmcache2}'
+  - '{lmcache3}'
+  - '{lmcache4}'
+  - '{lmcache5}'
+  - '{lmcache6}'
+  - '{lmcache7}'
+  - '{cmd4}'
+  - '{err2}'
+  - '{mvp3}'
+  - '{inv4}'
+  - '{inv5}'
+  uncovered_labels: []

@@ -1,0 +1,146 @@
+# HRS: Local Model Runtime Service
+
+{lmrs} Local Model Runtime Service — отдельный микросервис локального исполнения моделей. Он не является частью `model_access_core` и не является частью `ollama/model_workspace`. Сервис предоставляет высокоуровневый доступ к локально исполняемым моделям через adapter-based MCP-интерфейс.
+
+{sep1} `model_access_core` остаётся универсальным шлюзом к провайдерам. Для локальных моделей он не управляет VRAM, не загружает модель и не исполняет запрос напрямую. Он маршрутизирует локальный provider-запрос в Local Model Runtime Service через отдельный ProviderDriver.
+
+{goal} Цель Local Model Runtime Service — гарантировать, что ни один prompt не попадёт в runtime локальной модели, пока сервис не доказал, что запрос помещается в окно модели и в доступный динамический VRAM-пул после постоянных сервисов и загруженной статики модели.
+
+{adpt} Сервис должен быть построен на `mcp_proxy_adapter` по тем же принципам, что и остальные adapter-based микросервисы: публичные команды, `get_schema`, `validate_params`, `execute`, `metadata`, структурированные ответы, структурированные ошибки, healthcheck и регистрация на MCP Proxy.
+
+{prov} Для `model_access_core` этот сервис выглядит как отдельный локальный provider backend. Шлюз передаёт в него canonical chat request или близкую к canonical структуру: `session_id`, `request_id`, `model_name`, `messages`, `tools`, `reserved_output_tokens`, `options`. Ответ сервиса должен быть пригоден для нормализации обратно в canonical provider response.
+
+{mdl1} Сервис не должен быть привязан к одной конкретной модели. Qwen, Ollama-модель, GPT-OSS или другая локальная модель являются частными случаями. Модель описывается профилем: `model_name`, runtime backend, путь или endpoint, заявленное окно контекста, tokenizer profile, load policy, KV-cache profile и concurrency policy.
+
+{hw01} Начальный целевой hardware-профиль: одна GPU-карта с VRAM 24 GB и RAM 128 GB. Архитектура должна допускать дальнейший переход на карты с большим объёмом VRAM и/или несколько GPU без изменения внешнего контракта со шлюзом.
+
+{base} На GPU постоянно могут находиться дополнительные сервисы, например vectorizer и chunker. Поэтому базовая точка измерения VRAM — не пустая карта, а service baseline после запуска всех постоянных сервисов, но до загрузки основной LLM-модели.
+
+{mem1} При старте или калибровке сервис должен измерить `service_baseline_free_vram`: свободную VRAM после запуска постоянных GPU-резидентных сервисов. Список таких сервисов должен быть частью runtime profile, например `vectorizer`, `chunker`, CUDA/runtime buffers и другие always-on процессы.
+
+{load} После загрузки локальной модели сервис должен измерить `model_loaded_free_vram`. Разница между `service_baseline_free_vram` и `model_loaded_free_vram` считается измеренной статикой модели: `measured_model_static_vram`.
+
+{stat} `measured_model_static_vram` должен храниться как факт измерения для конкретной пары `model_name + runtime + quantization/profile + hardware_profile`. Эта величина не должна вычисляться теоретически, если есть фактический замер.
+
+{dyn1} Всё, что осталось после постоянных сервисов и загруженной статики модели, образует динамический пул VRAM. Этот пул используется для KV-cache, runtime buffers, batching overhead и активных запросов.
+
+{dyn2} Максимальный динамический пул вычисляется из VRAM, свободной после загрузки модели, за вычетом safety margin и runtime reserve. Текущий динамический пул дополнительно учитывает активные reservations уже исполняемых запросов.
+
+{tok1} Сервис обязан выполнять подсчёт токенов до постановки запроса в очередь и до запуска модели. Подсчёт должен учитывать не только текст пользователя, но и финальный prompt/chat-template: system messages, role markers, assistant/user messages, tool schemas, service headers и reserved output tokens.
+
+{tok2} Предпочтительный режим подсчёта токенов — tokenizer-aware подсчёт тем же tokenizer, который соответствует исполняемой модели и runtime. Грубая оценка вида `chars / 4` допускается только как fallback и должна явно маркироваться как rough estimate.
+
+{tok3} Если точный tokenizer недоступен, сервис должен либо использовать явно разрешённый approximate режим, либо отклонить запрос с ошибкой `TOKENIZER_UNAVAILABLE`. Нельзя молча принимать admission-решения на основании неточного подсчёта, если это запрещено конфигурацией.
+
+{lim1} Для каждого запроса сервис вычисляет `required_tokens`: input tokens, tool tokens, service tokens и reserved output tokens. Запрос должен быть отклонён, если `required_tokens` превышает заявленное окно модели.
+
+{lim2} Для каждого запроса сервис вычисляет требуемую динамическую VRAM. Эта оценка основана на `required_tokens`, калиброванной стоимости KV-cache на токен и per-request overhead.
+
+{lim3} Допустимый размер запроса определяется как минимум из двух величин: заявленного окна модели и количества токенов, которое помещается в динамический VRAM-пул после статики модели и постоянных сервисов.
+
+{adm1} Admission выполняется до очереди. Если запрос больше окна модели, он отклоняется с `CONTEXT_OVERFLOW`. Если запрос не помещается даже в максимальный динамический пул при отсутствии активных запросов, он отклоняется с `REQUEST_TOO_LARGE` или `HARDWARE_VRAM_INSUFFICIENT`.
+
+{adm2} Если запрос в принципе помещается в максимальный динамический пул, но сейчас не помещается из-за активных запросов, он должен быть поставлен в очередь, а не отклонён.
+
+{adm3} Если запрос помещается и в окно модели, и в текущий динамический VRAM-пул, сервис может запустить его немедленно или поставить в очередь согласно политике планировщика.
+
+{que1} Очередь должна хранить предрассчитанные параметры запроса: `request_id`, `session_id`, `model_name`, token counts, required dynamic VRAM, admission timestamp, expiration timestamp, priority и текущий статус.
+
+{que2} Основная политика очереди — largest-fit scheduling: при освобождении VRAM менеджер выбирает самый большой запрос, который помещается в текущий динамический пул. Это нужно для эффективного использования малого остатка VRAM на карте 24 GB.
+
+{que3} FIFO допускается только как fallback или отдельный конфигурируемый режим. Для основного сценария с малым динамическим VRAM-пулом FIFO менее эффективен, чем largest-fit.
+
+{rech} Перед фактическим запуском queued request должен повторно пройти capacity recheck, потому что между admission и запуском состояние VRAM могло измениться.
+
+{run1} Сервис должен поддерживать runtime backend abstraction. В качестве backend могут использоваться vLLM, Ollama, llama.cpp, GPT-OSS runtime или другой локальный runtime. Runtime backend не принимает admission-решения; он исполняет только уже допущенный запрос.
+
+{run2} RuntimeClient должен скрывать различия конкретного backend. Наружу сервис возвращает нормализованный результат: assistant message, usage, status, runtime metadata и telemetry.
+
+{cmd1} Минимальный публичный контракт команд сервиса должен включать: healthcheck, статус модели, capacity, подсчёт токенов, dry-run estimate/admission, chat-запрос, статус очереди и отмену запроса.
+
+{cmd2} Команда оценки запроса должна выполнять dry-run admission без постановки в очередь и без запуска модели. Она должна возвращать одно из решений: `would_execute`, `would_queue`, `would_reject`, а также reason code, token breakdown и capacity snapshot.
+
+{cmd3} Основная chat-команда должна принять запрос, выполнить подсчёт токенов, выполнить admission, затем вернуть одно из решений: `executed`, `queued`, `rejected`. В случае исполнения она возвращает результат модели; в случае очереди — состояние очереди; в случае отказа — стабильный reason code.
+
+{err1} Все ошибки должны быть машинно-читаемыми и стабильными. Минимальный набор: `CONTEXT_OVERFLOW`, `REQUEST_TOO_LARGE`, `HARDWARE_VRAM_INSUFFICIENT`, `HARDWARE_CAPACITY_UNKNOWN`, `TOKENIZER_UNAVAILABLE`, `MODEL_BUSY_AND_QUEUE_FULL`, `MODEL_NOT_LOADED`, `MODEL_LOAD_FAILED`, `RUNTIME_CALL_FAILED`, `REQUEST_CANCELLED`.
+
+{obs1} Сервис обязан логировать и возвращать telemetry: predicted tokens, predicted VRAM, actual prompt tokens, actual output tokens, latency, queue wait, VRAM snapshots, admission verdict и reason code.
+
+{obs2} Telemetry нужна не только для отладки, но и для последующей калибровки KV-cache стоимости, per-request overhead, safety margin и scheduler policy.
+
+{cal1} Стоимость KV-cache на токен должна поддерживать калибровку. Предпочтительный вариант — эмпирический замер прироста VRAM на разных длинах prompt, а не только теоретическая формула.
+
+{cal2} Калибровочный профиль должен быть привязан к модели, runtime backend, quantization/profile и hardware profile. При смене модели, runtime или карты профиль должен считаться недействительным или требовать повторной калибровки.
+
+{cfg1} Конфигурация сервиса должна задавать hardware profile, список resident services, safety margin, runtime reserve, модели, runtime backend, tokenizer profile, queue policy и лимиты очереди.
+
+{mvp1} MVP должен поддерживать одну resident LLM-модель на одной GPU-карте, постоянные vectorizer/chunker сервисы, измерение service baseline, измерение статики модели, tokenizer-aware подсчёт, admission, largest-fit очередь, один выбранный runtime backend и adapter-based MCP-команды.
+
+{mvp2} В MVP не входят multi-GPU scheduling, несколько одновременно resident LLM, streaming, speculative decoding, distributed inference, automatic model eviction и advanced batching optimizer.
+
+{inv1} Главный инвариант: слишком длинный prompt никогда не должен попасть в runtime модели. Он должен быть отклонён до очереди или до запуска с точным структурированным reason code.
+
+{inv2} Второй инвариант: запрос, который в принципе помещается в максимальный динамический пул, но не помещается прямо сейчас, должен ставиться в очередь, а не отклоняться как навсегда невозможный.
+
+{inv3} Третий инвариант: service baseline, model static VRAM и dynamic pool должны измеряться и храниться как runtime facts, а не заменяться только теоретическими предположениями.
+
+{dcache1} Сервис должен обеспечивать предзагрузку моделей в локальный дисковый cache. Предзагрузка означает скачивание, проверку целостности, подготовку локального layout модели, подготовку tokenizer files, runtime metadata и readiness marker без обязательной загрузки модели в VRAM.
+
+{dcache2} Disk model cache должен отделяться от VRAM model residency. Модель может быть доступна на диске, но не загружена в память. Состояния модели должны различаться явно: `not_cached`, `caching`, `cached_on_disk`, `loading_to_memory`, `loaded_in_memory`, `unloading`, `failed`.
+
+{dcache3} Сервис должен предоставлять команды управления disk cache: добавить модель в cache, проверить наличие модели в cache, удалить модель из cache, получить список cached моделей, проверить целостность cached модели и обновить cache metadata.
+
+{dcache4} Disk cache должен хранить профиль модели: `model_name`, `runtime`, `model_path`, `quantization/profile`, `declared_context_window`, tokenizer profile, checksum или revision, размер на диске, дата загрузки, compatibility flags и cache status.
+
+{mlife1} Сервис должен управлять загрузкой и выгрузкой модели из памяти. Загрузка модели в память является отдельной lifecycle-операцией и не должна смешиваться с предзагрузкой модели в disk cache.
+
+{mlife2} Сервис должен предоставлять команды `load_model`, `unload_model`, `reload_model`, `model_status` и `model_lifecycle_status`. Эти команды должны возвращать структурированный статус операции, включая состояние VRAM до операции, состояние VRAM после операции, измеренную статику модели и reason code при ошибке.
+
+{mlife3} Перед загрузкой модели в память сервис должен проверить, что модель находится в disk cache и совместима с выбранным runtime backend. Если модель отсутствует в cache, сервис должен либо вернуть `MODEL_NOT_CACHED`, либо выполнить cache preload, если это явно разрешено конфигурацией команды.
+
+{mlife4} После загрузки модели сервис обязан измерить `model_loaded_free_vram` и вычислить `measured_model_static_vram`. Эта операция является частью lifecycle загрузки модели и должна записывать runtime fact в профиль загруженной модели.
+
+{mlife5} Выгрузка модели из памяти должна освобождать VRAM-residency модели, но не обязана удалять модель из disk cache. После выгрузки сервис должен повторно измерить свободную VRAM и обновить состояние модели.
+
+{mlife6} Если модель находится в состоянии `loaded_in_memory`, сервис может использовать её для серии запросов без повторной загрузки. Для MVP основная политика — `keep_loaded`: одна resident LLM остаётся в памяти, пока не будет явно выгружена или заменена.
+
+{lmcache1} Сервис должен поддерживать интеграцию с vLLM LMCache как отдельным runtime/caching backend для ускорения повторного использования KV/context cache и эффективной работы с длинными или повторяющимися контекстами.
+
+{lmcache2} LMCache-интеграция не заменяет admission control. Даже если LMCache способен повторно использовать часть контекста, сервис всё равно обязан выполнить preflight token count, оценку динамической VRAM и capacity decision до запуска запроса.
+
+{lmcache3} Для runtime backend `vllm` сервис должен иметь конфигурационный блок LMCache: включено/выключено, путь к cache storage, policy, лимиты cache, eviction policy, namespace/session binding и режим совместимости с model profile.
+
+{lmcache4} Сервис должен различать disk model cache и LMCache. Disk model cache хранит веса, tokenizer и metadata модели. LMCache хранит runtime/cache artifacts для ускорения inference, например KV/context cache или совместимые с LMCache промежуточные состояния.
+
+{lmcache5} При оценке запроса сервис должен учитывать cache hit/miss статус LMCache, если runtime предоставляет такую информацию до исполнения. Ответ `estimate_request` должен уметь возвращать `cache_reuse_possible`, `estimated_cache_hit_tokens`, `effective_new_tokens` и `cache_estimate_quality`.
+
+{lmcache6} Admission должен быть консервативным: если LMCache hit не гарантирован до запуска, запрос должен оцениваться как cache miss. Cache hit может уменьшать фактическую нагрузку, но не должен приводить к небезопасному допуску запроса.
+
+{lmcache7} Telemetry должна фиксировать LMCache-показатели: cache hit/miss, reused tokens, new tokens, cache lookup latency, cache write latency, eviction events и влияние cache на фактическое потребление VRAM/latency.
+
+{cmd4} Минимальный публичный контракт команд сервиса должен дополнительно включать команды управления модельным disk cache и памятью: `local_model_cache_preload`, `local_model_cache_status`, `local_model_cache_delete`, `local_model_load`, `local_model_unload`, `local_model_reload`.
+
+{err2} Минимальный набор ошибок должен быть дополнен кодами: `MODEL_NOT_CACHED`, `MODEL_CACHE_PRELOAD_FAILED`, `MODEL_CACHE_CORRUPTED`, `MODEL_ALREADY_LOADED`, `MODEL_UNLOAD_FAILED`, `LMCACHE_UNAVAILABLE`, `LMCACHE_LOOKUP_FAILED`, `LMCACHE_WRITE_FAILED`.
+
+{mvp3} MVP должен включать disk cache lifecycle модели, явную загрузку и выгрузку модели из памяти, измерение VRAM после загрузки и базовую конфигурационную поддержку vLLM LMCache. Полная оптимизация LMCache hit/miss может быть вынесена за MVP, но архитектурные поля и команды должны быть заложены сразу.
+
+{inv4} Четвёртый инвариант: наличие модели в disk cache не означает, что модель загружена в VRAM. Эти состояния должны быть независимыми и явно отражаться в status-командах.
+
+{inv5} Пятый инвариант: LMCache не является основанием для небезопасного admission. Если reuse не подтверждён, запрос оценивается как полный cache miss.
+
+
+{areg} Регистрация публичных команд LMRS должна следовать adapter hook pattern: отдельный модуль предоставляет `register_lmrs_commands(registry)`, идемпотентно проверяет уже зарегистрированные команды, регистрирует классы команд через `registry.register(CommandClass, "custom")` и подключается через `register_custom_commands_hook` до запуска adapter server.
+
+{acmd} Каждая публичная команда LMRS должна быть тонким adapter command-классом поверх доменной логики: она наследует базовый `Command`, задаёт стабильное `name`, при необходимости включает `use_queue`, выполняет `validate_params`, вызывает доменный executor/service в `execute` и возвращает adapter `SuccessResult` или `ErrorResult` без размещения бизнес-логики в adapter registry.
+
+{asch} Схемы команд LMRS должны быть описаны отдельно от executor-кода. Для каждой публичной команды должны существовать request schema, result schema и error schema, используемые `get_schema`, `get_result_schema`, `get_error_schema` и базовой schema-based валидацией adapter `Command` перед выполнением доменных проверок.
+
+{amet} Метаданные команд LMRS должны быть отдельным discovery contract. `get_metadata` каждой команды должен публиковать имя, описание, параметры, result schema, error schema, стабильные error codes и примеры запросов/ответов так, чтобы MCP help, proxy discovery и OpenAPI могли описывать команду без чтения внутренней реализации.
+
+{acfg} Генератор конфигурации LMRS должен расширять готовый adapter config generator: сначала формируется базовая конфигурация adapter server, registration и queue manager, затем добавляются LMRS-разделы для hardware profile, resident services, model profiles, runtime backends, tokenizer profiles, admission policy, model disk cache, LMCache, telemetry и lifecycle limits.
+
+{aval} Валидатор конфигурации LMRS должен расширять готовый adapter config validator: он сначала проверяет базовые adapter-разделы, затем проверяет LMRS-разделы, включая обязательность model/runtime/tokenizer профилей, согласованность hardware и resident services, queue/admission limits, disk cache layout, LMCache compatibility и стабильность error/reporting sections.
+
+{ahok} Runtime entrypoint LMRS должен отвечать за hook registration, загрузку конфигурации, запуск доменных lifecycle-сервисов и передачу управления adapter `create_and_run_server`. Adapter factory не должен содержать admission, tokenizer, VRAM или model lifecycle логику; эти решения остаются в доменных сервисах LMRS.
+
+{aread} При реализации adapter integration LMRS должен использовать готовый README и проектные правила `mcp_proxy_adapter` как справочник по структуре adapter server, hooks, command contract, config generator/validator и metadata discovery. Эти документы являются integration reference, но продуктовые требования LMRS продолжают определяться HRS и MRS.

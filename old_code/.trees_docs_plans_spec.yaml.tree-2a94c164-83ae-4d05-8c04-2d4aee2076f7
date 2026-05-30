@@ -1,0 +1,3016 @@
+{
+  "source_sha256": "0a34da6c6fdba1209dd958675bddde5d6742c841a0df1f835bc724d5d91d97e8",
+  "root": [
+    {
+      "stable_id": "716cf6bf-34c4-444c-a235-b5d0c10264dd",
+      "type": "object",
+      "children": [
+        {
+          "stable_id": "cce67d32-9c0c-418a-a78b-039df0dda1fa",
+          "type": "object",
+          "key": "meta",
+          "children": [
+            {
+              "stable_id": "98bdd4b9-8447-4133-8272-b1ccdf5e3f19",
+              "type": "string",
+              "key": "title",
+              "value": "Machine-Readable Specification for Local Model Runtime Service"
+            },
+            {
+              "stable_id": "04639759-441c-46f9-a864-6fac06cdf5dc",
+              "type": "string",
+              "key": "version",
+              "value": "1.0"
+            },
+            {
+              "stable_id": "f7be08d1-5a09-4880-80bf-de615a68bb8f",
+              "type": "string",
+              "key": "source_spec",
+              "value": "docs/plans/source_spec.md"
+            },
+            {
+              "stable_id": "41919492-07a8-4c3c-aba8-904e324eff4b",
+              "type": "string",
+              "key": "status",
+              "value": "draft"
+            },
+            {
+              "stable_id": "1d4bb83f-1ae1-4299-90e1-0d1f804dcead",
+              "type": "string",
+              "key": "description",
+              "value": "Structured projection of the LMRS HRS into concepts, typed relations, and source label coverage."
+            }
+          ]
+        },
+        {
+          "stable_id": "b2ea9c8a-d1b3-486f-933d-aa27918d4553",
+          "type": "array",
+          "key": "concepts",
+          "children": [
+            {
+              "stable_id": "3cb75ecb-3b63-4fe8-b803-6dc32d6d9505",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "9a15782f-cd3f-42db-8560-92fc635c741b",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "0df0571f-c9e8-4a1d-b57d-ed5863a9454b",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Local Model Runtime Service"
+                },
+                {
+                  "stable_id": "7019d882-dd83-4397-9010-4f1febab08a1",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "A standalone adapter-based microservice that provides high-level access to locally executed language models while enforcing prompt admission before runtime execution."
+                },
+                {
+                  "stable_id": "b74736de-f1f7-458a-aea1-0a09aa5dc524",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "1cd7b1c5-3b3f-4ddc-b4a7-6e74e772caa2",
+                      "type": "string",
+                      "value": "It is separate from model_access_core and ollama/model_workspace."
+                    },
+                    {
+                      "stable_id": "91aadf0f-91bd-411f-81d6-49ce471fad0c",
+                      "type": "string",
+                      "value": "It exposes local model access through an adapter-based MCP interface."
+                    },
+                    {
+                      "stable_id": "3b06cc16-e95d-4b91-88f3-80dd65082de4",
+                      "type": "string",
+                      "value": "It must prevent any prompt from reaching the local model runtime until context-window and dynamic VRAM capacity have been proven."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "0836e09f-8b98-429d-b3ee-61519b78b133",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "03872567-7fdf-4505-aa7e-76c5865bc026",
+                      "type": "string",
+                      "value": "{lmrs}"
+                    },
+                    {
+                      "stable_id": "94746471-4bea-41f9-82db-3e9de25f09c1",
+                      "type": "string",
+                      "value": "{goal}"
+                    },
+                    {
+                      "stable_id": "39a0e652-e8bf-4329-98c1-c21634a668e8",
+                      "type": "string",
+                      "value": "{inv1}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "be6d7078-49f7-4adb-8bce-f1c0d88f22fa",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "b2e8f9af-a100-470f-b506-429bd8dc4257",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-002"
+                },
+                {
+                  "stable_id": "e1311234-bf40-4670-9ff9-cb73f3039f37",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Provider Gateway Integration"
+                },
+                {
+                  "stable_id": "86e84232-689f-4c7f-8f96-21fced2e4708",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The integration boundary through which model_access_core routes local provider requests to the Local Model Runtime Service."
+                },
+                {
+                  "stable_id": "06521b73-dba6-4641-88c1-f736b5f60b5e",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "97996ab4-edcf-4e5a-a6c8-802cc1f27524",
+                      "type": "string",
+                      "value": "model_access_core remains the universal provider gateway."
+                    },
+                    {
+                      "stable_id": "d6d9b2e7-1800-42aa-9613-069665ad2f9c",
+                      "type": "string",
+                      "value": "model_access_core does not manage VRAM, load local models, or execute local prompts directly."
+                    },
+                    {
+                      "stable_id": "e4c3be09-20b6-4d11-a9a1-4e8f44e112c4",
+                      "type": "string",
+                      "value": "LMRS appears to model_access_core as a local provider backend and returns responses normalizable into canonical provider responses."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "15e5bfec-2588-4b9b-928d-7a818d1bd069",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "fcf76546-700b-46c4-8486-25db50dd0796",
+                      "type": "string",
+                      "value": "{sep1}"
+                    },
+                    {
+                      "stable_id": "bb773d16-fb9b-413f-b135-d28ea0d4e93e",
+                      "type": "string",
+                      "value": "{prov}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "13f0ff8d-6fe8-43dd-bfcf-c66500cd6182",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "3854317f-71bb-460f-94d5-f5ee198250fd",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-003"
+                },
+                {
+                  "stable_id": "c2bdddd9-1d61-42eb-9261-676a624f58d1",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Adapter-Based MCP Interface"
+                },
+                {
+                  "stable_id": "210b1e01-d121-4c48-9a4f-93398ca30d4a",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The public MCP command surface implemented according to mcp_proxy_adapter conventions."
+                },
+                {
+                  "stable_id": "48af1b27-f9c8-46d1-8ee7-3d76c66f8282",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "95334080-a55f-48d3-93b5-56ff68637cc7",
+                      "type": "string",
+                      "value": "The service is built on mcp_proxy_adapter principles."
+                    },
+                    {
+                      "stable_id": "630a261e-ebbb-48c9-98cd-965f8e8add47",
+                      "type": "string",
+                      "value": "Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "15fe7f1e-47d0-41fe-9efe-c749dcfcd530",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "ab213942-6126-473b-b144-c70c39a8ae1d",
+                      "type": "string",
+                      "value": "{adpt}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "c2fe1b9b-9be3-43ab-977c-844e1bba65c9",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "9e1935e5-abfb-4f61-9118-cf8a856ee3fe",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-004"
+                },
+                {
+                  "stable_id": "d403be99-9fba-43c1-8b52-97c0ea8b50c1",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Canonical Chat Request"
+                },
+                {
+                  "stable_id": "ec772674-0944-4244-a6f1-597931cf3be9",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The request structure accepted from the provider gateway for local model execution or admission decisions."
+                },
+                {
+                  "stable_id": "dea18d24-4305-499d-9ebe-160d6e57b0dd",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "4a2cf472-11db-4860-beb3-a352d603a3bf",
+                      "type": "string",
+                      "value": "It contains session_id, request_id, model_name, messages, tools, reserved_output_tokens, and options."
+                    },
+                    {
+                      "stable_id": "bbe4bd40-aab8-4305-b8f4-7f0f9eadc1ac",
+                      "type": "string",
+                      "value": "It is close to the canonical chat request used by the provider gateway."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "59438e11-2c23-442c-abe7-2fb9b8f47e1e",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "9f57f778-5510-4378-a191-bf516f63f2f4",
+                      "type": "string",
+                      "value": "{prov}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "74f1d6f0-6dc1-4d81-a07c-88517aad28f4",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "70864ead-19df-4fbb-a1ff-9f6ae7e1a746",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-005"
+                },
+                {
+                  "stable_id": "4f114fbd-9714-4e97-8f55-bb2664f8b212",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Model Profile"
+                },
+                {
+                  "stable_id": "a5c64337-8031-49dc-af4f-4575f5328be5",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "A model-specific runtime description that makes LMRS independent from any one local model."
+                },
+                {
+                  "stable_id": "05f2d682-12f6-411b-896c-22a8be0fb7a5",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "5dd3b370-da1e-491c-8428-23c7dd4fd02c",
+                      "type": "string",
+                      "value": "It includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy."
+                    },
+                    {
+                      "stable_id": "77e4a98b-d95c-4015-9c72-43e965f8229b",
+                      "type": "string",
+                      "value": "Qwen, Ollama models, GPT-OSS, and other local models are instances described by profiles."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "3b8cc884-208c-46da-aa2e-6ed3855b7770",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "d57d27e4-2cf2-4389-bdd9-96ed9f88d843",
+                      "type": "string",
+                      "value": "{mdl1}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "129ea4fa-f849-445a-87c5-ea127e91d9c0",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "b8b91118-f125-4ffd-9d7a-3523192c9461",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-006"
+                },
+                {
+                  "stable_id": "6c77e985-f469-4195-b92a-f2a41ed2c96f",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Hardware Profile"
+                },
+                {
+                  "stable_id": "2270ff79-e75d-4ea2-acb2-834def1a05c8",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The hardware capacity description used for admission and calibration decisions."
+                },
+                {
+                  "stable_id": "1582c689-726c-48d6-8c56-0a4f264d1882",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "610f9ca0-8652-4ece-9911-c9b6d2901d5f",
+                      "type": "string",
+                      "value": "The initial target profile is one GPU with 24 GB VRAM and 128 GB RAM."
+                    },
+                    {
+                      "stable_id": "4097feef-a6ce-4ba9-93ba-b748dc888aac",
+                      "type": "string",
+                      "value": "The architecture must allow future larger VRAM cards and multiple GPUs without changing the external provider contract."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "fb141752-15ae-4205-9b00-07f45ddd5e31",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "0c1a158f-d176-46c1-b6d7-b6f8d81dd68f",
+                      "type": "string",
+                      "value": "{hw01}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "94bee629-f937-4789-8e36-4d8d91927078",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "590634b1-1050-4613-a1ad-35fd2fa0c5d7",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-007"
+                },
+                {
+                  "stable_id": "049c18bc-b189-44a5-8bff-2cd2fcdec4e4",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Resident GPU Services Baseline"
+                },
+                {
+                  "stable_id": "f9c0ec32-9de3-4469-b8cd-c54274950027",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The measured GPU baseline after always-on GPU resident services are running and before the main LLM is loaded."
+                },
+                {
+                  "stable_id": "af000980-5cd0-4a5f-ad20-de5e2afe4ee9",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "dfb03f03-cc81-4e3e-ad79-68495e6ae233",
+                      "type": "string",
+                      "value": "Resident services may include vectorizer, chunker, CUDA/runtime buffers, and other always-on processes."
+                    },
+                    {
+                      "stable_id": "5f3faa41-3950-497a-a853-86678692fe85",
+                      "type": "string",
+                      "value": "The baseline is not an empty GPU state."
+                    },
+                    {
+                      "stable_id": "d43d1bfc-854c-43c8-894c-d327f92008e4",
+                      "type": "string",
+                      "value": "The service measures service_baseline_free_vram at start or calibration."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "33ebafa2-40d5-41b0-aaba-da9cb508423e",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "b824a40d-8fc4-4902-9b47-2baab015e04e",
+                      "type": "string",
+                      "value": "{base}"
+                    },
+                    {
+                      "stable_id": "48885cbb-3f85-4856-88dc-1d04e5dc7ced",
+                      "type": "string",
+                      "value": "{mem1}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "3ba53720-29ef-4388-89f7-c1b8cb1eb695",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "99de583d-95a6-48a2-8a87-e1fc86952bc2",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-008"
+                },
+                {
+                  "stable_id": "d2b53091-1178-4973-b03d-c2c376bd6cf7",
+                  "type": "string",
+                  "key": "name",
+                  "value": "VRAM Runtime Facts"
+                },
+                {
+                  "stable_id": "729be230-248e-442f-8c5a-ef6c85e65b95",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "Measured runtime facts describing baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity."
+                },
+                {
+                  "stable_id": "a4fea728-9b4e-46ba-aba3-fdcda41686e0",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "9bd6ca81-3bfa-4edc-a299-f910a9ad9f85",
+                      "type": "string",
+                      "value": "model_loaded_free_vram is measured after loading the local model."
+                    },
+                    {
+                      "stable_id": "ac3d5784-e985-492d-a09f-342ada0c82cd",
+                      "type": "string",
+                      "value": "measured_model_static_vram is the difference between service_baseline_free_vram and model_loaded_free_vram."
+                    },
+                    {
+                      "stable_id": "bba89160-fc3a-444b-8e6a-6a21cda130d5",
+                      "type": "string",
+                      "value": "Measured static VRAM is stored for model_name, runtime, quantization/profile, and hardware_profile."
+                    },
+                    {
+                      "stable_id": "9275425e-6357-4910-82a8-7285d00a72f1",
+                      "type": "string",
+                      "value": "Runtime facts must not be replaced by purely theoretical assumptions."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "c4c9aa8c-f93e-4802-93c8-91b8c2e42223",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "75a25bbb-dd76-4ca2-a512-7284598f24e8",
+                      "type": "string",
+                      "value": "{load}"
+                    },
+                    {
+                      "stable_id": "3c14e96a-2a17-4c68-8a18-991424d81501",
+                      "type": "string",
+                      "value": "{stat}"
+                    },
+                    {
+                      "stable_id": "ec1c313c-e71c-4ae5-83e1-2db4d8d0d51c",
+                      "type": "string",
+                      "value": "{inv3}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "5b126e53-2c7b-417b-bdad-b2a8de79de39",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "42715381-96fe-4e8b-b460-095a7fa13542",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-009"
+                },
+                {
+                  "stable_id": "dff1980f-0180-492d-8efc-d8a2d551c183",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Dynamic VRAM Pool"
+                },
+                {
+                  "stable_id": "7335f14a-43ac-40a1-bf3f-2aef5d8925b0",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The remaining VRAM capacity available for KV-cache, runtime buffers, batching overhead, and active request reservations after resident services and model static memory."
+                },
+                {
+                  "stable_id": "030a688e-4c4a-4a57-a47b-4388e238336b",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "4a97a44a-d096-4fa1-894b-fb929fb50959",
+                      "type": "string",
+                      "value": "Maximum dynamic pool is computed from free VRAM after model load minus safety margin and runtime reserve."
+                    },
+                    {
+                      "stable_id": "57f9909c-3a35-46c2-bc63-0a17efd4ae91",
+                      "type": "string",
+                      "value": "Current dynamic pool additionally subtracts active request reservations."
+                    },
+                    {
+                      "stable_id": "43e8fc37-16c7-41be-aeac-8c375d557164",
+                      "type": "string",
+                      "value": "The dynamic pool bounds whether requests execute immediately, queue, or reject."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "e3253775-7be9-4fbb-9f7f-66180ab5e8a0",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "b8ebf723-b979-4db5-95a7-2e3f63625942",
+                      "type": "string",
+                      "value": "{dyn1}"
+                    },
+                    {
+                      "stable_id": "28ea42db-cf5a-4ae7-a01a-1a6968c259a1",
+                      "type": "string",
+                      "value": "{dyn2}"
+                    },
+                    {
+                      "stable_id": "48f7f614-e6b7-4c60-9015-4ba127d5f1a2",
+                      "type": "string",
+                      "value": "{lim3}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "ca264ef6-52ed-4bf7-a469-d563892c2878",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "df0ed046-0909-4456-98a2-a101a2b4a607",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-010"
+                },
+                {
+                  "stable_id": "c9ca215a-2309-4c9e-8f58-bf8d79309cfa",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Token Accounting"
+                },
+                {
+                  "stable_id": "1f719757-a803-48a1-8bf1-02495230f572",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The tokenizer-aware accounting process that computes request token requirements before queuing and before runtime execution."
+                },
+                {
+                  "stable_id": "0b475417-c53c-41d8-a0bb-c19ba401f813",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "87f9be64-e478-4cfb-9a9c-0a884d2838ee",
+                      "type": "string",
+                      "value": "Token counting covers final prompt/chat-template content, system messages, role markers, assistant/user messages, tool schemas, service headers, and reserved output tokens."
+                    },
+                    {
+                      "stable_id": "cbfdd886-8715-4f9a-be9f-7494f05767c4",
+                      "type": "string",
+                      "value": "The preferred mode uses the tokenizer matching the executing model and runtime."
+                    },
+                    {
+                      "stable_id": "264d825f-87d9-436e-8a08-3f043cadaa34",
+                      "type": "string",
+                      "value": "Rough chars/4 estimates are allowed only as explicitly marked fallback."
+                    },
+                    {
+                      "stable_id": "32bdbd30-be45-4b10-b4f2-dcf52a89fe3e",
+                      "type": "string",
+                      "value": "If exact tokenizer is unavailable, the service either uses explicitly allowed approximate mode or rejects with TOKENIZER_UNAVAILABLE."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "e3a11927-2db5-4582-837b-7e09b715016b",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "ad3f3d67-5e40-4215-aa0f-5135970d9030",
+                      "type": "string",
+                      "value": "{tok1}"
+                    },
+                    {
+                      "stable_id": "dfd76bc9-4908-4361-84d2-5035fdf8b31a",
+                      "type": "string",
+                      "value": "{tok2}"
+                    },
+                    {
+                      "stable_id": "a6ee2f73-613a-4f0d-ac51-631ba3cfe4f7",
+                      "type": "string",
+                      "value": "{tok3}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "9b2d9e27-0221-4814-ba38-f0b65ba5469e",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "9d25677e-e36d-4f8a-a138-16ad17b5493d",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-011"
+                },
+                {
+                  "stable_id": "6496ef97-7893-4df5-bef7-d8b2218179ff",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Request Capacity Estimate"
+                },
+                {
+                  "stable_id": "1fca5ccd-6d72-4a19-8369-e7089d1d4254",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The computed token and dynamic VRAM requirement for an individual request."
+                },
+                {
+                  "stable_id": "89398302-614f-4d30-a9b2-ca206e8f80f1",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "54d04b8d-5c18-4798-976a-3deb97077c60",
+                      "type": "string",
+                      "value": "required_tokens includes input tokens, tool tokens, service tokens, and reserved output tokens."
+                    },
+                    {
+                      "stable_id": "4449727e-8b11-43d9-a8d4-1de3e714c2b5",
+                      "type": "string",
+                      "value": "Requests exceeding the declared model context window are rejected."
+                    },
+                    {
+                      "stable_id": "0c919280-ccbc-4c7d-ad92-1713cc386e47",
+                      "type": "string",
+                      "value": "Dynamic VRAM estimate is based on required_tokens, calibrated KV-cache cost per token, and per-request overhead."
+                    },
+                    {
+                      "stable_id": "f8fac8c7-4f18-4657-b84a-889c43ea627e",
+                      "type": "string",
+                      "value": "Allowed request size is the minimum of declared context window and dynamic-pool token capacity."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "1066a375-a40e-496f-9406-2c2e75f30ac9",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "19b796a5-b86d-4462-b2d5-7bfa660cd9fc",
+                      "type": "string",
+                      "value": "{lim1}"
+                    },
+                    {
+                      "stable_id": "45892300-627d-4d57-886c-5902c98087f4",
+                      "type": "string",
+                      "value": "{lim2}"
+                    },
+                    {
+                      "stable_id": "83be8ed5-c62f-42ec-a771-7e633a71b02e",
+                      "type": "string",
+                      "value": "{lim3}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "ef5b364d-2601-4113-abbd-60ec8fdb69ab",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "12327fa4-dcaf-457f-b91e-72ba987fa8e1",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "4ebd5994-01a3-436b-9db9-b16d249d39ec",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Admission Control"
+                },
+                {
+                  "stable_id": "15c1e007-0059-42ac-86c2-922fbde3295d",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The pre-queue decision process that classifies requests as executable, queueable, or rejected using context-window and VRAM capacity constraints."
+                },
+                {
+                  "stable_id": "d149f7db-79ea-41dd-8d0a-4bfcc8265b88",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "090a872e-6b0c-44e5-8975-89ad4cc8b491",
+                      "type": "string",
+                      "value": "Admission runs before a request enters the queue."
+                    },
+                    {
+                      "stable_id": "da9ff335-26c2-4ed6-9b76-33df018193f5",
+                      "type": "string",
+                      "value": "Requests over the model context window are rejected with CONTEXT_OVERFLOW."
+                    },
+                    {
+                      "stable_id": "9abe8fbe-1e20-4fd5-bb2e-932bf4a44035",
+                      "type": "string",
+                      "value": "Requests too large for the maximum dynamic pool are rejected with REQUEST_TOO_LARGE or HARDWARE_VRAM_INSUFFICIENT."
+                    },
+                    {
+                      "stable_id": "168ac9fe-48ca-4b1b-a5e8-4d93b30890c7",
+                      "type": "string",
+                      "value": "Requests that fit the maximum dynamic pool but not current capacity are queued, not permanently rejected."
+                    },
+                    {
+                      "stable_id": "dcd9a8ef-c406-4448-ac83-b1855f4d5b3b",
+                      "type": "string",
+                      "value": "Requests fitting both model window and current dynamic pool may execute immediately or be queued according to scheduler policy."
+                    },
+                    {
+                      "stable_id": "d2c32ecf-2db3-4b6f-b58c-808f6b99abe7",
+                      "type": "string",
+                      "value": "LMCache reuse does not permit unsafe admission."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "74d970ff-88c8-4769-aa8c-33484d2c983f",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "1d293982-2ebe-482c-a020-5cc44c440f17",
+                      "type": "string",
+                      "value": "{adm1}"
+                    },
+                    {
+                      "stable_id": "765f244f-83d9-43d9-bafa-a0da4ee1d49c",
+                      "type": "string",
+                      "value": "{adm2}"
+                    },
+                    {
+                      "stable_id": "b4d1b019-b951-49a8-9583-b13e9f84dd16",
+                      "type": "string",
+                      "value": "{adm3}"
+                    },
+                    {
+                      "stable_id": "6e9c7420-c9b1-488e-a03f-49af6359adf0",
+                      "type": "string",
+                      "value": "{inv1}"
+                    },
+                    {
+                      "stable_id": "8904c17c-613a-4a13-adde-b41c32aed41d",
+                      "type": "string",
+                      "value": "{inv2}"
+                    },
+                    {
+                      "stable_id": "5e9b646a-4132-41f3-b6e5-3c3409d74b11",
+                      "type": "string",
+                      "value": "{lmcache2}"
+                    },
+                    {
+                      "stable_id": "a66a62f1-689e-4b9e-b5f7-c139584238e2",
+                      "type": "string",
+                      "value": "{lmcache6}"
+                    },
+                    {
+                      "stable_id": "39083cb0-7ad7-455a-a187-6f397040ed1e",
+                      "type": "string",
+                      "value": "{inv5}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "0831e3d4-64a7-4cc1-a9c2-8ef7e047c00e",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "ace33101-5f73-4670-abe6-9f563aaab5ce",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-013"
+                },
+                {
+                  "stable_id": "cf8c35a4-82d0-4ced-99d2-f9447044d9f7",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Request Queue"
+                },
+                {
+                  "stable_id": "60b722a2-79f5-47de-930e-4be4585dc703",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The queue of admitted requests waiting for dynamic VRAM capacity or scheduler selection."
+                },
+                {
+                  "stable_id": "af47b266-3ce2-4138-b57a-c7089c42c021",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "5205505b-297a-43ee-a7cd-1d179903e17b",
+                      "type": "string",
+                      "value": "Queued records store request_id, session_id, model_name, token counts, required dynamic VRAM, admission timestamp, expiration timestamp, priority, and status."
+                    },
+                    {
+                      "stable_id": "0ccdd607-2f20-4802-87b4-ebe8ebe23c13",
+                      "type": "string",
+                      "value": "Queued requests must pass capacity recheck before actual launch."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "cb173810-1276-481e-9395-2112f61b8f70",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "4c09a4f8-b155-42c4-bd05-68edc735014b",
+                      "type": "string",
+                      "value": "{que1}"
+                    },
+                    {
+                      "stable_id": "2be054fd-e91e-4fff-b31d-6462edb80cb5",
+                      "type": "string",
+                      "value": "{rech}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "db12fc32-e99f-4339-abb6-02fc5b157f2a",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "d0d544f4-9826-4f7e-9c5e-b26ecc897372",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-014"
+                },
+                {
+                  "stable_id": "8f5fa348-9a49-4031-a033-cfd7327250fd",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Scheduler Policy"
+                },
+                {
+                  "stable_id": "d2769462-c27d-4640-969e-0d8eb8c32caf",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The policy that selects queued requests for execution when dynamic VRAM becomes available."
+                },
+                {
+                  "stable_id": "aedda47c-97ee-4d26-9704-2dce89fae514",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "0a3048d5-0a91-4e80-81dc-0f4afe928b7e",
+                      "type": "string",
+                      "value": "The primary policy is largest-fit scheduling."
+                    },
+                    {
+                      "stable_id": "62734728-8c8d-4b7e-9a3c-59624ace8d8f",
+                      "type": "string",
+                      "value": "Largest-fit selects the largest queued request that fits the current dynamic pool."
+                    },
+                    {
+                      "stable_id": "8f6f6db5-b116-4e22-9870-34547d188173",
+                      "type": "string",
+                      "value": "FIFO is allowed only as fallback or a configurable mode."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "87a84014-411d-4337-9f0c-3c95c57af436",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "619cc3f6-b3cb-45be-a746-bc2e8f8e70d8",
+                      "type": "string",
+                      "value": "{que2}"
+                    },
+                    {
+                      "stable_id": "811414f5-68db-4335-b755-8f1b7a3529d4",
+                      "type": "string",
+                      "value": "{que3}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "d3955343-1082-483f-919b-b70d96136577",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "5cab2067-d126-4c1b-af4a-d75e25f6cfb0",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-015"
+                },
+                {
+                  "stable_id": "3d4a5f5f-8d47-4260-baef-9e7f24293ed1",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Runtime Backend"
+                },
+                {
+                  "stable_id": "bb69b1fa-e8e3-42ad-afdf-5a344c694969",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "An execution backend abstraction that runs only requests admitted by LMRS."
+                },
+                {
+                  "stable_id": "943a34c8-ac4a-4783-ab27-dca128af2c73",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "57342691-6a7b-4abb-bb46-34a8f0b6b0bb",
+                      "type": "string",
+                      "value": "Supported backend examples include vLLM, Ollama, llama.cpp, GPT-OSS runtime, or another local runtime."
+                    },
+                    {
+                      "stable_id": "f7cfbd2f-c025-4c30-b459-22c269144322",
+                      "type": "string",
+                      "value": "The runtime backend does not make admission decisions."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "fc1f8933-3694-458f-a16d-bcd7439980bf",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "b4329e55-ff63-4512-a3a7-2960f01ca694",
+                      "type": "string",
+                      "value": "{run1}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "3f600ffe-004e-4225-b7a0-cb1f5bf7d1d1",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "1bf7a625-e3e6-4aa7-86d2-1df80e17a597",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-016"
+                },
+                {
+                  "stable_id": "cfb53f1a-1485-420b-9941-500142a73a08",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Runtime Client"
+                },
+                {
+                  "stable_id": "5a1b5f17-07d9-4772-90a7-eb30a982b0ca",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The abstraction that hides backend differences and returns normalized local model execution results."
+                },
+                {
+                  "stable_id": "d4a5982d-c548-4b3f-aa15-b5b9ac985475",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "9787efde-bab8-4f47-92d2-99ec1237715f",
+                      "type": "string",
+                      "value": "The runtime client returns assistant message, usage, status, runtime metadata, and telemetry."
+                    },
+                    {
+                      "stable_id": "337320c9-851a-4bb5-adde-0e1d153ab95b",
+                      "type": "string",
+                      "value": "The result must be suitable for normalization back into a canonical provider response."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "d3f49f25-d453-4c66-961c-2f460731608c",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "ceecb1f9-a91c-4dc9-81fe-b10ce33e6b86",
+                      "type": "string",
+                      "value": "{run2}"
+                    },
+                    {
+                      "stable_id": "e372dac5-7e62-4f93-87e0-a272d3455551",
+                      "type": "string",
+                      "value": "{prov}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "0c7133f6-bdd8-4e7c-88e6-1941131cbcec",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "d845b586-13ed-41a3-a634-a1e7a1bc3e69",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-017"
+                },
+                {
+                  "stable_id": "eb1944f3-4d79-40df-9d51-681eb587c0d9",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Public Command Contract"
+                },
+                {
+                  "stable_id": "4557f954-7890-490f-9c98-6fb20712f1df",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations."
+                },
+                {
+                  "stable_id": "12760a61-c0a5-4eda-b976-ccf4837650e5",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "9b5a63a1-e451-4099-a1e3-f44ada91d80b",
+                      "type": "string",
+                      "value": "The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation."
+                    },
+                    {
+                      "stable_id": "4c923672-dda2-4c47-9110-3b518c9c9a0c",
+                      "type": "string",
+                      "value": "The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot."
+                    },
+                    {
+                      "stable_id": "aafd0e35-0ea3-448e-8806-4caaf0bfdcac",
+                      "type": "string",
+                      "value": "The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code."
+                    },
+                    {
+                      "stable_id": "4847538a-a4f0-4886-b8f3-d2639bf393fe",
+                      "type": "string",
+                      "value": "Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "74f84237-e42a-4aef-8136-b49e8cd4bb32",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "65919df3-51e1-4f81-9ada-bcab33e9c576",
+                      "type": "string",
+                      "value": "{cmd1}"
+                    },
+                    {
+                      "stable_id": "6e2990aa-cb2c-4cf1-9e68-24e2134a0ca9",
+                      "type": "string",
+                      "value": "{cmd2}"
+                    },
+                    {
+                      "stable_id": "cc5b92bb-f4ba-4584-aa62-6ba6131a91a0",
+                      "type": "string",
+                      "value": "{cmd3}"
+                    },
+                    {
+                      "stable_id": "b1a7da71-f763-4cdf-b1f1-9d401ab20184",
+                      "type": "string",
+                      "value": "{cmd4}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "0fcc2aba-b5fd-4416-9ce5-e8e4c72add30",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "1c97a9a5-91a9-468a-9c8b-018fc85f7d04",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-018"
+                },
+                {
+                  "stable_id": "cc50d71f-1d41-4268-8fa5-9728c4fb6315",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Structured Error Contract"
+                },
+                {
+                  "stable_id": "f1e134ef-7de5-4392-b771-c7ffd2452879",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The stable machine-readable error code set returned by LMRS for admission, tokenizer, hardware, model lifecycle, runtime, cache, and cancellation failures."
+                },
+                {
+                  "stable_id": "293e2209-a43b-4eb4-b980-f2907c34e22d",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "5ca3f89e-10d3-4788-961a-720a4941508f",
+                      "type": "string",
+                      "value": "Minimum errors include CONTEXT_OVERFLOW, REQUEST_TOO_LARGE, HARDWARE_VRAM_INSUFFICIENT, HARDWARE_CAPACITY_UNKNOWN, TOKENIZER_UNAVAILABLE, MODEL_BUSY_AND_QUEUE_FULL, MODEL_NOT_LOADED, MODEL_LOAD_FAILED, RUNTIME_CALL_FAILED, and REQUEST_CANCELLED."
+                    },
+                    {
+                      "stable_id": "7b7489dc-db21-4163-a547-4c058703b9e2",
+                      "type": "string",
+                      "value": "Additional errors include MODEL_NOT_CACHED, MODEL_CACHE_PRELOAD_FAILED, MODEL_CACHE_CORRUPTED, MODEL_ALREADY_LOADED, MODEL_UNLOAD_FAILED, LMCACHE_UNAVAILABLE, LMCACHE_LOOKUP_FAILED, and LMCACHE_WRITE_FAILED."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "0fa1f96e-dcc6-4e76-82fe-f1bee04c046e",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "351f8c37-5f8b-47ec-94ef-d5a030d4f937",
+                      "type": "string",
+                      "value": "{err1}"
+                    },
+                    {
+                      "stable_id": "52e9b24e-1500-4575-a125-b64be4863698",
+                      "type": "string",
+                      "value": "{err2}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "a3adab69-f8a4-4201-a9f7-8cbb2b12a6ec",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "1af3c6c7-f90b-42e6-a0af-3f1692d8c31b",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-019"
+                },
+                {
+                  "stable_id": "534302e8-fdb1-4ec1-ba3a-f213eb63359f",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Telemetry"
+                },
+                {
+                  "stable_id": "34044508-3e32-453c-a273-3bf768c83a31",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The observable data emitted and returned by LMRS for debugging, admission traceability, and calibration feedback."
+                },
+                {
+                  "stable_id": "3c9086e4-6d54-4738-b414-ec8449325c4d",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "d76dc90e-1a0e-452e-bbab-568d313afc9e",
+                      "type": "string",
+                      "value": "Telemetry includes predicted tokens, predicted VRAM, actual prompt tokens, actual output tokens, latency, queue wait, VRAM snapshots, admission verdict, and reason code."
+                    },
+                    {
+                      "stable_id": "3a233560-636e-4d71-9658-705281a2a5ad",
+                      "type": "string",
+                      "value": "Telemetry supports calibration of KV-cache cost, per-request overhead, safety margin, and scheduler policy."
+                    },
+                    {
+                      "stable_id": "b5440229-8be8-44ca-89f7-7f63fccdf152",
+                      "type": "string",
+                      "value": "LMCache telemetry includes hit/miss, reused tokens, new tokens, lookup latency, write latency, eviction events, and impact on actual VRAM and latency."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "85e93cb0-786e-401c-a885-4b77b15cec97",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "73162e4d-7044-4974-9be0-6ca7eb8b8054",
+                      "type": "string",
+                      "value": "{obs1}"
+                    },
+                    {
+                      "stable_id": "e75c34c2-70c8-4d4a-943c-5f756b7edf33",
+                      "type": "string",
+                      "value": "{obs2}"
+                    },
+                    {
+                      "stable_id": "6b7d50e5-932a-4ef5-b980-4a218b9676a0",
+                      "type": "string",
+                      "value": "{lmcache7}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "101e182d-bb12-4521-b749-20ce65754fc9",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "7795f071-398b-4dfa-809a-4b4682760e24",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-020"
+                },
+                {
+                  "stable_id": "2fa42be4-61e4-45d8-86ee-58823720ca0d",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Calibration Profile"
+                },
+                {
+                  "stable_id": "03b11ce1-bdc8-4485-9619-783c15af0900",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The model, runtime, quantization, and hardware-specific calibration data for estimating KV-cache and overhead costs."
+                },
+                {
+                  "stable_id": "2b22387f-53b9-4138-96f3-93d444f15fb0",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "f8f09c12-79cf-4b70-9006-de43df46aa78",
+                      "type": "string",
+                      "value": "KV-cache cost per token supports empirical calibration."
+                    },
+                    {
+                      "stable_id": "57c29be1-b051-4d38-a18c-001b55f937ce",
+                      "type": "string",
+                      "value": "The preferred calibration method measures VRAM growth across prompt lengths."
+                    },
+                    {
+                      "stable_id": "ad2b41bd-cb94-4e4a-b4b9-c62e91ec75eb",
+                      "type": "string",
+                      "value": "Calibration profiles are bound to model, runtime backend, quantization/profile, and hardware profile."
+                    },
+                    {
+                      "stable_id": "b3b48963-c2b0-4bb5-9ddf-003d061a08ec",
+                      "type": "string",
+                      "value": "Changing model, runtime, or GPU invalidates or requires renewing the calibration profile."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "a9e4ee81-2870-4b30-90db-f6f488f04ec6",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "07dfaa90-138a-4693-aa7e-c72c85bd4091",
+                      "type": "string",
+                      "value": "{cal1}"
+                    },
+                    {
+                      "stable_id": "c4407b6f-954c-46bc-b810-a5af224d9229",
+                      "type": "string",
+                      "value": "{cal2}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "58bfc016-1cb3-4c84-8d33-1a84b0e2430f",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "e49c2187-1a70-43ae-b6ee-800b2132c73d",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-021"
+                },
+                {
+                  "stable_id": "a4531012-ecd6-485f-bf98-f43a10cf5df1",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Runtime Configuration"
+                },
+                {
+                  "stable_id": "310788f7-57b8-46a0-ab27-3265c339ca02",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits."
+                },
+                {
+                  "stable_id": "1d9bc635-f08d-4374-87ab-b4881fa8f065",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "0602168d-cfc7-4849-af69-1626125c6e32",
+                      "type": "string",
+                      "value": "Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits."
+                    },
+                    {
+                      "stable_id": "93794b25-8535-4e4f-af59-483b16e6e75c",
+                      "type": "string",
+                      "value": "For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "ad85cc83-46b0-4017-bb1f-48355b7d340e",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "c11f73f1-e9ef-46b5-bcba-09b45b02416b",
+                      "type": "string",
+                      "value": "{cfg1}"
+                    },
+                    {
+                      "stable_id": "a2facc06-3430-435f-b2be-71044892a98c",
+                      "type": "string",
+                      "value": "{lmcache3}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "611ba074-0935-4be3-9ed4-02f7839eb11c",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "f9a94a8b-6772-4e8e-8308-d3b921c16ea3",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-022"
+                },
+                {
+                  "stable_id": "710b33ba-3ef7-4380-9ba7-46e5ed6fb8d7",
+                  "type": "string",
+                  "key": "name",
+                  "value": "MVP Scope"
+                },
+                {
+                  "stable_id": "a4773a17-21b9-40cb-9e99-fecb0582acd3",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The explicit boundary of features included and excluded from the initial LMRS implementation."
+                },
+                {
+                  "stable_id": "481aa52e-ed24-4a09-b9be-87379bc0d48e",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "d32471a9-c570-46ed-a9d7-192633bf85bc",
+                      "type": "string",
+                      "value": "MVP includes one resident LLM on one GPU, persistent vectorizer/chunker services, service baseline measurement, model static measurement, tokenizer-aware counting, admission, largest-fit queue, one selected runtime backend, and adapter-based MCP commands."
+                    },
+                    {
+                      "stable_id": "b4041166-f7e2-45b8-a500-65e0ed4c4d95",
+                      "type": "string",
+                      "value": "MVP excludes multi-GPU scheduling, multiple resident LLMs, streaming, speculative decoding, distributed inference, automatic model eviction, and advanced batching optimizer."
+                    },
+                    {
+                      "stable_id": "f418e52c-dddb-4ae8-9eca-d83e7a683017",
+                      "type": "string",
+                      "value": "MVP includes disk cache lifecycle, explicit memory load/unload, VRAM measurement after load, and basic vLLM LMCache configuration support."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "52dbf365-5400-41c8-82e9-2a5de1266cd6",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "68708caa-87fc-4110-89ff-273e5efe96a5",
+                      "type": "string",
+                      "value": "{mvp1}"
+                    },
+                    {
+                      "stable_id": "547520cd-6187-4a23-9746-d8b2bf253085",
+                      "type": "string",
+                      "value": "{mvp2}"
+                    },
+                    {
+                      "stable_id": "8640999d-5491-4f7a-9a3f-838cf5817f03",
+                      "type": "string",
+                      "value": "{mvp3}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "3a506413-af06-4739-b154-52bb56f5e188",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "0ebdcf8d-ae2f-4b41-8f82-f474fb0f6be7",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-023"
+                },
+                {
+                  "stable_id": "b0e64e82-ed33-4aaa-9b22-bae6149763a4",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Disk Model Cache"
+                },
+                {
+                  "stable_id": "8d9d4165-71df-4491-9e49-298970570eb1",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The disk-resident model cache that stores model weights, tokenizer files, runtime metadata, integrity information, readiness state, and cache profile independently from VRAM residency."
+                },
+                {
+                  "stable_id": "fed2be31-0a78-4e02-8f5c-5387a97bf64d",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "a827c223-4416-4231-b884-6d5056643f24",
+                      "type": "string",
+                      "value": "Preload downloads, verifies integrity, prepares local layout, tokenizer files, runtime metadata, and readiness marker without requiring VRAM load."
+                    },
+                    {
+                      "stable_id": "c11af98e-8e57-4a08-8e88-6784e27ae890",
+                      "type": "string",
+                      "value": "Disk cache and VRAM model residency are separate states."
+                    },
+                    {
+                      "stable_id": "0ffcd65d-79bd-47e2-9101-fe3b1ef2d02c",
+                      "type": "string",
+                      "value": "Model states include not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed."
+                    },
+                    {
+                      "stable_id": "6d611271-d8b5-4e68-acc6-921ff0f874ab",
+                      "type": "string",
+                      "value": "Cache management commands add, check, delete, list, verify integrity, and update metadata."
+                    },
+                    {
+                      "stable_id": "d6572246-b092-404d-9d2c-427779367585",
+                      "type": "string",
+                      "value": "Cache profile stores model_name, runtime, model_path, quantization/profile, declared_context_window, tokenizer profile, checksum or revision, disk size, load date, compatibility flags, and cache status."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "94a1f125-4ef3-451e-bbfc-91d14600d3bf",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "d0fe6526-12d1-46fa-8038-83652131ddf8",
+                      "type": "string",
+                      "value": "{dcache1}"
+                    },
+                    {
+                      "stable_id": "66bdc9af-2a2b-4ada-a0a7-f731c4c865d3",
+                      "type": "string",
+                      "value": "{dcache2}"
+                    },
+                    {
+                      "stable_id": "0993ba8f-5ca8-4c67-96ac-a6920796a883",
+                      "type": "string",
+                      "value": "{dcache3}"
+                    },
+                    {
+                      "stable_id": "93af3b8f-2177-40ef-90c6-4b89062ad9b4",
+                      "type": "string",
+                      "value": "{dcache4}"
+                    },
+                    {
+                      "stable_id": "9067254b-aa17-4367-976a-05a155edff02",
+                      "type": "string",
+                      "value": "{inv4}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "3ae7eaa1-c257-4805-ac33-8b9afb6109d2",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "d92e5a15-8e48-4809-a02d-1e737cc0ec01",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-024"
+                },
+                {
+                  "stable_id": "d66a3419-cb3d-424b-8f44-9a50cb26ee2e",
+                  "type": "string",
+                  "key": "name",
+                  "value": "Model Memory Lifecycle"
+                },
+                {
+                  "stable_id": "75a8d50f-4e7a-4d7a-abb9-ebc2d9d02b69",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The lifecycle that explicitly loads, unloads, reloads, and reports model residency in memory independently from disk cache availability."
+                },
+                {
+                  "stable_id": "bbb9e99d-ae29-4cd6-b0f5-33e8bb871295",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "00883906-b49d-48aa-a06c-906f19acdcfd",
+                      "type": "string",
+                      "value": "Loading to memory is separate from disk cache preload."
+                    },
+                    {
+                      "stable_id": "24de1143-e2b6-415f-8966-281b95701b60",
+                      "type": "string",
+                      "value": "Lifecycle commands include load_model, unload_model, reload_model, model_status, and model_lifecycle_status."
+                    },
+                    {
+                      "stable_id": "306af286-357f-4fd5-bbfa-0aa1ca6a1a75",
+                      "type": "string",
+                      "value": "Before loading, the service verifies disk cache presence and runtime compatibility or returns MODEL_NOT_CACHED unless preload is explicitly allowed."
+                    },
+                    {
+                      "stable_id": "a7f61ea0-75ea-46c8-a7d9-7801a54a37d8",
+                      "type": "string",
+                      "value": "After loading, the service measures model_loaded_free_vram and records measured_model_static_vram."
+                    },
+                    {
+                      "stable_id": "be06e2c8-837b-4393-a2f4-a0a0bac9a515",
+                      "type": "string",
+                      "value": "Unloading frees VRAM residency without requiring disk cache deletion and updates free VRAM state."
+                    },
+                    {
+                      "stable_id": "31cb3154-9ce0-4cb8-b5c2-9bdc26cee211",
+                      "type": "string",
+                      "value": "The MVP policy is keep_loaded for one resident LLM until explicit unload or replacement."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "f4ca39c7-9cd2-4cef-b017-f36afb4df7fa",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "ebcd6e3e-914a-4242-9018-6cc9bb51266f",
+                      "type": "string",
+                      "value": "{mlife1}"
+                    },
+                    {
+                      "stable_id": "52b19844-184f-4f37-abc7-b57994530f45",
+                      "type": "string",
+                      "value": "{mlife2}"
+                    },
+                    {
+                      "stable_id": "cfc95ab4-4ef4-430d-bff4-38c0d28b24c6",
+                      "type": "string",
+                      "value": "{mlife3}"
+                    },
+                    {
+                      "stable_id": "287f551a-76e4-4f9e-a63f-029a4ac2b9c0",
+                      "type": "string",
+                      "value": "{mlife4}"
+                    },
+                    {
+                      "stable_id": "bd588902-167d-40eb-ad5f-453883f102a2",
+                      "type": "string",
+                      "value": "{mlife5}"
+                    },
+                    {
+                      "stable_id": "4b8949a4-171a-4ea3-ab68-91e4f7d93414",
+                      "type": "string",
+                      "value": "{mlife6}"
+                    },
+                    {
+                      "stable_id": "3819a029-9562-48d9-b982-dedb123a6488",
+                      "type": "string",
+                      "value": "{inv4}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stable_id": "5af80e66-210f-4392-a6b0-02399a3fecfc",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "860b7caf-81fd-4d5c-8142-3bf9fc5362bb",
+                  "type": "string",
+                  "key": "concept_id",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "4e34cbc4-82ed-4387-8191-20631ce0fe62",
+                  "type": "string",
+                  "key": "name",
+                  "value": "LMCache Integration"
+                },
+                {
+                  "stable_id": "e10d84c6-5bec-4a8a-bd15-f28378993936",
+                  "type": "string",
+                  "key": "definition",
+                  "value": "The vLLM LMCache runtime caching integration used to accelerate reuse of repeated or long context while preserving conservative admission decisions."
+                },
+                {
+                  "stable_id": "32d354ca-ae40-4602-aeb2-32adf31f5fc2",
+                  "type": "array",
+                  "key": "properties",
+                  "children": [
+                    {
+                      "stable_id": "1b55760f-ace6-46a2-a7ec-c906d20016a2",
+                      "type": "string",
+                      "value": "LMCache is a separate runtime/caching backend and does not replace admission control."
+                    },
+                    {
+                      "stable_id": "16e076b4-54f9-45fa-8c20-e688b22829ec",
+                      "type": "string",
+                      "value": "Disk model cache and LMCache are distinct caches with different artifacts."
+                    },
+                    {
+                      "stable_id": "85200f13-4d22-4e5f-a8de-d23811d8fe13",
+                      "type": "string",
+                      "value": "Estimate responses may include cache_reuse_possible, estimated_cache_hit_tokens, effective_new_tokens, and cache_estimate_quality when pre-execution cache information is available."
+                    },
+                    {
+                      "stable_id": "faf675fa-739f-4090-b853-b9a8bcc41e50",
+                      "type": "string",
+                      "value": "If a cache hit is not guaranteed before launch, admission estimates the request as a full cache miss."
+                    }
+                  ]
+                },
+                {
+                  "stable_id": "e2e5dc1c-6a2d-46ea-8760-571c881ac01b",
+                  "type": "array",
+                  "key": "source_labels",
+                  "children": [
+                    {
+                      "stable_id": "e4befccf-e7e0-4639-8a0a-ecc6aeaf8813",
+                      "type": "string",
+                      "value": "{lmcache1}"
+                    },
+                    {
+                      "stable_id": "89b6a557-908f-4bc6-a6c2-0f4a195b8022",
+                      "type": "string",
+                      "value": "{lmcache2}"
+                    },
+                    {
+                      "stable_id": "8e65a488-f389-43ac-8897-7a99df6459b6",
+                      "type": "string",
+                      "value": "{lmcache3}"
+                    },
+                    {
+                      "stable_id": "88c08b6b-63db-4845-995c-afe0714c250d",
+                      "type": "string",
+                      "value": "{lmcache4}"
+                    },
+                    {
+                      "stable_id": "74d2d108-d26b-45a4-a57b-449304c20093",
+                      "type": "string",
+                      "value": "{lmcache5}"
+                    },
+                    {
+                      "stable_id": "664af2ac-83e5-475c-a694-12988f04ba7b",
+                      "type": "string",
+                      "value": "{lmcache6}"
+                    },
+                    {
+                      "stable_id": "91c6b3c8-7b7c-47bd-a2ec-29f20e26403c",
+                      "type": "string",
+                      "value": "{lmcache7}"
+                    },
+                    {
+                      "stable_id": "36d2ecb9-1142-42d6-b09b-4ddab6121901",
+                      "type": "string",
+                      "value": "{inv5}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "stable_id": "6a9f9764-e63b-48af-9242-bbec608870db",
+          "type": "array",
+          "key": "relations",
+          "children": [
+            {
+              "stable_id": "45622e6d-8c23-4ae7-b91d-77c22e5af17b",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "877208a7-1608-476b-b2ca-887afb151a40",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "36654022-5cac-46b8-a6ae-4bc2e52f89ad",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-003"
+                },
+                {
+                  "stable_id": "997e6404-d4e4-4a9b-8656-7386fe2c91f0",
+                  "type": "string",
+                  "key": "type",
+                  "value": "implements"
+                }
+              ]
+            },
+            {
+              "stable_id": "4ce0b96e-1c0d-425e-b018-a4758b126917",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "425303cc-25c2-4917-bc1a-c65265c15579",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-002"
+                },
+                {
+                  "stable_id": "3113fd0e-bc99-498c-8cbe-383257471ab3",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "a24d0bbc-783b-443a-b3e9-a0243abc9e92",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "44402cec-6cbb-46d2-a834-16a5078c7bf3",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "48c2d49a-613b-4a61-ab6a-4533f94ad25e",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-002"
+                },
+                {
+                  "stable_id": "3ac41985-fe8e-4991-aa7f-34e1e4368949",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-004"
+                },
+                {
+                  "stable_id": "1ba9028f-b502-490e-8b05-3ca29460c2a6",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "33f07159-47db-4c6b-a444-142da3611942",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "55e90c37-f63d-4f49-a20c-d593080a3394",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "1b444da3-0c6a-4ab8-81bf-8472ec88e5b2",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-004"
+                },
+                {
+                  "stable_id": "52e5558a-9ebd-4e40-96e2-0e616e083da2",
+                  "type": "string",
+                  "key": "type",
+                  "value": "consumes"
+                }
+              ]
+            },
+            {
+              "stable_id": "a06ee68b-aed3-423b-bd3d-2708c5f9e69d",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "233b33e0-ee10-4d3b-9166-dab3c46c78d3",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "3fdb7ae6-f856-4409-b01d-7d5f3b0a5520",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-005"
+                },
+                {
+                  "stable_id": "e9024f8d-eea4-48bb-897f-77102b14e556",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "3c3c9456-aa84-4d85-9198-21ab368ad54c",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "028075f3-06fe-47e9-a24e-659a1557d5c1",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-005"
+                },
+                {
+                  "stable_id": "d5d6b494-dbdd-4dd8-bce9-9a1970209bbd",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-015"
+                },
+                {
+                  "stable_id": "6cd78ed7-2cde-4e81-8397-f3ccdf9788f8",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "42388586-bad6-4d70-86e0-652867217ef9",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "88a0eb36-dc7f-4d61-af28-9006131c6b90",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "56993d15-c000-414a-99bf-39bdb9ae1d66",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-006"
+                },
+                {
+                  "stable_id": "df9a732a-869b-4720-a3f6-2afeea0242c4",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "ad530506-dba7-42ff-bc62-4ea49677bfce",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "9ffddb7e-0b4c-4652-a24b-602d68c980a7",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "5cb55e0b-17ae-486e-af0f-ebda0792cd03",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-007"
+                },
+                {
+                  "stable_id": "0cdc5523-65cd-4750-9d44-2473c69411bf",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "f6d78b1e-b6d0-4198-a088-e38f5f69bf17",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "d4607b51-442d-4548-8d66-93f983d99229",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "e42dbec7-d1dc-4e95-9169-f8dc147ea717",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-008"
+                },
+                {
+                  "stable_id": "69d9de7b-edb4-4f64-9fd4-b6b204712708",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "61e5fc3f-1125-4ed0-be96-da573c104417",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "6a1fbfeb-c6a4-4dc1-bb9b-bfcb2be81cc5",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-008"
+                },
+                {
+                  "stable_id": "5d04bc74-f3d7-4eea-a5a8-59a880a2d394",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-009"
+                },
+                {
+                  "stable_id": "c671a080-a455-4a35-8b63-7eea951c3c5d",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "60e52867-a1d9-4d29-b844-fefaaa7b1dd7",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "2213423a-1c27-40b1-ac52-009810239585",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-009"
+                },
+                {
+                  "stable_id": "09a70ec6-f39f-43bd-b2b7-a6dac2cc9bd8",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "8897b12b-fe69-46c2-a091-d03df4eb8c6d",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "4b5e0498-4934-4c31-a9e4-dce7405eee97",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "b0bbcc06-1d4b-4b7a-bee7-7e538a2e7715",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-010"
+                },
+                {
+                  "stable_id": "71efaedc-6c22-455c-84bd-5cd5c0e73640",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-011"
+                },
+                {
+                  "stable_id": "36360c15-c2eb-4741-b054-72f9301157a9",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "5cd46886-9dad-4c9b-ad29-3a2a4464ca68",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "2512e0bd-bdca-4f15-83b2-547be1627b7e",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-011"
+                },
+                {
+                  "stable_id": "dd3a2c24-9698-4e5c-8858-a56b991f2bb4",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "954d0a12-b67b-49a7-a343-1b439187de5e",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "6363dae7-f57a-422e-9bcb-939ff1b55308",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "c0602341-b0f1-4e4e-9c0e-a020ca0187b0",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "aa62fa4d-8fd8-4c15-98a4-d1d6ab468711",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-013"
+                },
+                {
+                  "stable_id": "db7634fe-7895-4986-962c-8ab8e350f88c",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "9b643495-3160-46ed-aab5-1b5144efa932",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "7201314a-ba41-4199-b32a-2945f23c4e9b",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-013"
+                },
+                {
+                  "stable_id": "f2c6114c-9b50-49d7-bfc6-24c6dfed89be",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-014"
+                },
+                {
+                  "stable_id": "65a43552-5d8c-48d9-afab-11531a372b6a",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "8558666a-c866-457f-9e20-9ee61f1adc98",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "2971b2db-7101-4e56-8dd4-56d287704a83",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "14d499dc-5c26-42ae-91c2-85fae198d5c8",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-015"
+                },
+                {
+                  "stable_id": "fb3f1dd5-8245-4f17-8922-3a587c4ed4cd",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "b81be01e-9c5b-48b3-a6c7-75fe43e3ae3a",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "e06318b9-5ef3-4767-97c6-bf6bb32ff94a",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-016"
+                },
+                {
+                  "stable_id": "2e18af85-d9d9-4f5a-9c72-44bc39eb1b24",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-015"
+                },
+                {
+                  "stable_id": "76858d29-f660-4ec1-8612-28445741dacb",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "801ee11a-8948-4340-95f6-9fd6172c0677",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "73181ee5-9b66-4058-b429-7ff5198137a7",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-016"
+                },
+                {
+                  "stable_id": "73011e29-aac5-4a98-bb74-16d74db072f3",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-019"
+                },
+                {
+                  "stable_id": "1f1f49dc-0e5f-43ae-8857-dc062e1e43cf",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "efa10cda-6e46-4ce5-990e-33556927a133",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "59d4b91a-1c66-4500-badf-e39ab87b3596",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-017"
+                },
+                {
+                  "stable_id": "586d1384-1b16-4ee9-8d9f-8c353554ca41",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "c8dd9426-122f-466d-8255-0636749f1b4b",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "d3042c2d-2a3d-48ca-ab6a-e07c3e87e379",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "f8166995-a93b-40a7-9b46-f0db0c10c919",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-017"
+                },
+                {
+                  "stable_id": "2fe9e6e6-0a7a-41b1-8597-500b4ab61e87",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-010"
+                },
+                {
+                  "stable_id": "ac294131-8c21-472b-97c8-58d1564d7cd6",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "a45b6542-596b-469e-a555-b18ba600504e",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "27b9aae3-6bd1-441f-98f2-6ff7c0b66d94",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-017"
+                },
+                {
+                  "stable_id": "cbe002e6-8151-4e90-97bf-82d3794515e2",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-013"
+                },
+                {
+                  "stable_id": "de5b5603-7533-4a69-9da4-095b3c315613",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "1b44f379-9de1-49ea-8870-c274dbea268a",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "c7eeab8f-f8fd-4d1c-bef0-1b9c3563883a",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-017"
+                },
+                {
+                  "stable_id": "172259e5-b5fc-486f-9e6e-55ab18738e4a",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-023"
+                },
+                {
+                  "stable_id": "414d6650-1d9d-4ea8-8695-f1d3527e7d51",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "2beb7b18-76e3-4b89-8158-9283dd8bb6c6",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "b39c1156-0f7e-4b5c-9db1-1d5e8f6026d0",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-017"
+                },
+                {
+                  "stable_id": "46696d0c-0a0f-4778-9936-5a739a67e89c",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-024"
+                },
+                {
+                  "stable_id": "d5bb44d9-b7d9-41e4-9fe6-ca1065cb6d4e",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "fa925bd7-3f0d-4848-a760-4f945c595dcd",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "2e57ba3b-2362-4736-bee6-b4afd50eb262",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-018"
+                },
+                {
+                  "stable_id": "e672411d-57b3-4b80-887b-9a0a12463c64",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "3f3a3913-5b3c-4966-ad4e-81db1cd94e83",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "0d3dd3f3-6687-4552-8a73-7c1294f8ecc9",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "fe4d4f55-210e-44df-b72e-47b1ccdc4be3",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-019"
+                },
+                {
+                  "stable_id": "8e46b92e-4ef3-49c6-9b2d-01ce00471654",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-020"
+                },
+                {
+                  "stable_id": "e68bb99c-b3c7-4833-8430-b403eed76763",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "027987fd-ead3-4d3b-98cf-0800df22b854",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "6ee69be1-851a-4848-999a-f4646e1dea91",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-020"
+                },
+                {
+                  "stable_id": "fc0a9e31-af20-49e0-af56-0fe779f113d2",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-011"
+                },
+                {
+                  "stable_id": "1172478f-6e04-43f7-aa62-8080265ef9fa",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "a4b8b336-6b5a-4fc2-910a-412be88ae7ea",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "6bc59c15-2df8-490e-81be-c9a7db3964bf",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-021"
+                },
+                {
+                  "stable_id": "312ef57a-9563-4e52-a694-9e0dee71f4b8",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-005"
+                },
+                {
+                  "stable_id": "b5880927-86a4-46c5-a5d4-d79231988a3d",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "05563770-21b0-46cf-b88c-12d9f48ed818",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "38c335c7-66e0-4636-8518-a8da473c4f35",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-021"
+                },
+                {
+                  "stable_id": "8d10bcbd-2df2-4ac3-95d9-86d6b9ec908a",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-006"
+                },
+                {
+                  "stable_id": "fccf82e6-d88d-4356-a483-fea4ff451c63",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "c3eaea5d-3b46-408f-95d9-52327ef7a2f2",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "05420068-3116-430a-ac4d-e5d8a47b93a2",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-021"
+                },
+                {
+                  "stable_id": "e9712999-b366-44c4-a1ab-b7b15dfe64c7",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-014"
+                },
+                {
+                  "stable_id": "db1b6adc-955d-41e7-b35b-fe1f507ed90f",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "5f1a2486-d8a2-4639-8dfc-b1e3ce06aa3a",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "c87158f6-97a5-4139-b53d-b5181d17b9a4",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-021"
+                },
+                {
+                  "stable_id": "d9cb7825-49fc-4670-8788-72f2a0057ef5",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "ae35c21f-79ac-49a9-9a34-1e300a6333cc",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "99e1dfe1-1851-4813-8543-5f1c625dbafd",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "418b040b-fe47-41f5-93ef-c6ec22c6a854",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-022"
+                },
+                {
+                  "stable_id": "138744d0-2f80-4e53-9cd1-0042793b8050",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-001"
+                },
+                {
+                  "stable_id": "3daced39-ed74-456c-90ff-44ee827fda25",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "561a35b3-79bb-46ca-bb14-5d58c5acf00f",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "67ca874b-ab2e-4f30-8f68-5684884e2bab",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-023"
+                },
+                {
+                  "stable_id": "cf74541d-d3fa-47bc-bc09-2815cf7211a4",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-005"
+                },
+                {
+                  "stable_id": "6adc3619-54c5-473d-abac-9ac440402252",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "c10661a6-b363-4bac-b478-a80273cd2517",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "34048be8-52c4-43ff-b298-33c6062d58b7",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-024"
+                },
+                {
+                  "stable_id": "2baf7c0c-427d-4c9b-a094-ddfa998ab53d",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-023"
+                },
+                {
+                  "stable_id": "ee1449e1-5b2f-49a3-a178-69bdff77a499",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "c1c841f8-5947-4028-aec2-360e6a8cbf27",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "88a503f9-1c56-4fd8-bd48-520d24597000",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-024"
+                },
+                {
+                  "stable_id": "eec8160e-9d61-40b0-b5bd-63613d2dd81b",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-008"
+                },
+                {
+                  "stable_id": "8a32f1e0-a092-4ebd-a1b1-546841d94186",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "f5c70ffa-b39c-4ad6-90fb-487c41af1363",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "4bd38f72-594c-43ed-bb36-6092c7a0ac12",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "17d00b38-a3c0-44a3-be35-85935cf4b00a",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-015"
+                },
+                {
+                  "stable_id": "55746be8-4c62-4154-a92f-dfde2a27e1ec",
+                  "type": "string",
+                  "key": "type",
+                  "value": "extends"
+                }
+              ]
+            },
+            {
+              "stable_id": "688e1f06-070b-425e-99be-9d8a88e71e3c",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "c1b28d13-941e-4e53-863e-bb2d5a31e4de",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "65a27f5c-b763-40e9-be65-ad15cf3ddf2c",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-012"
+                },
+                {
+                  "stable_id": "40e02d27-114f-4fcf-bc62-42afb6382fe2",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "f9b6d4d4-7761-4b05-8d93-35bf869c0e9b",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "94cb3910-48e9-424d-aebf-875021a123ba",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-025"
+                },
+                {
+                  "stable_id": "8943dd6c-009f-40a8-9937-f3b22ffde156",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-019"
+                },
+                {
+                  "stable_id": "e88209a8-31e7-4289-918c-185be078846f",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "stable_id": "9c888b43-54f6-4d8b-85da-56e2f819732a",
+          "type": "object",
+          "key": "source_label_coverage",
+          "children": [
+            {
+              "stable_id": "49f67603-c595-4f6f-ab07-cd3005d3a741",
+              "type": "array",
+              "key": "covered_labels",
+              "children": [
+                {
+                  "stable_id": "0b74f678-9acd-4cb0-8743-2b9736eadf18",
+                  "type": "string",
+                  "value": "{lmrs}"
+                },
+                {
+                  "stable_id": "37555def-63e8-4d7b-8101-07321f043a52",
+                  "type": "string",
+                  "value": "{sep1}"
+                },
+                {
+                  "stable_id": "1e7fb08c-b7e9-4828-a21b-ec6d75a5b981",
+                  "type": "string",
+                  "value": "{goal}"
+                },
+                {
+                  "stable_id": "5d11352e-ce72-48da-9ce6-61854297e685",
+                  "type": "string",
+                  "value": "{adpt}"
+                },
+                {
+                  "stable_id": "48880259-a570-4f82-981e-f6e5ad274ced",
+                  "type": "string",
+                  "value": "{prov}"
+                },
+                {
+                  "stable_id": "6c8e27af-a6e2-4ecf-995a-839d38b1dcd2",
+                  "type": "string",
+                  "value": "{mdl1}"
+                },
+                {
+                  "stable_id": "f5258095-ec07-47ac-bd5c-c8c6f1cdd9db",
+                  "type": "string",
+                  "value": "{hw01}"
+                },
+                {
+                  "stable_id": "dc4786d5-3951-422f-8ea6-03b19389c5ff",
+                  "type": "string",
+                  "value": "{base}"
+                },
+                {
+                  "stable_id": "348ec7c6-49aa-47a6-8822-e1dd66416b27",
+                  "type": "string",
+                  "value": "{mem1}"
+                },
+                {
+                  "stable_id": "290d21b4-e54e-439c-9453-025074c99c1d",
+                  "type": "string",
+                  "value": "{load}"
+                },
+                {
+                  "stable_id": "df267cae-2702-479c-99eb-b63142b6d2b6",
+                  "type": "string",
+                  "value": "{stat}"
+                },
+                {
+                  "stable_id": "bb3c230b-ebbb-4554-987f-1d2c09724848",
+                  "type": "string",
+                  "value": "{dyn1}"
+                },
+                {
+                  "stable_id": "20c5bc17-714f-4ac8-aa30-e1b410d21178",
+                  "type": "string",
+                  "value": "{dyn2}"
+                },
+                {
+                  "stable_id": "c835f6a3-d1e7-494e-89bd-26094d42f6cd",
+                  "type": "string",
+                  "value": "{tok1}"
+                },
+                {
+                  "stable_id": "1df405c3-dca6-4627-9cbd-40c1613d0f16",
+                  "type": "string",
+                  "value": "{tok2}"
+                },
+                {
+                  "stable_id": "a303690c-f149-43a0-834d-e0e7894d2266",
+                  "type": "string",
+                  "value": "{tok3}"
+                },
+                {
+                  "stable_id": "988b3937-4759-4065-9f21-716a7d3c53f6",
+                  "type": "string",
+                  "value": "{lim1}"
+                },
+                {
+                  "stable_id": "ffd66b84-bc27-459f-9c3d-a70ab8d2c777",
+                  "type": "string",
+                  "value": "{lim2}"
+                },
+                {
+                  "stable_id": "ea46630a-dc58-45ae-ac7c-5d7cfb7a3f93",
+                  "type": "string",
+                  "value": "{lim3}"
+                },
+                {
+                  "stable_id": "8819f0bc-c21f-452c-9d52-3f6703213c61",
+                  "type": "string",
+                  "value": "{adm1}"
+                },
+                {
+                  "stable_id": "5a21b6ff-8071-4eb6-9f92-1fddb7ce7396",
+                  "type": "string",
+                  "value": "{adm2}"
+                },
+                {
+                  "stable_id": "88c1c2af-aa96-4e81-97fb-8ab7493225b4",
+                  "type": "string",
+                  "value": "{adm3}"
+                },
+                {
+                  "stable_id": "4b89425c-e435-4e36-af54-806bf03d33a0",
+                  "type": "string",
+                  "value": "{que1}"
+                },
+                {
+                  "stable_id": "2b058b55-9533-4a8d-bdb5-441941953ab9",
+                  "type": "string",
+                  "value": "{que2}"
+                },
+                {
+                  "stable_id": "3c224acc-c393-4d89-a4bd-3ce5f7b605c4",
+                  "type": "string",
+                  "value": "{que3}"
+                },
+                {
+                  "stable_id": "688ea57d-47df-47c9-9d50-2ea1eecc14be",
+                  "type": "string",
+                  "value": "{rech}"
+                },
+                {
+                  "stable_id": "a98ae6dc-0f49-4909-9a5e-eb0853626ac9",
+                  "type": "string",
+                  "value": "{run1}"
+                },
+                {
+                  "stable_id": "526ba078-ab34-48a6-bc24-28b112e7a355",
+                  "type": "string",
+                  "value": "{run2}"
+                },
+                {
+                  "stable_id": "af337c96-2604-439d-8378-afe019ec1ebe",
+                  "type": "string",
+                  "value": "{cmd1}"
+                },
+                {
+                  "stable_id": "fced95fc-f085-4c63-8f7f-198ce35d2086",
+                  "type": "string",
+                  "value": "{cmd2}"
+                },
+                {
+                  "stable_id": "b2f15f57-a19b-435e-a166-8501bf9252c7",
+                  "type": "string",
+                  "value": "{cmd3}"
+                },
+                {
+                  "stable_id": "7d312f9e-34eb-4fdc-8b06-1bc53081dfb2",
+                  "type": "string",
+                  "value": "{err1}"
+                },
+                {
+                  "stable_id": "17015af2-740f-4482-9580-3af9a37fec03",
+                  "type": "string",
+                  "value": "{obs1}"
+                },
+                {
+                  "stable_id": "250ff708-6c01-482a-a44f-50e9945099a4",
+                  "type": "string",
+                  "value": "{obs2}"
+                },
+                {
+                  "stable_id": "5e28d7d2-fdfc-4c3f-9b3d-e41ed15d3556",
+                  "type": "string",
+                  "value": "{cal1}"
+                },
+                {
+                  "stable_id": "f8393e82-0c8a-4496-bd8f-91c8fa95a7ca",
+                  "type": "string",
+                  "value": "{cal2}"
+                },
+                {
+                  "stable_id": "b1f3bcaf-3ac8-4fef-95d1-a633b4598388",
+                  "type": "string",
+                  "value": "{cfg1}"
+                },
+                {
+                  "stable_id": "17b7b410-b940-452c-b502-84e36d8a41bf",
+                  "type": "string",
+                  "value": "{mvp1}"
+                },
+                {
+                  "stable_id": "eb88389a-8a7c-4241-9ad0-7549ecb8cf1a",
+                  "type": "string",
+                  "value": "{mvp2}"
+                },
+                {
+                  "stable_id": "4a793e9f-1c39-488b-b103-ca93f7f1e330",
+                  "type": "string",
+                  "value": "{inv1}"
+                },
+                {
+                  "stable_id": "6aa3fa35-9a0c-4c37-aacf-ba264fa218b8",
+                  "type": "string",
+                  "value": "{inv2}"
+                },
+                {
+                  "stable_id": "f8c997dd-77e8-4a23-b1f1-33994d945291",
+                  "type": "string",
+                  "value": "{inv3}"
+                },
+                {
+                  "stable_id": "f10250ef-0112-4457-bfdd-8f0290c5de5b",
+                  "type": "string",
+                  "value": "{dcache1}"
+                },
+                {
+                  "stable_id": "6a39f29a-1b2e-4233-925e-e260c082ec7f",
+                  "type": "string",
+                  "value": "{dcache2}"
+                },
+                {
+                  "stable_id": "1dd2c048-95d5-4484-9ea7-49aa25cc674c",
+                  "type": "string",
+                  "value": "{dcache3}"
+                },
+                {
+                  "stable_id": "71d14830-753a-4557-86d5-e4c64db444b7",
+                  "type": "string",
+                  "value": "{dcache4}"
+                },
+                {
+                  "stable_id": "696cd8ad-edad-41bb-b4ed-bb83ba921469",
+                  "type": "string",
+                  "value": "{mlife1}"
+                },
+                {
+                  "stable_id": "d89dee4f-cbbb-488b-9348-be9752db2ea7",
+                  "type": "string",
+                  "value": "{mlife2}"
+                },
+                {
+                  "stable_id": "7e4e67fe-0222-459a-a17a-fe9cf69b31b2",
+                  "type": "string",
+                  "value": "{mlife3}"
+                },
+                {
+                  "stable_id": "6143d9e4-cbc6-4e88-9a91-e7fd584053d7",
+                  "type": "string",
+                  "value": "{mlife4}"
+                },
+                {
+                  "stable_id": "48831fed-8519-4a06-9615-34e2df9edbc5",
+                  "type": "string",
+                  "value": "{mlife5}"
+                },
+                {
+                  "stable_id": "10ce0761-f0aa-4ec0-bcd0-04014fac542b",
+                  "type": "string",
+                  "value": "{mlife6}"
+                },
+                {
+                  "stable_id": "26736b92-f99a-45d2-90b9-2b35b10109d2",
+                  "type": "string",
+                  "value": "{lmcache1}"
+                },
+                {
+                  "stable_id": "d9c42b57-2d2b-4053-8b3d-099be2801eb2",
+                  "type": "string",
+                  "value": "{lmcache2}"
+                },
+                {
+                  "stable_id": "b964510c-c5dc-44bd-be2f-0b3aa867249a",
+                  "type": "string",
+                  "value": "{lmcache3}"
+                },
+                {
+                  "stable_id": "0a7e3847-4462-4be1-b658-f7202d33b53c",
+                  "type": "string",
+                  "value": "{lmcache4}"
+                },
+                {
+                  "stable_id": "f8a592ac-e0ed-45e4-a691-c61fb4533049",
+                  "type": "string",
+                  "value": "{lmcache5}"
+                },
+                {
+                  "stable_id": "ae1d0d86-fa0a-4f3b-a41d-74e534896c95",
+                  "type": "string",
+                  "value": "{lmcache6}"
+                },
+                {
+                  "stable_id": "4baba831-4efa-4329-a137-60d61406c61f",
+                  "type": "string",
+                  "value": "{lmcache7}"
+                },
+                {
+                  "stable_id": "f3bb73be-f736-4150-b823-a72af9f4061b",
+                  "type": "string",
+                  "value": "{cmd4}"
+                },
+                {
+                  "stable_id": "03263827-c141-4c67-a844-07fb19821e99",
+                  "type": "string",
+                  "value": "{err2}"
+                },
+                {
+                  "stable_id": "d2c5a417-dcfe-4d4d-88a3-2bd789408bf3",
+                  "type": "string",
+                  "value": "{mvp3}"
+                },
+                {
+                  "stable_id": "f1f1b2c4-8e3e-432f-b25e-cfd38de70ddb",
+                  "type": "string",
+                  "value": "{inv4}"
+                },
+                {
+                  "stable_id": "118241d0-3d56-48b3-bba1-e4c0e74f82f2",
+                  "type": "string",
+                  "value": "{inv5}"
+                }
+              ]
+            },
+            {
+              "stable_id": "1c7e980c-0e70-4bfd-b14f-bb6632704e7b",
+              "type": "array",
+              "key": "uncovered_labels",
+              "children": []
+            },
+            {
+              "stable_id": "19c22580-023e-44cf-aca7-452e47e59810",
+              "type": "array",
+              "key": "non_binding_labels",
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

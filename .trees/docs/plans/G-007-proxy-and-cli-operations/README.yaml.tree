@@ -1,0 +1,750 @@
+{
+  "source_sha256": "f2b9e1e9ed1151b21e8a2c95138aa712791dfc6bf0df82f1bdcf3278896132cf",
+  "root": [
+    {
+      "stable_id": "c5d9bca0-7284-4cd0-afc9-8c95de6daaf7",
+      "type": "object",
+      "children": [
+        {
+          "stable_id": "0a1f5be9-3184-4fb8-9f62-6c60de317a62",
+          "type": "string",
+          "key": "step_id",
+          "value": "G-007"
+        },
+        {
+          "stable_id": "71508a32-a428-4555-ae48-37ad0d943ebc",
+          "type": "string",
+          "key": "name",
+          "value": "Proxy Registration and CLI Operations"
+        },
+        {
+          "stable_id": "3d8ec82c-a4a8-43ce-ada3-13797fa3d412",
+          "type": "string",
+          "key": "description",
+          "value": "Define the operational surfaces around the adapter runtime: local listen endpoint, advertised URL, proxy registration endpoint and protocol resolution, registration lifecycle and payload, CLI command wrappers, metadata-driven CLI help, server manager, and service health verification based on active probes rather than PID-only checks."
+        },
+        {
+          "stable_id": "3867b1ef-dff9-412f-8cbd-23019486f762",
+          "type": "array",
+          "key": "concepts",
+          "children": [
+            {
+              "stable_id": "59b20253-63be-4694-a88a-17e887029ea3",
+              "type": "string",
+              "value": "C-034"
+            },
+            {
+              "stable_id": "af83b340-547a-4688-97b7-162088530a4e",
+              "type": "string",
+              "value": "C-035"
+            },
+            {
+              "stable_id": "4d2ced78-64e9-4a0b-8f03-0f37de2826df",
+              "type": "string",
+              "value": "C-036"
+            },
+            {
+              "stable_id": "c482837a-6014-45a3-88cb-6a164582c576",
+              "type": "string",
+              "value": "C-037"
+            },
+            {
+              "stable_id": "e608412c-a5ae-4a2b-a235-3592ad659c5a",
+              "type": "string",
+              "value": "C-038"
+            },
+            {
+              "stable_id": "057bf966-c725-4ca4-96cf-5f6cf4d1f84e",
+              "type": "string",
+              "value": "C-039"
+            },
+            {
+              "stable_id": "e5518ab0-d018-4f50-8cf8-ebf6d665ec5c",
+              "type": "string",
+              "value": "C-040"
+            },
+            {
+              "stable_id": "5840c74e-3c13-435d-a886-9674a257a62b",
+              "type": "string",
+              "value": "C-041"
+            },
+            {
+              "stable_id": "771d967a-df27-48da-917d-8bef9398a28d",
+              "type": "string",
+              "value": "C-042"
+            },
+            {
+              "stable_id": "424cf10a-39f1-4192-8acb-8bf1bb169ce7",
+              "type": "string",
+              "value": "C-043"
+            }
+          ]
+        },
+        {
+          "stable_id": "7df7c592-d05b-4b09-9b61-3199f7eab5be",
+          "type": "array",
+          "key": "relations",
+          "children": [
+            {
+              "stable_id": "4c2809ef-ccb3-406b-b532-1c6a988df698",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "2e45cbe4-752a-4951-9f34-79b4c07669e3",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-032"
+                },
+                {
+                  "stable_id": "d5fb43de-76ed-4068-8a8e-1d419ab03b08",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-034"
+                },
+                {
+                  "stable_id": "3e4a155e-df88-4305-8f5e-1c86597ee1d5",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "67e61a3d-dc5e-42f5-8f98-7747e33cb177",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "c6329fd1-ae4a-452c-9d47-6c10b2bcc023",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-034"
+                },
+                {
+                  "stable_id": "155e619c-59fb-4604-9cbd-76daa26dad6f",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-035"
+                },
+                {
+                  "stable_id": "0a3bd59f-d377-4761-acd7-6ca02de2f5b8",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "391ddfcb-7297-456b-b846-6eca4a8516bc",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "535adc41-2a94-40fa-8ace-fe84222adddc",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-036"
+                },
+                {
+                  "stable_id": "7f631204-bc78-42eb-ae1e-aaf768a3e344",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-035"
+                },
+                {
+                  "stable_id": "cde6e8b5-c51d-4ebe-9a80-fdad2cbb0120",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "80609cd8-a2e3-4723-a814-befa4d10ca6d",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "53eab940-024e-48d3-b120-5554e36fbf9b",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-036"
+                },
+                {
+                  "stable_id": "6c11a2c2-2092-47c8-a4e0-5129943521ac",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-037"
+                },
+                {
+                  "stable_id": "9fd24e27-1303-4ec0-95e8-a3124aa7c696",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "b6af7bab-b870-491e-b2ae-205c44fb5bb4",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "aae8ba6d-ddbd-439e-9539-93114fe3a2e0",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-038"
+                },
+                {
+                  "stable_id": "ef308871-24a7-4294-bfda-e757b5186798",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-036"
+                },
+                {
+                  "stable_id": "c2b486b2-c497-4982-9a46-a069f99dccff",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "3d63b94b-8f3c-44fd-a768-8aeaee76a297",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "076505c7-1d92-440f-9da9-4b37b9fff93d",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-038"
+                },
+                {
+                  "stable_id": "cce61d12-b246-44df-ad23-bbe5487e2670",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-035"
+                },
+                {
+                  "stable_id": "a725a393-f0a9-41e9-a581-471ca9686732",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "c7cc6f88-8704-4fb3-b407-ba8c83145d7e",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "cd4fe3d6-31f0-4111-9fb8-16200663c91a",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-038"
+                },
+                {
+                  "stable_id": "5459eeb3-ce47-4bd9-b438-40c3835e1d82",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-039"
+                },
+                {
+                  "stable_id": "c0b905f3-aa9c-4a8f-aede-e692e9b51053",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "24e1ac79-5e50-4d15-990f-cd483b4d0440",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "23180653-64ad-4528-b25a-8264e717d665",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-039"
+                },
+                {
+                  "stable_id": "27cef207-903f-4338-838f-ed6a6bc8e1ed",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-035"
+                },
+                {
+                  "stable_id": "e2b5045c-8aee-40c3-a227-99d19c2ba4bc",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "ee7dcc43-1ed7-4746-8f01-b341214ad7b0",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "84939865-d44a-4aff-a33d-24e5191a414c",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-039"
+                },
+                {
+                  "stable_id": "0330a142-d79f-4932-9c25-574bd4fbc00a",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-036"
+                },
+                {
+                  "stable_id": "1f92c8f3-d64b-442f-ac5d-43af8f1fc900",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "a0ac0b5b-a54f-439b-b490-05b752b3e192",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "55c341be-9bf1-4c19-952b-c845f255b530",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-030"
+                },
+                {
+                  "stable_id": "e6a406bb-cb12-4e14-ae7e-0d73359654db",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-034"
+                },
+                {
+                  "stable_id": "7fadf538-6776-4776-be41-cc01b94badd6",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "6b1defdd-9c06-4368-937d-df78d8fb020d",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "9ae092bb-b401-442c-bafb-cdd83a80f40d",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-030"
+                },
+                {
+                  "stable_id": "b81b0075-9fbb-4138-abad-810fae3e4acd",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-036"
+                },
+                {
+                  "stable_id": "14d7b991-fe65-4f0a-8873-767e751372c9",
+                  "type": "string",
+                  "key": "type",
+                  "value": "produces"
+                }
+              ]
+            },
+            {
+              "stable_id": "4d1900d5-bb99-4ffe-8b6b-ba3d6421d526",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "35363552-9ccb-456d-8164-cadd402c57bd",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-031"
+                },
+                {
+                  "stable_id": "5427447e-a6b9-4fa1-a5b1-55731480eb8c",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-034"
+                },
+                {
+                  "stable_id": "25e09153-4d7f-4ded-b67c-65b42d05f286",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "58f98053-6c15-48ec-a25f-b3593c45f4c2",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "d00379fb-cb01-4567-a4f8-a5e470991cdd",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-031"
+                },
+                {
+                  "stable_id": "35b26750-448e-4878-92be-6800722bedae",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-036"
+                },
+                {
+                  "stable_id": "6eba0a96-1940-4148-a7c6-95138973c142",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "bcea8996-9ac5-477d-a891-029fccaf48da",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "e7f9d515-97da-4211-9c7a-a82ddbcf7b57",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-032"
+                },
+                {
+                  "stable_id": "c2117339-2082-4337-93b4-7c7aa7db805f",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-038"
+                },
+                {
+                  "stable_id": "bfddaa05-b749-457d-9983-03948baf6c6a",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "6c3b45e7-07db-47cb-9702-15de5daa3de8",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "f7ef8243-bdd0-45a7-9394-fa9cc0ac4187",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-040"
+                },
+                {
+                  "stable_id": "b461e07a-b32d-4184-9551-f215fea6f71f",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-027"
+                },
+                {
+                  "stable_id": "ecf88e40-9b76-4347-81bc-949d62d8b443",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "3a91117c-66d2-4218-911e-69805b40d5cd",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "0647a583-6a93-4b81-9de9-bfec6b0a251e",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-040"
+                },
+                {
+                  "stable_id": "f59a47af-be3e-4d2b-80ff-b4fd07948ed8",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-041"
+                },
+                {
+                  "stable_id": "3fbacc18-497c-475d-806c-7ebdaa17025d",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "ea38a0fe-12df-4824-9e34-11075d2e5f3c",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "fd5ffb41-911e-415d-b839-750bbb307b05",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-041"
+                },
+                {
+                  "stable_id": "0de5e392-8a92-47be-a930-fc8361e47657",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-029"
+                },
+                {
+                  "stable_id": "e801853c-42f0-4b8c-828e-477683fcebdc",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "fc7ceae4-dc8a-4f51-bf09-daa4e08914fc",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "891a298e-306a-43b1-be9c-8d9d638fdce0",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-041"
+                },
+                {
+                  "stable_id": "89688053-c600-49fc-8727-ff1f84d34ecd",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-028"
+                },
+                {
+                  "stable_id": "23a2ca4a-2fa1-400a-823c-7521403de4e6",
+                  "type": "string",
+                  "key": "type",
+                  "value": "depends_on"
+                }
+              ]
+            },
+            {
+              "stable_id": "a73a1576-f657-4010-9d42-2b579e35754a",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "1491f7e6-8bb1-43e0-b1d0-c99bcc40b997",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-040"
+                },
+                {
+                  "stable_id": "7f921db3-709c-427b-96eb-4802ef5e8f70",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-042"
+                },
+                {
+                  "stable_id": "4f7c9e22-9995-4731-b64c-e8d9ff83a1a2",
+                  "type": "string",
+                  "key": "type",
+                  "value": "owns"
+                }
+              ]
+            },
+            {
+              "stable_id": "998bfcaf-b3b5-49b8-85ee-9837feb98354",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "da50cf9e-ce4c-49cb-8770-e65a15b1f32d",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-042"
+                },
+                {
+                  "stable_id": "50f75712-99b2-4d0b-bda8-3a8e796e99fe",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-032"
+                },
+                {
+                  "stable_id": "41e8ea6e-78fd-4207-b795-d566a4f09938",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "c70b3327-ef2a-4f2f-8d97-b6e061c9ee99",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "420c9168-fac2-4db6-8014-e34e65d2ff93",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-042"
+                },
+                {
+                  "stable_id": "b673ebaf-36aa-4bff-9b53-c091ab41cf86",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-043"
+                },
+                {
+                  "stable_id": "125f260d-2ea0-4547-84cc-98ef9bec851c",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "df274a1e-bba9-4d0f-8527-3ce8deaf1e69",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "f08a98d6-fb5b-47a3-8d4b-04c3e5b839fd",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-043"
+                },
+                {
+                  "stable_id": "4b7019f7-f10f-4b91-be4e-b5903a325c50",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-034"
+                },
+                {
+                  "stable_id": "d7ef9fdd-23a4-4741-a659-76895a653fd8",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "9ecbf6db-f25c-4b24-8d3f-8dc68609ed7e",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "07f6ce4f-da7a-41f9-ba6b-005e6dc0cfb2",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-043"
+                },
+                {
+                  "stable_id": "54aa4f1d-d2ae-45c3-b406-2c8ed20a3e80",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-035"
+                },
+                {
+                  "stable_id": "23608aa9-05c2-471f-82dc-cf46dc5c2368",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            },
+            {
+              "stable_id": "03a8bd94-f598-4fa8-8d31-57359b9f8544",
+              "type": "object",
+              "children": [
+                {
+                  "stable_id": "5be8d1d0-47f8-48a3-98ed-e29cec4864d1",
+                  "type": "string",
+                  "key": "from_concept",
+                  "value": "C-043"
+                },
+                {
+                  "stable_id": "ad40cbe5-4f15-4633-8570-04cf979fe76c",
+                  "type": "string",
+                  "key": "to_concept",
+                  "value": "C-038"
+                },
+                {
+                  "stable_id": "eb5a1717-a8f8-4dfc-ab90-a5bc93dce9d4",
+                  "type": "string",
+                  "key": "type",
+                  "value": "uses"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "stable_id": "d6217b2c-3330-467f-81fa-06bc5df0ca55",
+          "type": "array",
+          "key": "source_labels",
+          "children": [
+            {
+              "stable_id": "eed29c8b-76c1-4057-9d7c-98a1b1870ecf",
+              "type": "string",
+              "value": "{lstn}"
+            },
+            {
+              "stable_id": "c1394af2-20c7-4b2b-843d-dbbe87805e7b",
+              "type": "string",
+              "value": "{radv}"
+            },
+            {
+              "stable_id": "d23e4b26-0b38-40ce-8a1c-a6bc13876ed1",
+              "type": "string",
+              "value": "{rprx}"
+            },
+            {
+              "stable_id": "c6e7fae9-8009-46ef-8427-60f7475d78b4",
+              "type": "string",
+              "value": "{rpro}"
+            },
+            {
+              "stable_id": "68f98ac7-fcc5-4967-acd6-856ba2092b7d",
+              "type": "string",
+              "value": "{rhbt}"
+            },
+            {
+              "stable_id": "3a57474d-c07a-4d84-a3dd-6cd0642aeae5",
+              "type": "string",
+              "value": "{rpay}"
+            },
+            {
+              "stable_id": "9364ead8-d079-4e9d-82f3-33095c769aec",
+              "type": "string",
+              "value": "{cliw}"
+            },
+            {
+              "stable_id": "c7ed18b9-d061-498e-8132-bde6bb7ab341",
+              "type": "string",
+              "value": "{clih}"
+            },
+            {
+              "stable_id": "5a8a4755-b2e4-43f3-87fa-fe96ec7d0c72",
+              "type": "string",
+              "value": "{svcm}"
+            },
+            {
+              "stable_id": "9137ba3f-dc2b-4ca8-97ef-568be27477d0",
+              "type": "string",
+              "value": "{hlth}"
+            }
+          ]
+        },
+        {
+          "stable_id": "232775e1-9ec1-4044-9888-b697f1a4fe27",
+          "type": "array",
+          "key": "depends_on",
+          "children": [
+            {
+              "stable_id": "9f61c5fb-b30d-46e4-9abb-52cf816f8d8c",
+              "type": "string",
+              "value": "G-006"
+            }
+          ]
+        },
+        {
+          "stable_id": "7db94fe8-fc0d-40cd-aa46-d8348b196ab8",
+          "type": "array",
+          "key": "tactical_steps",
+          "children": []
+        },
+        {
+          "stable_id": "1149ff6b-74aa-4e08-b646-35694dcfb25f",
+          "type": "string",
+          "key": "status",
+          "value": "draft"
+        }
+      ]
+    }
+  ]
+}
