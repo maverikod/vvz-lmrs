@@ -1,1 +1,84 @@
-{}
+step_id: G-002
+name: Model Profiles, Configuration, and VRAM Facts
+description: Define model and hardware profiles, runtime configuration 
+  ownership, resident-service baseline measurement, loaded-model VRAM facts, the
+  dynamic VRAM pool, calibration feedback, and the KV-cache byte formulas that 
+  convert model/runtime profile parameters into memory facts used by later 
+  admission decisions.
+concepts:
+- C-005
+- C-006
+- C-007
+- C-008
+- C-009
+- C-020
+- C-021
+- C-044
+- C-045
+- C-046
+relations:
+- from_concept: C-001
+  to_concept: C-005
+  type: uses
+- from_concept: C-005
+  to_concept: C-015
+  type: depends_on
+- from_concept: C-001
+  to_concept: C-006
+  type: uses
+- from_concept: C-001
+  to_concept: C-007
+  type: produces
+- from_concept: C-001
+  to_concept: C-008
+  type: produces
+- from_concept: C-008
+  to_concept: C-009
+  type: produces
+- from_concept: C-020
+  to_concept: C-011
+  type: depends_on
+- from_concept: C-021
+  to_concept: C-005
+  type: owns
+- from_concept: C-021
+  to_concept: C-006
+  type: owns
+- from_concept: C-021
+  to_concept: C-014
+  type: owns
+- from_concept: C-005
+  to_concept: C-045
+  type: owns
+- from_concept: C-021
+  to_concept: C-045
+  type: owns
+- from_concept: C-045
+  to_concept: C-044
+  type: uses
+- from_concept: C-046
+  to_concept: C-008
+  type: depends_on
+- from_concept: C-046
+  to_concept: C-009
+  type: depends_on
+source_labels:
+- '{mdl1}'
+- '{hw01}'
+- '{base}'
+- '{mem1}'
+- '{load}'
+- '{stat}'
+- '{dyn1}'
+- '{dyn2}'
+- '{cal1}'
+- '{cal2}'
+- '{cfg1}'
+- '{kvf1}'
+- '{ctxb}'
+- '{vram1}'
+- '{inv3}'
+depends_on:
+- G-001
+tactical_steps: []
+status: draft

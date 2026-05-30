@@ -1,1 +1,72 @@
-{}
+step_id: G-006
+name: Adapter Command Surface and Configuration Integration
+description: 'Define how LMRS exposes its domain commands through the adapter pattern:
+  command registration, thin command wrappers, schemas, metadata, configuration generation,
+  configuration validation, runtime hook entrypoint, and adapter documentation baseline.
+  The step keeps business decisions in LMRS domain concepts while adapter objects
+  expose the public MCP surface.'
+concepts:
+- C-026
+- C-027
+- C-028
+- C-029
+- C-030
+- C-031
+- C-032
+- C-033
+relations:
+- from_concept: C-001
+  to_concept: C-026
+  type: implements
+- from_concept: C-026
+  to_concept: C-027
+  type: uses
+- from_concept: C-027
+  to_concept: C-003
+  type: implements
+- from_concept: C-027
+  to_concept: C-028
+  type: uses
+- from_concept: C-027
+  to_concept: C-029
+  type: uses
+- from_concept: C-029
+  to_concept: C-028
+  type: depends_on
+- from_concept: C-030
+  to_concept: C-021
+  type: produces
+- from_concept: C-031
+  to_concept: C-021
+  type: uses
+- from_concept: C-021
+  to_concept: C-030
+  type: owns
+- from_concept: C-021
+  to_concept: C-031
+  type: owns
+- from_concept: C-032
+  to_concept: C-026
+  type: uses
+- from_concept: C-032
+  to_concept: C-003
+  type: depends_on
+- from_concept: C-032
+  to_concept: C-021
+  type: uses
+- from_concept: C-033
+  to_concept: C-003
+  type: depends_on
+source_labels:
+- '{areg}'
+- '{acmd}'
+- '{asch}'
+- '{amet}'
+- '{acfg}'
+- '{aval}'
+- '{ahok}'
+- '{aread}'
+depends_on:
+- G-005
+tactical_steps: []
+status: draft

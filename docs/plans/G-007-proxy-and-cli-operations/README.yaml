@@ -1,1 +1,105 @@
-{}
+step_id: G-007
+name: Proxy Registration and CLI Operations
+description: 'Define the operational surfaces around the adapter runtime: local listen
+  endpoint, advertised URL, proxy registration endpoint and protocol resolution, registration
+  lifecycle and payload, CLI command wrappers, metadata-driven CLI help, server manager,
+  and service health verification based on active probes rather than PID-only checks.'
+concepts:
+- C-034
+- C-035
+- C-036
+- C-037
+- C-038
+- C-039
+- C-040
+- C-041
+- C-042
+- C-043
+relations:
+- from_concept: C-032
+  to_concept: C-034
+  type: uses
+- from_concept: C-034
+  to_concept: C-035
+  type: produces
+- from_concept: C-036
+  to_concept: C-035
+  type: depends_on
+- from_concept: C-036
+  to_concept: C-037
+  type: uses
+- from_concept: C-038
+  to_concept: C-036
+  type: uses
+- from_concept: C-038
+  to_concept: C-035
+  type: uses
+- from_concept: C-038
+  to_concept: C-039
+  type: produces
+- from_concept: C-039
+  to_concept: C-035
+  type: depends_on
+- from_concept: C-039
+  to_concept: C-036
+  type: depends_on
+- from_concept: C-030
+  to_concept: C-034
+  type: produces
+- from_concept: C-030
+  to_concept: C-036
+  type: produces
+- from_concept: C-031
+  to_concept: C-034
+  type: uses
+- from_concept: C-031
+  to_concept: C-036
+  type: uses
+- from_concept: C-032
+  to_concept: C-038
+  type: uses
+- from_concept: C-040
+  to_concept: C-027
+  type: uses
+- from_concept: C-040
+  to_concept: C-041
+  type: uses
+- from_concept: C-041
+  to_concept: C-029
+  type: depends_on
+- from_concept: C-041
+  to_concept: C-028
+  type: depends_on
+- from_concept: C-040
+  to_concept: C-042
+  type: owns
+- from_concept: C-042
+  to_concept: C-032
+  type: uses
+- from_concept: C-042
+  to_concept: C-043
+  type: uses
+- from_concept: C-043
+  to_concept: C-034
+  type: uses
+- from_concept: C-043
+  to_concept: C-035
+  type: uses
+- from_concept: C-043
+  to_concept: C-038
+  type: uses
+source_labels:
+- '{lstn}'
+- '{radv}'
+- '{rprx}'
+- '{rpro}'
+- '{rhbt}'
+- '{rpay}'
+- '{cliw}'
+- '{clih}'
+- '{svcm}'
+- '{hlth}'
+depends_on:
+- G-006
+tactical_steps: []
+status: draft

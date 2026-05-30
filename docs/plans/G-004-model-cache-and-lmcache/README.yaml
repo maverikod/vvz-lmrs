@@ -1,1 +1,71 @@
-{}
+step_id: G-004
+name: Model Disk Cache, Memory Lifecycle, and LMCache Storage
+description: Define the model disk cache lifecycle, explicit model memory load 
+  and unload lifecycle, and vLLM LMCache integration as a cache subsystem. This 
+  step separates model files, model residency, LMCache runtime artifacts, CPU 
+  and disk cache tiers, and cache telemetry from GPU admission capacity.
+concepts:
+- C-023
+- C-024
+- C-025
+- C-049
+relations:
+- from_concept: C-017
+  to_concept: C-023
+  type: uses
+- from_concept: C-017
+  to_concept: C-024
+  type: uses
+- from_concept: C-023
+  to_concept: C-005
+  type: owns
+- from_concept: C-024
+  to_concept: C-023
+  type: depends_on
+- from_concept: C-024
+  to_concept: C-008
+  type: produces
+- from_concept: C-025
+  to_concept: C-015
+  type: extends
+- from_concept: C-025
+  to_concept: C-012
+  type: depends_on
+- from_concept: C-025
+  to_concept: C-019
+  type: produces
+- from_concept: C-021
+  to_concept: C-025
+  type: owns
+- from_concept: C-021
+  to_concept: C-049
+  type: owns
+- from_concept: C-049
+  to_concept: C-019
+  type: extends
+- from_concept: C-049
+  to_concept: C-025
+  type: depends_on
+source_labels:
+- '{dcache1}'
+- '{dcache2}'
+- '{dcache3}'
+- '{dcache4}'
+- '{mlife1}'
+- '{mlife2}'
+- '{mlife3}'
+- '{mlife4}'
+- '{mlife5}'
+- '{mlife6}'
+- '{lmcache1}'
+- '{lmcache3}'
+- '{lmcache4}'
+- '{lmcache5}'
+- '{lmcache7}'
+- '{inv4}'
+- '{lmc2}'
+depends_on:
+- G-002
+- G-003
+tactical_steps: []
+status: draft
