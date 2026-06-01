@@ -1,0 +1,25 @@
+step_id: A-004
+parent_tactical_step: T-003
+name: Implement collect_calibration_observations
+target_file: lmrs/telemetry.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-019
+- C-020
+objects:
+- collect_calibration_observations
+prompt: 'Modify lmrs/telemetry.py after A-001 through A-003. Append collect_calibration_observations(records:
+  list) -> list that aggregates TelemetryRecord items into TelemetryCalibrationObservation
+  items grouped by model, runtime backend, quantization profile, and hardware profile.
+  It only makes observations available to Calibration Profile and must not change
+  calibration ownership, recompute the profile, or feed back into admission.'
+verification:
+  type: static_analysis
+  target: lmrs/telemetry.py::collect_calibration_observations
+  expected: Function aggregates telemetry records into calibration observations 
+    grouped by model/runtime/quantization/hardware without owning calibration or
+    affecting admission.
+status: draft

@@ -1,0 +1,24 @@
+step_id: A-004
+parent_tactical_step: T-001
+name: Implement calculate_dynamic_vram_requirement
+target_file: lmrs/estimation.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-047
+- C-044
+objects:
+- calculate_dynamic_vram_requirement
+prompt: 'Modify lmrs/estimation.py after A-001 through A-003. Append calculate_dynamic_vram_requirement(required_tokens:
+  int, kv_bytes_per_token: int, per_request_overhead_bytes: int, runtime_batch_overhead_bytes:
+  int) -> int. It must implement required_dynamic_vram_bytes = required_tokens * kv_bytes_per_token
+  + per_request_overhead_bytes + runtime_batch_overhead_bytes, rejecting negative
+  inputs. Do not use total RAM, disk cache, or LMCache storage as capacity.'
+verification:
+  type: static_analysis
+  target: lmrs/estimation.py::calculate_dynamic_vram_requirement
+  expected: Function computes request dynamic VRAM using required tokens, KV 
+    bytes per token, and overhead fields.
+status: draft

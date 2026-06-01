@@ -1,0 +1,23 @@
+step_id: A-003
+parent_tactical_step: T-001
+name: Implement calculate_required_tokens
+target_file: lmrs/estimation.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-010
+- C-011
+objects:
+- calculate_required_tokens
+prompt: 'Modify lmrs/estimation.py after A-001 and A-002. Append calculate_required_tokens(breakdown:
+  TokenBreakdown) -> int. It must sum input, tool, service, and reserved output tokens,
+  reject negative components, and return the preflight required token total. Do not
+  make context-window or admission decisions.'
+verification:
+  type: static_analysis
+  target: lmrs/estimation.py::calculate_required_tokens
+  expected: Function sums all token components and rejects negative token 
+    counts.
+status: draft

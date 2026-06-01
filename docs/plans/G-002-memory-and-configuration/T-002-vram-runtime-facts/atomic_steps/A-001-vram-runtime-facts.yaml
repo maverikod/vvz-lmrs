@@ -1,0 +1,35 @@
+step_id: A-001
+parent_tactical_step: T-002
+name: Define VramRuntimeFacts
+target_file: lmrs/vram.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-007
+- C-008
+objects:
+- VramRuntimeFacts
+prompt: "Target file: lmrs/vram.py\nOperation: create_file\n\nMRS excerpt:\n- C-007
+  Resident GPU Services Baseline: measured GPU baseline after always-on resident GPU
+  services are running and before the main LLM is loaded.\n- C-008 VRAM Runtime Facts:
+  measured facts for baseline free VRAM, model-loaded free VRAM, measured model static
+  VRAM, and dynamic pool capacity. Runtime facts must not be replaced by theoretical
+  assumptions.\n\nCreate lmrs/vram.py with exactly this content:\n```python\nfrom
+  __future__ import annotations\n\nfrom dataclasses import dataclass, field\nfrom
+  typing import Mapping\n\n\n@dataclass(frozen=True)\nclass VramRuntimeFacts:\n  \
+  \  \"\"\"Measured VRAM facts for one model/runtime/hardware profile.\"\"\"\n\n \
+  \   resident_services: tuple[str, ...]\n    service_baseline_free_vram_bytes: int\n\
+  \    model_loaded_free_vram_bytes: int | None = None\n    model_name: str | None
+  = None\n    runtime_backend: str | None = None\n    quantization_profile: str |
+  None = None\n    hardware_profile_id: str | None = None\n    measurement_metadata:
+  Mapping[str, str] = field(default_factory=dict)\n```\n\nConstraints:\n- Store resident-service
+  baseline as a measured fact, not as an empty-GPU assumption.\n- Do not add dynamic
+  state or calculation functions in this step."
+verification:
+  type: static_analysis
+  target: lmrs/vram.py::VramRuntimeFacts
+  expected: The file defines a frozen VramRuntimeFacts dataclass carrying 
+    baseline free VRAM, optional model-loaded free VRAM, model/runtime/profile 
+    identity, resident services, and metadata.
+status: draft

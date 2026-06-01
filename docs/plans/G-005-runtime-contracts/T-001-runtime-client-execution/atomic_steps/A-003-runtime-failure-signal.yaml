@@ -1,0 +1,23 @@
+step_id: A-003
+parent_tactical_step: T-001
+name: Define RuntimeFailureSignal
+target_file: lmrs/runtime_client.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-016
+objects:
+- RuntimeFailureSignal
+prompt: Modify lmrs/runtime_client.py after A-001 and A-002. Append frozen 
+  dataclass RuntimeFailureSignal with request_id, backend, reason_code, message,
+  retriable bool default False, and metadata. It is the structured runtime 
+  failure signal consumed by the command and error contract when runtime 
+  execution fails. Do not map it to public error codes here.
+verification:
+  type: static_analysis
+  target: lmrs/runtime_client.py::RuntimeFailureSignal
+  expected: RuntimeFailureSignal carries request identity, backend, stable 
+    reason code, message, and retriability for downstream error mapping.
+status: draft

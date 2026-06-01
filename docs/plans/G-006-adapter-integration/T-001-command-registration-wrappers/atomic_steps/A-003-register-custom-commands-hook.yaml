@@ -1,0 +1,25 @@
+step_id: A-003
+parent_tactical_step: T-001
+name: Implement register_custom_commands_hook
+target_file: lmrs/adapter/registration.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-026
+- C-003
+objects:
+- register_custom_commands_hook
+prompt: Modify lmrs/adapter/registration.py after A-001 and A-002. Append 
+  register_custom_commands_hook that installs register_lmrs_commands into the 
+  adapter startup sequence so all LMRS public command classes are registered 
+  before the adapter server starts. The hook wires LMRS commands into the 
+  Adapter-Based MCP Interface and must remain idempotent through 
+  register_lmrs_commands. Do not implement command business logic here.
+verification:
+  type: static_analysis
+  target: lmrs/adapter/registration.py::register_custom_commands_hook
+  expected: register_custom_commands_hook installs LMRS command registration 
+    into the adapter startup sequence before server start, idempotently.
+status: draft

@@ -1,0 +1,23 @@
+step_id: A-003
+parent_tactical_step: T-002
+name: Implement evaluate_lmcache_admission
+target_file: lmrs/admission.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-048
+objects:
+- evaluate_lmcache_admission
+prompt: 'Modify lmrs/admission.py after A-001 and A-002. Append evaluate_lmcache_admission(cache_hit_confirmed:
+  bool, full_required_dynamic_vram_bytes: int, cache_adjusted_dynamic_vram_bytes:
+  int | None) -> int. It must return adjusted bytes only when cache_hit_confirmed
+  is true and adjusted value is provided; otherwise return full miss estimate. This
+  enforces conservative LMCache admission. Do not extend context window or VRAM capacity.'
+verification:
+  type: static_analysis
+  target: lmrs/admission.py::evaluate_lmcache_admission
+  expected: Function treats LMCache as optional confirmed reduction only and 
+    otherwise returns cache-miss dynamic VRAM requirement.
+status: draft

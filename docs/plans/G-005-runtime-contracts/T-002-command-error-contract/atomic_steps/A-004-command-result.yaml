@@ -1,0 +1,27 @@
+step_id: A-004
+parent_tactical_step: T-002
+name: Define CommandResult
+target_file: lmrs/commands.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-017
+- C-018
+objects:
+- CommandResult
+prompt: Modify lmrs/commands.py after A-001 through A-003. Append frozen 
+  dataclass CommandResult with command CommandName, outcome CommandOutcome, 
+  success bool, reason_code optional ErrorCode, token_breakdown optional, 
+  capacity_snapshot optional, queue_state optional, payload optional, and 
+  metadata. It is the unified public-command result covering success, queue, and
+  rejection result shapes with a stable error code on rejection. Do not 
+  implement command routing here.
+verification:
+  type: static_analysis
+  target: lmrs/commands.py::CommandResult
+  expected: CommandResult represents success, queue, and rejection result shapes
+    with command, outcome, optional token breakdown, capacity snapshot, queue 
+    state, and stable reason code.
+status: draft

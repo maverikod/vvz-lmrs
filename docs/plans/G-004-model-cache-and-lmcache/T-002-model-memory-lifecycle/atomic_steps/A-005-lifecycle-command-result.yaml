@@ -1,0 +1,28 @@
+step_id: A-005
+parent_tactical_step: T-002
+name: Define LifecycleCommandResult
+target_file: lmrs/model_lifecycle.py
+operation: modify_file
+priority: 5
+depends_on:
+- A-004
+concepts:
+- C-024
+- C-008
+- C-017
+objects:
+- LifecycleCommandResult
+prompt: Modify lmrs/model_lifecycle.py after A-001 through A-004. Append frozen 
+  dataclass LifecycleCommandResult with command, model_name, state, success, 
+  reason_code, measured_model_static_vram_bytes optional, 
+  model_loaded_free_vram_bytes optional, and metadata. It is the structured 
+  public-command result for model load, unload, reload, and status operations 
+  and carries the measured VRAM fact update emitted after a successful 
+  transition. Do not add disk cache command fields.
+verification:
+  type: static_analysis
+  target: lmrs/model_lifecycle.py::LifecycleCommandResult
+  expected: LifecycleCommandResult represents structured lifecycle command 
+    output with stable reason code, resulting state, success flag, and the 
+    post-operation measured VRAM fact update.
+status: draft

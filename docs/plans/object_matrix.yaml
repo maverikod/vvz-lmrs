@@ -215,3 +215,631 @@ modules:
     - C-020
     tactical_steps:
     - T-003
+- module: lmrs.estimation
+  objects:
+  - name: TokenBreakdown
+    kind: dataclass
+    concepts:
+    - C-010
+    tactical_steps:
+    - T-001
+    role: Tokenizer-aware preflight token accounting for one request.
+  - name: RequestCapacityEstimate
+    kind: dataclass
+    concepts:
+    - C-011
+    - C-047
+    - C-046
+    tactical_steps:
+    - T-001
+    role: Per-request capacity estimate carrying token totals, dynamic VRAM 
+      requirement, usable VRAM, context window, KV cost, and overheads.
+  - name: calculate_required_tokens
+    kind: function
+    concepts:
+    - C-010
+    - C-011
+    tactical_steps:
+    - T-001
+    role: Sum token components into the preflight required token total, 
+      rejecting negatives.
+  - name: calculate_dynamic_vram_requirement
+    kind: function
+    concepts:
+    - C-047
+    - C-044
+    tactical_steps:
+    - T-001
+    role: Compute per-request dynamic VRAM from required tokens, KV bytes per 
+      token, and overhead fields.
+  - name: estimate_request_capacity
+    kind: function
+    concepts:
+    - C-010
+    - C-011
+    - C-047
+    - C-044
+    - C-046
+    tactical_steps:
+    - T-001
+    role: Build a RequestCapacityEstimate from token breakdown and memory facts 
+      without an admission verdict.
+- module: lmrs.admission
+  objects:
+  - name: CapacitySnapshot
+    kind: dataclass
+    concepts:
+    - C-012
+    - C-047
+    tactical_steps:
+    - T-002
+    role: Current runtime capacity input (usable and max dynamic VRAM, 
+      model/runtime readiness) for admission decisions.
+  - name: AdmissionVerdict
+    kind: dataclass
+    concepts:
+    - C-012
+    - C-013
+    tactical_steps:
+    - T-002
+    role: Execute/queue/reject decision with stable reason code, request 
+      identity, requirement facts, and queueability.
+  - name: evaluate_lmcache_admission
+    kind: function
+    concepts:
+    - C-048
+    tactical_steps:
+    - T-002
+    role: 'Conservative LMCache adjustment: confirmed reduction only, otherwise cache-miss
+      dynamic VRAM requirement.'
+  - name: decide_admission
+    kind: function
+    concepts:
+    - C-011
+    - C-012
+    - C-047
+    - C-048
+    tactical_steps:
+    - T-002
+    role: Return execute/queue/reject AdmissionVerdict from context window, max 
+      pool, current pool, and conservative LMCache adjustment.
+  - name: build_queue_entry_request
+    kind: function
+    concepts:
+    - C-013
+    - C-012
+    tactical_steps:
+    - T-002
+    role: Convert a queueable verdict and estimate into a structured queue 
+      input, rejecting non-queueable verdicts.
+- module: lmrs.queue
+  objects:
+  - name: QueueEntry
+    kind: dataclass
+    concepts:
+    - C-013
+    tactical_steps:
+    - T-003
+    role: 'Stored queued request: identity, model, token/VRAM estimates, timestamps,
+      priority, status, metadata.'
+  - name: RequestQueue
+    kind: dataclass
+    concepts:
+    - C-013
+    tactical_steps:
+    - T-003
+    role: Owns queued entries with add/cancel/snapshot semantics, no scheduling 
+      or runtime execution.
+  - name: largest_fit_scheduler
+    kind: function
+    concepts:
+    - C-014
+    - C-013
+    tactical_steps:
+    - T-003
+    role: Select the largest queued request fitting current usable dynamic VRAM 
+      with deterministic tie-breaking.
+  - name: launch_recheck
+    kind: function
+    concepts:
+    - C-012
+    - C-013
+    - C-014
+    tactical_steps:
+    - T-003
+    role: Launch-time capacity recheck for a queued request without executing 
+      it.
+- module: lmrs.model_cache
+  objects:
+  - name: CachedModelRecord
+    kind: dataclass
+    concepts:
+    - C-023
+    - C-005
+    tactical_steps:
+    - T-001
+    role: 'Disk model cache metadata: identity, model profile fields, integrity/revision,
+      size, readiness marker, compatibility flags, status, metadata.'
+  - name: CacheState
+    kind: enum
+    concepts:
+    - C-023
+    tactical_steps:
+    - T-001
+    role: Stable cache/lifecycle state names preserving separation between disk 
+      cache and memory residency.
+  - name: DiskModelCache
+    kind: dataclass
+    concepts:
+    - C-023
+    - C-017
+    tactical_steps:
+    - T-001
+    role: Owns cached records and exposes 
+      preload/status/delete/list/integrity/metadata-update command surface 
+      without VRAM load semantics.
+  - name: CacheCommandResult
+    kind: dataclass
+    concepts:
+    - C-023
+    - C-017
+    tactical_steps:
+    - T-001
+    role: Structured disk-cache command output with stable reason code, optional
+      record, success flag, and metadata.
+- module: lmrs.model_lifecycle
+  objects:
+  - concepts:
+    - C-024
+    kind: enum
+    name: LifecycleState
+    role: Stable in-memory model residency state names plus keep_loaded marker, 
+      separate from disk cache state.
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-024
+    - C-008
+    kind: dataclass
+    name: ModelResidency
+    role: 'Current in-memory residency facts: identity, lifecycle state, keep_loaded
+      policy, measured static VRAM, model-loaded free VRAM, metadata.'
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-008
+    - C-024
+    kind: function
+    name: measure_model_static_vram
+    role: Compute measured model static VRAM as baseline-free minus 
+      model-loaded-free VRAM, rejecting negative inputs and results.
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-024
+    - C-023
+    - C-017
+    kind: dataclass
+    name: ModelMemoryLifecycle
+    role: load/unload/reload/status commands; verifies disk cache before load 
+      with MODEL_NOT_CACHED; keep_loaded policy; unload frees memory without 
+      deleting disk cache.
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-024
+    - C-008
+    - C-017
+    kind: dataclass
+    name: LifecycleCommandResult
+    role: Structured lifecycle command output with stable reason code, resulting
+      state, success flag, and post-operation measured VRAM fact update.
+    tactical_steps:
+    - T-002
+- module: lmrs.lmcache
+  objects:
+  - concepts:
+    - C-025
+    - C-021
+    kind: dataclass
+    name: LMCacheStoragePolicy
+    role: LMCache enablement, CPU/disk tiers, storage path, namespace/session 
+      binding, limits, eviction policy, runtime/model compatibility; separate 
+      from disk model cache.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-025
+    - C-012
+    kind: dataclass
+    name: LMCacheEstimate
+    role: Optional pre-execution cache reuse fields; defaults to full cache miss
+      when a hit is not guaranteed; never weakens admission.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-049
+    - C-019
+    kind: dataclass
+    name: LMCacheTelemetry
+    role: 'Telemetry accounting for LMCache CPU/disk tiers: hit/miss tokens, hit quality,
+      restore/write latency, usage and limits, evictions, memory pressure, swap indicators.'
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-049
+    - C-012
+    kind: function
+    name: lmcache_storage_separation
+    role: Keeps usable dynamic VRAM independent of CPU/disk LMCache storage; 
+      cache tiers never increase the VRAM pool.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-049
+    - C-019
+    - C-015
+    kind: function
+    name: build_lmcache_telemetry
+    role: Assemble an LMCacheTelemetry record from policy and runtime 
+      observations without altering admission or VRAM accounting.
+    tactical_steps:
+    - T-003
+- module: lmrs.runtime_client
+  objects:
+  - concepts:
+    - C-015
+    kind: enum
+    name: RuntimeBackend
+    role: Local execution backend identifiers 
+      (vllm/ollama/llama_cpp/gpt_oss/other_local); runs only admitted requests; 
+      no admission logic.
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-016
+    kind: dataclass
+    name: NormalizedRuntimeResult
+    role: 'Backend-independent execution result: assistant message, usage, status,
+      runtime metadata, telemetry; suitable for canonical provider normalization.'
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-016
+    kind: dataclass
+    name: RuntimeFailureSignal
+    role: 'Structured runtime failure: request identity, backend, stable reason code,
+      message, retriability; consumed by command/error contract.'
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-015
+    - C-016
+    kind: dataclass
+    name: RuntimeClient
+    role: Executes admitted requests against a selected backend; returns 
+      normalized result or failure signal; hides backend differences; no 
+      admission decisions.
+    tactical_steps:
+    - T-001
+- module: lmrs.commands
+  objects:
+  - concepts:
+    - C-017
+    kind: enum
+    name: CommandName
+    role: 'Minimum stable public command surface: health, status, capacity, token
+      count, estimate, chat, queue, cancel, cache and model lifecycle commands.'
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-018
+    kind: enum
+    name: ErrorCode
+    role: Full stable machine-readable error catalog for admission, tokenizer, 
+      hardware, lifecycle, runtime, cache, LMCache, and cancellation failures.
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-017
+    kind: enum
+    name: CommandOutcome
+    role: 'Result classification: executed/queued/rejected and dry-run would_execute/would_queue/would_reject.'
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-017
+    - C-018
+    kind: dataclass
+    name: CommandResult
+    role: Unified public-command result covering success, queue, and rejection 
+      shapes with stable reason code, token breakdown, capacity snapshot, and 
+      queue state.
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-017
+    - C-012
+    - C-010
+    - C-013
+    kind: dataclass
+    name: PublicCommandContract
+    role: Maps each command to operation category and result shape; ties 
+      estimate/chat to token accounting and admission and queue_status to 
+      request queue state, without executing them.
+    tactical_steps:
+    - T-002
+- module: lmrs.telemetry
+  objects:
+  - concepts:
+    - C-019
+    kind: dataclass
+    name: TelemetryRecord
+    role: 'Per-request telemetry: predicted/actual tokens and VRAM, latency, queue
+      wait, VRAM snapshot, admission verdict, reason code, LMCache hit/miss and latency.'
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-019
+    kind: function
+    name: build_telemetry_record
+    role: Assemble a TelemetryRecord from execution observations and a 
+      prediction snapshot; observed facts only; no effect on 
+      admission/scheduling/VRAM.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-019
+    - C-020
+    kind: dataclass
+    name: TelemetryCalibrationObservation
+    role: Aggregated calibration input from telemetry keyed by 
+      model/runtime/quantization/hardware with measured VRAM growth and 
+      KV-cache/overhead samples; does not own calibration; distinct from 
+      calibration-owned CalibrationObservation in lmrs.calibration.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-019
+    - C-020
+    kind: function
+    name: collect_calibration_observations
+    role: Aggregate telemetry records into calibration observations grouped by 
+      model/runtime/quantization/hardware; makes observations available to C-020
+      without owning calibration or feeding admission.
+    tactical_steps:
+    - T-003
+- module: lmrs.adapter.registration
+  objects:
+  - concepts:
+    - C-027
+    - C-003
+    kind: class
+    name: ThinAdapterCommand
+    role: 'Base contract for adapter-facing command wrappers: stable name, validate,
+      delegate to domain executor, return adapter SuccessResult/ErrorResult; no business
+      logic.'
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-026
+    kind: function
+    name: register_lmrs_commands
+    role: Idempotently registers LMRS public command classes as custom adapter 
+      commands via registry.register(Cls, custom), skipping already-registered 
+      ones.
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-026
+    - C-003
+    kind: function
+    name: register_custom_commands_hook
+    role: Installs register_lmrs_commands into the adapter startup sequence 
+      before server start; wires LMRS commands into the Adapter-Based MCP 
+      Interface idempotently.
+    tactical_steps:
+    - T-001
+- module: lmrs.adapter.schemas
+  objects:
+  - concepts:
+    - C-028
+    kind: class
+    name: CommandSchemaContract
+    role: Per-command request/result/error schema providers 
+      (get_schema/get_result_schema/get_error_schema), separate from executor 
+      code, used by adapter validation before domain checks.
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-029
+    - C-028
+    kind: dataclass
+    name: CommandMetadataContract
+    role: 'Per-command discovery contract: name, description, parameter/result/error
+      schemas, stable error codes, examples, best practices; sufficient for help/discovery/OpenAPI
+      without executor internals.'
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-029
+    - C-028
+    kind: function
+    name: build_command_metadata
+    role: Assembles a CommandMetadataContract from a CommandSchemaContract and 
+      the public command spec without reading executor internals.
+    tactical_steps:
+    - T-002
+- module: lmrs.adapter.runtime
+  objects:
+  - concepts:
+    - C-030
+    - C-021
+    kind: function
+    name: generate_lmrs_config
+    role: Produces adapter base sections (server/registration/queue) plus 
+      LMRS-specific runtime and admission sections; starting point for validated
+      Runtime Configuration.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-031
+    - C-021
+    kind: function
+    name: validate_lmrs_config
+    role: Checks base adapter and LMRS sections; rejects inconsistent or 
+      incomplete configuration before LMRS starts or accepts runtime work.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-032
+    - C-003
+    kind: function
+    name: run_lmrs_adapter
+    role: 'Startup boundary: registers command hooks, loads and validates config,
+      starts lifecycle services, hands control to adapter create_and_run_server; no
+      domain logic.'
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-033
+    - C-003
+    kind: constant
+    name: ADAPTER_DOCUMENTATION_BASELINE
+    role: Records mcp_proxy_adapter README and project rules as the integration 
+      reference; does not replace LMRS HRS and MRS requirements.
+    tactical_steps:
+    - T-003
+- module: lmrs.proxy.registration
+  objects:
+  - concepts:
+    - C-034
+    kind: dataclass
+    name: ServerListenEndpoint
+    role: 'Adapter server bind endpoint: host, port, protocol (http/https/mtls), server
+      name, SSL/mTLS material, optional advertised host; independent of registration.'
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-035
+    - C-034
+    kind: function
+    name: resolve_advertised_url
+    role: Derives proxy-reachable URL from a ServerListenEndpoint; prefers 
+      explicit advertised host; normalizes wildcard binds to a reachable host.
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-036
+    kind: dataclass
+    name: ProxyRegistrationEndpoint
+    role: 'Registration-side contract: enablement, startup/shutdown, register/unregister/heartbeat
+      URLs and interval, server identity, instance UUID, metadata, client credentials;
+      separate from listener.'
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-037
+    - C-036
+    kind: function
+    name: resolve_registration_protocol
+    role: Resolves http/https/mtls from registration URL scheme and credential 
+      material; missing/unsupported scheme is a configuration error.
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-039
+    - C-035
+    - C-036
+    kind: function
+    name: build_registration_payload
+    role: 'Assembles registration/heartbeat payload: deterministic server-name resolution,
+      reachable advertised URL, capabilities, protocol/host/port/instance-UUID metadata.'
+    tactical_steps:
+    - T-001
+  - concepts:
+    - C-030
+    - C-031
+    - C-034
+    - C-036
+    kind: function
+    name: lmrs_network_config_contract
+    role: Builds a ServerListenEndpoint and a ProxyRegistrationEndpoint from 
+      generated and validated listen/registration config sections, kept 
+      separate.
+    tactical_steps:
+    - T-001
+- module: lmrs.proxy.lifecycle
+  objects:
+  - concepts:
+    - C-038
+    kind: dataclass
+    name: RegistrationState
+    role: 'Status snapshot: registered state, heartbeat freshness, instance identity,
+      proxy recognition.'
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-038
+    - C-036
+    kind: dataclass
+    name: RegistrationLifecyclePolicy
+    role: 'Policy: listener-wait, startup registration, heartbeat interval, retry/backoff,
+      re-registration, shutdown unregistration; derived from ProxyRegistrationEndpoint.'
+    tactical_steps:
+    - T-002
+  - concepts:
+    - C-038
+    - C-035
+    - C-039
+    - C-036
+    kind: function
+    name: run_registration_lifecycle
+    role: Waits for listener readiness, registers, heartbeats with payload on 
+      interval, retries/re-registers on failure, unregisters on shutdown; 
+      returns RegistrationState.
+    tactical_steps:
+    - T-002
+- module: lmrs.cli.operations
+  objects:
+  - concepts:
+    - C-040
+    - C-027
+    kind: class
+    name: CliCommandWrapper
+    role: Local scriptable CLI wrapper exposing main commands; delegates to 
+      canonical command contracts; no re-implementation of business logic.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-041
+    - C-029
+    - C-028
+    kind: function
+    name: build_cli_help
+    role: Renders CLI help from command metadata and schema contracts as single 
+      source of truth; no separate hand-written catalog.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-043
+    - C-034
+    - C-035
+    - C-038
+    kind: function
+    name: verify_service_health
+    role: Combines process identity with active probes (listener reachability, 
+      health response, command/help availability, registration state, heartbeat 
+      freshness); not PID-only.
+    tactical_steps:
+    - T-003
+  - concepts:
+    - C-042
+    - C-032
+    - C-043
+    kind: class
+    name: CliServerManager
+    role: 'start/stop/status: launches runtime via adapter entrypoint, stops correct
+      instance, reports status via verify_service_health.'
+    tactical_steps:
+    - T-003

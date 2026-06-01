@@ -1,0 +1,39 @@
+step_id: A-004
+parent_tactical_step: T-001
+name: Add KV full window formula
+target_file: lmrs/configuration.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-045
+objects:
+- KVCacheProfile.kv_full_window_bytes
+prompt: "Target file: lmrs/configuration.py\nOperation: modify_file\n\nMRS excerpt:\n\
+  - C-045 Model KV Memory Profile: stores derived full-window byte cost. kv_full_window_bytes
+  = declared_context_window * kv_bytes_per_token.\n\nCurrent full content of lmrs/configuration.py
+  before this modification:\n```python\nfrom __future__ import annotations\n\nfrom
+  dataclasses import dataclass, field\nfrom typing import Mapping\n\n\n@dataclass(frozen=True)\n\
+  class HardwareProfile:\n    \"\"\"Hardware capacity profile used by LMRS admission
+  and calibration logic.\"\"\"\n\n    gpu_count: int = 1\n    total_vram_bytes: int
+  = 24 * 1024**3\n    total_ram_bytes: int = 128 * 1024**3\n    gpu_model: str | None
+  = None\n    metadata: Mapping[str, str] = field(default_factory=dict)\n\n\n@dataclass(frozen=True)\n\
+  class KVCacheProfile:\n    \"\"\"Model KV-cache parameters used to derive memory
+  facts.\"\"\"\n\n    layers: int\n    kv_heads: int\n    head_dim: int\n    kv_element_bytes:
+  int\n    declared_context_window: int\n    runtime_kv_dtype: str = \"fp16\"\n  \
+  \  quantization_profile: str | None = None\n\n    def kv_bytes_per_token(self) ->
+  int:\n        \"\"\"Return worst-case KV-cache bytes required for one token.\"\"\
+  \"\n\n        return self.layers * 2 * self.kv_heads * self.head_dim * self.kv_element_bytes\n\
+  ```\n\nModify KVCacheProfile by adding this method after kv_bytes_per_token:\n```python\n\
+  \    def kv_full_window_bytes(self) -> int:\n        \"\"\"Return worst-case KV-cache
+  bytes for the declared context window.\"\"\"\n\n        return self.declared_context_window
+  * self.kv_bytes_per_token()\n```\n\nConstraints:\n- Keep kv_bytes_per_token unchanged.\n\
+  - The method signature and formula must match exactly.\n- Do not add model or runtime
+  configuration objects in this step."
+verification:
+  type: static_analysis
+  target: lmrs/configuration.py::KVCacheProfile.kv_full_window_bytes
+  expected: KVCacheProfile exposes kv_full_window_bytes using 
+    declared_context_window * kv_bytes_per_token().
+status: draft

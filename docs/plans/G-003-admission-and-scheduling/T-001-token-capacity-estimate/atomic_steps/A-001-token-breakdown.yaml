@@ -1,0 +1,22 @@
+step_id: A-001
+parent_tactical_step: T-001
+name: Define TokenBreakdown
+target_file: lmrs/estimation.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-010
+objects:
+- TokenBreakdown
+prompt: Create lmrs/estimation.py and define frozen dataclass TokenBreakdown 
+  with input_tokens, tool_tokens, service_tokens, reserved_output_tokens, 
+  tokenizer_name, tokenizer_accuracy, rough_estimate bool default False, and 
+  metadata. It represents tokenizer-aware preflight accounting only; do not add 
+  capacity or admission logic.
+verification:
+  type: static_analysis
+  target: lmrs/estimation.py::TokenBreakdown
+  expected: TokenBreakdown stores all token components and tokenizer accuracy 
+    state.
+status: draft

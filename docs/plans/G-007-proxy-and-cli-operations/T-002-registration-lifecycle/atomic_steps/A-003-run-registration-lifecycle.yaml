@@ -1,0 +1,32 @@
+step_id: A-003
+parent_tactical_step: T-002
+name: Implement run_registration_lifecycle
+target_file: lmrs/proxy/lifecycle.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-038
+- C-035
+- C-039
+- C-036
+objects:
+- run_registration_lifecycle
+prompt: Modify lmrs/proxy/lifecycle.py after A-001 and A-002. Append 
+  run_registration_lifecycle(policy, endpoint, advertised_url, payload, 
+  runtime_state) as a contract stub describing the lifecycle. Startup waits 
+  until the advertised server URL is listening before proxy registration. 
+  Heartbeat sends the registration payload on the configured interval. Failed or
+  unrecognized registrations are retried and may trigger re-registration. 
+  Shutdown unregisters the adapter when configured. It updates and returns a 
+  RegistrationState reflecting registered state and heartbeat freshness. Do not 
+  build the payload or resolve the protocol here; consume the provided 
+  contracts.
+verification:
+  type: static_analysis
+  target: lmrs/proxy/lifecycle.py::run_registration_lifecycle
+  expected: run_registration_lifecycle waits for listener readiness, registers, 
+    heartbeats on interval, retries and re-registers on failure, unregisters on 
+    shutdown, and returns RegistrationState.
+status: draft

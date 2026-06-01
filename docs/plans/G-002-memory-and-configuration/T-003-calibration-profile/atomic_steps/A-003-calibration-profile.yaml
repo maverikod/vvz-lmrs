@@ -1,0 +1,25 @@
+step_id: A-003
+parent_tactical_step: T-003
+name: Define CalibrationProfile
+target_file: lmrs/calibration.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-020
+objects:
+- CalibrationProfile
+prompt: "Modify lmrs/calibration.py after A-001 and A-002. Append frozen dataclass
+  CalibrationProfile with key: CalibrationKey, kv_bytes_per_token: int, per_request_overhead_bytes:
+  int, runtime_batch_overhead_bytes: int, observation_count: int, source: str = 'empirical',
+  valid: bool = True, invalidation_reason: str | None = None, and metadata Mapping[str,
+  str] default empty. It must represent calibrated KV and overhead costs and invalidation
+  state. Do not add builder or snapshot function."
+verification:
+  type: static_analysis
+  target: lmrs/calibration.py::CalibrationProfile
+  expected: Frozen CalibrationProfile dataclass stores calibrated KV cost, 
+    overhead costs, observation count, validity, invalidation reason, and 
+    metadata.
+status: draft

@@ -1,0 +1,24 @@
+step_id: A-001
+parent_tactical_step: T-002
+name: Define CommandSchemaContract
+target_file: lmrs/adapter/schemas.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-028
+objects:
+- CommandSchemaContract
+prompt: 'Create lmrs/adapter/schemas.py and define CommandSchemaContract as the per-command
+  request/result/error schema contract. It declares three schema providers: a request
+  schema (returned by get_schema), a result schema (returned by get_result_schema),
+  and an error schema (returned by get_error_schema). Schemas live separately from
+  executor code and are used by adapter schema-based validation before domain checks.
+  Do not add metadata or help fields in this step.'
+verification:
+  type: static_analysis
+  target: lmrs/adapter/schemas.py::CommandSchemaContract
+  expected: CommandSchemaContract declares request, result, and error schema 
+    providers separate from executor code for adapter validation before domain 
+    checks.
+status: draft

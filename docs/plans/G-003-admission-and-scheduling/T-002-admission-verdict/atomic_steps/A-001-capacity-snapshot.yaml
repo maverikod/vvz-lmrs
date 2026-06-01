@@ -1,0 +1,22 @@
+step_id: A-001
+parent_tactical_step: T-002
+name: Define CapacitySnapshot
+target_file: lmrs/admission.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-012
+- C-047
+objects:
+- CapacitySnapshot
+prompt: Create lmrs/admission.py and define frozen dataclass CapacitySnapshot 
+  with usable_dynamic_vram_bytes, max_dynamic_pool_bytes, model_loaded bool, 
+  runtime_ready bool, and metadata. It is the current runtime capacity input for
+  admission decisions. Do not add verdict or queue logic in this step.
+verification:
+  type: static_analysis
+  target: lmrs/admission.py::CapacitySnapshot
+  expected: CapacitySnapshot captures current and maximum dynamic VRAM plus 
+    model/runtime readiness.
+status: draft

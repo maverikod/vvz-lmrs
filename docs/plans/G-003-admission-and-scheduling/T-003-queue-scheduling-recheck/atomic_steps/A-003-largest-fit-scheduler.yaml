@@ -1,0 +1,24 @@
+step_id: A-003
+parent_tactical_step: T-003
+name: Implement largest_fit_scheduler
+target_file: lmrs/queue.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-014
+- C-013
+objects:
+- largest_fit_scheduler
+prompt: 'Modify lmrs/queue.py after A-001 and A-002. Append largest_fit_scheduler(entries:
+  tuple[QueueEntry, ...], usable_dynamic_vram_bytes: int) -> QueueEntry | None. It
+  must choose the largest queued entry whose required_dynamic_vram_bytes fits current
+  usable VRAM, using priority/admission time as deterministic tie-breakers. Do not
+  implement FIFO as the primary policy.'
+verification:
+  type: static_analysis
+  target: lmrs/queue.py::largest_fit_scheduler
+  expected: Function selects the largest fitting queued request under current 
+    usable dynamic VRAM with deterministic tie-breaking.
+status: draft

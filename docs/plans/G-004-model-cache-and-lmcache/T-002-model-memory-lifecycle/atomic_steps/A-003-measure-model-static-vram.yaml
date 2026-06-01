@@ -1,0 +1,24 @@
+step_id: A-003
+parent_tactical_step: T-002
+name: Implement measure_model_static_vram
+target_file: lmrs/model_lifecycle.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-008
+- C-024
+objects:
+- measure_model_static_vram
+prompt: 'Modify lmrs/model_lifecycle.py after A-001 and A-002. Append measure_model_static_vram(service_baseline_free_vram_bytes:
+  int, model_loaded_free_vram_bytes: int) -> int. It must compute measured_model_static_vram_bytes
+  = service_baseline_free_vram_bytes - model_loaded_free_vram_bytes, reject negative
+  inputs, and reject a result below zero. It records a measured runtime fact and must
+  not use theoretical assumptions.'
+verification:
+  type: static_analysis
+  target: lmrs/model_lifecycle.py::measure_model_static_vram
+  expected: Function computes measured model static VRAM as baseline-free minus 
+    model-loaded-free VRAM and rejects negative inputs and results.
+status: draft

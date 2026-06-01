@@ -1,0 +1,34 @@
+step_id: A-004
+parent_tactical_step: T-002
+name: Implement calculate_max_dynamic_pool
+target_file: lmrs/vram.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-009
+- C-046
+objects:
+- calculate_max_dynamic_pool
+prompt: "Target file: lmrs/vram.py\nOperation: modify_file\n\nCurrent file after lower-priority
+  steps contains VramRuntimeFacts, DynamicVramState, and calculate_static_vram exactly
+  as defined by A-001 through A-003.\n\nMRS excerpt:\n- C-009 maximum dynamic pool
+  is computed from free VRAM after model load minus safety margin and runtime reserve.\n\
+  - C-046 admission and scheduling use dynamic VRAM rather than total VRAM, RAM, disk
+  cache, or LMCache capacity.\n\nAppend exactly this function:\n```python\n\n\ndef
+  calculate_max_dynamic_pool(state: DynamicVramState) -> int:\n    \"\"\"Return dynamic
+  VRAM before active request reservations are subtracted.\"\"\"\n    if state.model_loaded_free_vram_bytes
+  < 0:\n        raise ValueError(\"model_loaded_free_vram_bytes must be non-negative\"\
+  )\n    if state.safety_margin_bytes < 0 or state.runtime_reserve_bytes < 0:\n  \
+  \      raise ValueError(\"VRAM reserves must be non-negative\")\n    return max(\n\
+  \        0,\n        state.model_loaded_free_vram_bytes\n        - state.safety_margin_bytes\n\
+  \        - state.runtime_reserve_bytes,\n    )\n```\n\nConstraints:\n- Do not subtract
+  active reservations here.\n- Do not use total hardware VRAM, total RAM, disk cache,
+  or LMCache storage."
+verification:
+  type: static_analysis
+  target: lmrs/vram.py::calculate_max_dynamic_pool
+  expected: The function computes max dynamic VRAM as model-loaded free VRAM 
+    minus safety margin and runtime reserve, clamped to zero.
+status: draft

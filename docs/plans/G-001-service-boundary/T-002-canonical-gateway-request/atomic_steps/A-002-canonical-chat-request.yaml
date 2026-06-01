@@ -1,1 +1,43 @@
-{}
+step_id: A-002
+parent_tactical_step: T-002
+name: Define CanonicalChatRequest contract
+target_file: lmrs/gateway.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-001
+- C-002
+- C-004
+objects:
+- CanonicalChatRequest
+prompt: "Target file: lmrs/gateway.py\nOperation: modify_file\n\nMRS excerpt:\n- C-001
+  Local Model Runtime Service: standalone adapter-based microservice that consumes
+  local-model requests and prevents prompts from reaching runtime until admission
+  is proven.\n- C-002 Provider Gateway Integration: model_access_core remains the
+  gateway and routes local provider requests to LMRS without managing VRAM, loading
+  models, or executing prompts directly.\n- C-004 Canonical Chat Request: contains
+  session_id, request_id, model_name, messages, tools, reserved_output_tokens, and
+  options.\n\nCurrent full content of lmrs/gateway.py before this modification:\n\
+  ```python\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass,
+  field\nfrom typing import Any, Mapping\n\n\n@dataclass(frozen=True)\nclass ChatMessage:\n\
+  \    \"\"\"One role-tagged message from a canonical gateway chat request.\"\"\"\n\
+  \n    role: str\n    content: str | list[Mapping[str, Any]]\n    name: str | None
+  = None\n    metadata: Mapping[str, Any] = field(default_factory=dict)\n```\n\nModify
+  the file by adding the following dataclass after ChatMessage:\n\n```python\n\n@dataclass(frozen=True)\n\
+  class CanonicalChatRequest:\n    \"\"\"Gateway-owned request accepted by LMRS for
+  local model routing.\"\"\"\n\n    session_id: str\n    request_id: str\n    model_name:
+  str\n    messages: tuple[ChatMessage, ...]\n    tools: tuple[Mapping[str, Any],
+  ...] = ()\n    reserved_output_tokens: int = 0\n    options: Mapping[str, Any] =
+  field(default_factory=dict)\n```\n\nConstraints:\n- Keep the existing ChatMessage
+  definition unchanged.\n- Use the existing imports; do not add new imports.\n- The
+  dataclass must be frozen.\n- The field order must match the code block exactly.\n\
+  - Do not add normalization, validation, or response objects in this step."
+verification:
+  type: static_analysis
+  target: lmrs/gateway.py::CanonicalChatRequest
+  expected: The file defines a frozen CanonicalChatRequest dataclass with 
+    gateway request identity, model, message, tool, output reservation, and 
+    options fields.
+status: draft

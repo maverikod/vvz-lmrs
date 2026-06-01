@@ -1,0 +1,28 @@
+step_id: A-002
+parent_tactical_step: T-002
+name: Define CommandMetadataContract
+target_file: lmrs/adapter/schemas.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-029
+- C-028
+objects:
+- CommandMetadataContract
+prompt: Modify lmrs/adapter/schemas.py after A-001. Append frozen dataclass 
+  CommandMetadataContract with command_name, description, parameter_schema, 
+  result_schema, error_schema, stable_error_codes, examples, best_practices, and
+  metadata. It is the per-command discovery contract that publishes help, 
+  schema, error, and example information for MCP tooling and must be sufficient 
+  for MCP help, proxy discovery, and OpenAPI generation without reading internal
+  implementation. Metadata lives separately from executor code. Do not add 
+  assembly logic in this step.
+verification:
+  type: static_analysis
+  target: lmrs/adapter/schemas.py::CommandMetadataContract
+  expected: CommandMetadataContract publishes name, description, 
+    parameter/result/error schemas, stable error codes, and examples sufficient 
+    for help, discovery, and OpenAPI, separate from executor code.
+status: draft

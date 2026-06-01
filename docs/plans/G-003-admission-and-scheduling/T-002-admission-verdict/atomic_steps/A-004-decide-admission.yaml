@@ -1,0 +1,29 @@
+step_id: A-004
+parent_tactical_step: T-002
+name: Implement decide_admission
+target_file: lmrs/admission.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-011
+- C-012
+- C-047
+- C-048
+objects:
+- decide_admission
+prompt: Modify lmrs/admission.py after A-001 through A-003. Append 
+  decide_admission(estimate, capacity, cache_hit_confirmed=False, 
+  cache_adjusted_dynamic_vram_bytes=None) -> AdmissionVerdict. It must reject 
+  context overflow with CONTEXT_OVERFLOW, reject requests larger than max 
+  dynamic pool with REQUEST_TOO_LARGE, queue when it fits max pool but not 
+  current usable pool, execute when it fits current pool, and use 
+  evaluate_lmcache_admission conservatively.
+verification:
+  type: static_analysis
+  target: lmrs/admission.py::decide_admission
+  expected: Function returns stable execute, queue, or reject AdmissionVerdict 
+    based on context window, max pool, current pool, and conservative LMCache 
+    adjustment.
+status: draft

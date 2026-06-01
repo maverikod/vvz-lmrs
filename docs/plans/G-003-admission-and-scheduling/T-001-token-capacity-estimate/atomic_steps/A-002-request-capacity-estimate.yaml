@@ -1,0 +1,26 @@
+step_id: A-002
+parent_tactical_step: T-001
+name: Define RequestCapacityEstimate
+target_file: lmrs/estimation.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-011
+- C-047
+- C-046
+objects:
+- RequestCapacityEstimate
+prompt: Modify lmrs/estimation.py after A-001. Append frozen dataclass 
+  RequestCapacityEstimate with request_id, model_name, token_breakdown, 
+  required_tokens, required_dynamic_vram_bytes, usable_dynamic_vram_bytes, 
+  declared_context_window, kv_bytes_per_token, per_request_overhead_bytes, 
+  runtime_batch_overhead_bytes, and metadata. It is an estimate object only, not
+  an admission verdict.
+verification:
+  type: static_analysis
+  target: lmrs/estimation.py::RequestCapacityEstimate
+  expected: RequestCapacityEstimate carries token totals, dynamic VRAM 
+    requirement, usable VRAM, context window, KV cost, and overheads.
+status: draft

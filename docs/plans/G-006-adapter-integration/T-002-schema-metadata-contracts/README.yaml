@@ -28,4 +28,6 @@ outputs:
     examples, error cases, and best practices.
 atomic_steps:
 - A-001
+- A-002
+- A-003
 status: draft

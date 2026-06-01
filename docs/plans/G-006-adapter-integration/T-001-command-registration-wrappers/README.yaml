@@ -28,4 +28,6 @@ outputs:
     call domain executors, and return structured adapter results.
 atomic_steps:
 - A-001
+- A-002
+- A-003
 status: draft

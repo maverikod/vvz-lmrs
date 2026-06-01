@@ -1,0 +1,23 @@
+step_id: A-003
+parent_tactical_step: T-002
+name: Define CommandOutcome
+target_file: lmrs/commands.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-017
+objects:
+- CommandOutcome
+prompt: Modify lmrs/commands.py after A-001 and A-002. Append CommandOutcome 
+  string constants or enum values for executed, queued, and rejected, plus 
+  dry-run estimate outcomes would_execute, would_queue, and would_reject. It 
+  names the stable result classification for chat and estimate commands. Do not 
+  add result payload fields here.
+verification:
+  type: static_analysis
+  target: lmrs/commands.py::CommandOutcome
+  expected: CommandOutcome exposes executed/queued/rejected and dry-run 
+    would_execute/would_queue/would_reject classifications.
+status: draft

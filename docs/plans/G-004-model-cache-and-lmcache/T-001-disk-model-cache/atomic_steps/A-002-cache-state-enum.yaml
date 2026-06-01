@@ -1,0 +1,23 @@
+step_id: A-002
+parent_tactical_step: T-001
+name: Define CacheState
+target_file: lmrs/model_cache.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-023
+objects:
+- CacheState
+prompt: Modify lmrs/model_cache.py after A-001. Append CacheState string 
+  constants or enum values for not_cached, caching, cached_on_disk, 
+  loading_to_memory, loaded_in_memory, unloading, and failed. It must explicitly
+  separate disk cache state from VRAM residency state. Do not add lifecycle 
+  operations.
+verification:
+  type: static_analysis
+  target: lmrs/model_cache.py::CacheState
+  expected: CacheState exposes stable cache/lifecycle state names and preserves 
+    the separation between disk cache and memory residency.
+status: draft

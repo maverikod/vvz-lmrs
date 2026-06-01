@@ -13,6 +13,8 @@
 
 **Author note:** Only the missing `gs_concept_matrix.yaml` was created during this audit. No existing HRS / MRS / G-step / T-step artifacts were modified — those are owned by the step-author model. Hard findings are escalated, not patched.
 
+**Update note (2026-05-31):** Rechecked against current plan artifacts after atomic authoring had already started. TF1 has now been resolved by removing `C-023` and `C-024` from the `G-005/T-002` concept list and from `t_concept_matrix.yaml`; disk-cache and memory-lifecycle operations remain command categories in the T-step description.
+
 ---
 
 ## Overall status
@@ -21,8 +23,8 @@
 |-------|--------|----------|
 | cycle_1 (HRS ↔ MRS) | **green** | 1 hard (resolved by creating matrix); 3 soft |
 | cycle_2 (G-step triple autonomy) | **green** | 0 GS-level findings |
-| Tactical (T-step, t5–t13) | **green except 1** | 1 hard (escalate to cycle_2/GS); several soft |
-| Atomic (A-step) | **not started** | blocked: tactical not overall_green |
+| Tactical (T-step, t5–t13) | **green** | TF1 resolved; several soft findings remain |
+| Atomic (A-step) | **in progress / provisional** | A-step artifacts exist through `partial_g001_t001_t002_g002_all_g003_all_g004_t001`; completed scopes have green matrix checks, but the full atomic layer is not complete yet. |
 
 ---
 
@@ -70,13 +72,13 @@ Run per triple (HRS + MRS + one G-step) for all 7 steps.
 
 **cycle_2 result: no GS-level findings — green.**
 
-Note: c5 confirms G-005's relation endpoints reaching outside its concept list are {C-010, C-012, C-013, C-020} — **C-023/C-024 are NOT among G-005 relations**. The G-005 triple is therefore autonomous; the autonomy gap lives in the T-layer (see TF1).
+Note: c5 confirms G-005's relation endpoints reaching outside its concept list are {C-010, C-012, C-013, C-020} — **C-023/C-024 are NOT among G-005 relations**. TF1 was therefore resolved at the T-layer by removing `C-023/C-024` from `G-005/T-002` concepts rather than duplicating G-004 relations.
 
 ---
 
 ## Tactical layer — T-step checks (t5–t13), by G-step block
 
-Precondition note: the standard requires cycle_1 AND cycle_2 green before tactical authoring. Both are green at their own levels; the single tactical finding below is exactly the kind cycle_2 surfaces at the GS triple.
+Precondition note: the standard requires cycle_1 AND cycle_2 green before tactical authoring. Both are green at their own levels, and the former G-005/T-002 t6 finding has been resolved.
 
 | Block | T-steps | t5 | t6 (scope) | t10/t11 | t12 (GS coverage) | t13 (independence) | Result |
 |-------|---------|----|-----------|---------|------|------|--------|
@@ -84,7 +86,7 @@ Precondition note: the standard requires cycle_1 AND cycle_2 green before tactic
 | G-002 | T-001, T-002, T-003 | ✓ | ✓* | ✓ | ✓ | ✓ | green (soft) |
 | G-003 | T-001, T-002, T-003 | ✓ | ✓* | ✓ | ✓ | ✓** | green (soft) |
 | G-004 | T-001, T-002, T-003 | ✓ | ✓* | ✓ | ✓ | ✓ | green (soft) |
-| G-005 | T-001, T-002, T-003 | ✓ | **✗ (T-002)** | ✓ | ✓ | ✓ | **1 hard** |
+| G-005 | T-001, T-002, T-003 | ✓ | ✓ | ✓ | ✓ | ✓ | green |
 | G-006 | T-001, T-002, T-003 | ✓ | ✓ | ✓ | ✓ | ✓ | green |
 | G-007 | T-001, T-002, T-003 | ✓ | ✓* | ✓ | ✓ | ✓ | green (soft) |
 
@@ -92,17 +94,14 @@ Precondition note: the standard requires cycle_1 AND cycle_2 green before tactic
 
 t7/t8/t9 across all T-steps: no findings — entities referenced by concept_id, data flows expressed as typed inputs/outputs, no "after T-00x" sibling references, no bare MRS/GS paraphrase.
 
-### Finding TF1 (HARD — escalate to cycle_2 / GS)
+### Finding TF1 (HARD — resolved 2026-05-31)
 
-**G-005 / T-002 "Public Command and Error Contract" — t6 scope violation.**
-T-002 lists C-023 (Disk Model Cache) and C-024 (Model Memory Lifecycle) in `concepts`, but the parent G-005 has no relation to C-023/C-024. In MRS the relations `C-017 uses C-023` and `C-017 uses C-024` are assigned to G-004, not G-005. t6 admits a concept in a TS only if it is in the parent GS `concepts` list OR is touched via a parent relation — neither holds for C-023/C-024 in G-005.
+**G-005 / T-002 "Public Command and Error Contract" — t6 scope violation, now closed.**
+Originally, T-002 listed C-023 (Disk Model Cache) and C-024 (Model Memory Lifecycle) in `concepts`, but the parent G-005 has no relation to C-023/C-024. In MRS the relations `C-017 uses C-023` and `C-017 uses C-024` are assigned to G-004, not G-005.
 
-- **Intent:** the Public Command Contract (C-017) exposes disk-cache and model-lifecycle commands, so the description mentions C-023/C-024.
-- **Resolution path (escalation, not a T-level edit):** per the standard, a finding requiring a GS change halts tactical work and re-enters cycle_2. Options for the upper-level author:
-  1. add relations `C-017 uses C-023` and `C-017 uses C-024` to G-005 (concept-axis overlap with G-004 is allowed), or
-  2. remove C-023/C-024 from T-002 `concepts` and express them only as command categories in the description.
-- **Status:** open. Not patched (owned by the step-author model). Blocks tactical overall_green and therefore the atomic layer.
-
+- **Resolution applied:** removed C-023/C-024 from `docs/plans/G-005-runtime-contracts/T-002-command-error-contract/README.yaml` concepts and from `docs/plans/t_concept_matrix.yaml` row `G-005/T-002`.
+- **Intent preserved:** disk-cache and memory-lifecycle operations remain named in the T-step description and input text as command categories exposed by the Public Command Contract (C-017), not as concepts implemented by G-005/T-002.
+- **Status:** closed. Tactical layer is now green; atomic work remains in progress because not all atomic scopes are authored/verified yet.
 ### Soft findings (tactical)
 
 - **TS1 — wide cross-GS `concepts` references (legitimate via parent relations; watch at AS / I2).** Several T-steps pull concepts owned by other G-steps through the parent's relations:
@@ -117,17 +116,33 @@ T-002 lists C-023 (Disk Model Cache) and C-024 (Model Memory Lifecycle) in `conc
 
 ## Atomic layer
 
-Not started. Precondition (`atomic_step_creation_standard.yaml`): tactical layer overall_green. With TF1 open, the tactical layer is not overall_green, so atomic authoring/verification must not begin. `object_matrix.yaml` and `concept_atomic_matrix.yaml` exist in docs/plans/ but were not validated in this audit.
+Atomic authoring has started after this audit was first written. Current `docs/plans/concept_atomic_matrix.yaml` reports `coverage_scope: partial_g001_t001_t002_g002_all_g003_all_g004_t001`.
+
+Completed atomic scopes with green concept/object checks:
+
+- G-001/T-001
+- G-001/T-002
+- G-002/T-001
+- G-002/T-002
+- G-002/T-003
+- G-003/T-001
+- G-003/T-002
+- G-003/T-003
+- G-004/T-001
+
+Caveat: these atomic artifacts are still provisional planning output because the atomic layer is only partially authored. Continue the AS chain from the current coverage boundary and rerun checks before declaring the full atomic layer green.
 
 ---
 
 ## Artifact changes made by this audit
 
-- **Created:** `docs/plans/gs_concept_matrix.yaml` (closes cycle_1 F1). Verified by separate read after commit.
-- **Not modified:** all HRS, MRS, G-step, and T-step artifacts (owned by the step-author model).
-
+- **Created by original audit:** `docs/plans/gs_concept_matrix.yaml` (closes cycle_1 F1). Verified by separate read after commit.
+- **Updated by TF1 fix:** `docs/plans/G-005-runtime-contracts/T-002-command-error-contract/README.yaml` and `docs/plans/t_concept_matrix.yaml` remove C-023/C-024 from G-005/T-002 concepts.
+- **Updated by this correction:** `docs/ai-reports/plan-audit.md` factual status for TF1, tactical green state, and current atomic coverage.
+- **Not modified by original audit:** all HRS, MRS, and G-step artifacts.
 ## Recommended next actions (for the step-author model / upper-level author)
 
-1. Resolve TF1 via cycle_2 escalation on G-005 (add the two relations, or drop C-023/C-024 from T-002 concepts), then re-run cycle_1 (matrix unaffected) and cycle_2 for G-005.
-2. Optionally address soft findings S1 (properties shape) and TS1/TS2 before atomic authoring.
-3. Once tactical reaches overall_green, proceed to the atomic layer.
+1. Continue atomic authoring from the current coverage boundary after `G-004/T-001`.
+2. Re-run concept/object matrix checks for each new atomic scope and keep `concept_atomic_matrix.yaml` synchronized.
+3. Keep TS1/TS2 soft findings visible during AS verification, especially the I2 no-extra check for cross-GS concept references.
+4. Optionally normalize S1 (`properties` field shape) before declaring the full plan final.

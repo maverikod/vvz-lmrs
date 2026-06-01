@@ -11,8 +11,6 @@ concepts:
 - C-012
 - C-010
 - C-013
-- C-023
-- C-024
 inputs:
 - name: domain_operation_requests
   type: command_request_set
@@ -34,4 +32,8 @@ outputs:
     triggering conditions.
 atomic_steps:
 - A-001
+- A-002
+- A-003
+- A-004
+- A-005
 status: draft

@@ -37,4 +37,7 @@ outputs:
     starting lifecycle services, and handing control to the adapter runtime.
 atomic_steps:
 - A-001
+- A-002
+- A-003
+- A-004
 status: draft

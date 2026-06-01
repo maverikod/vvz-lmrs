@@ -1,0 +1,30 @@
+step_id: A-005
+parent_tactical_step: T-002
+name: Define PublicCommandContract
+target_file: lmrs/commands.py
+operation: modify_file
+priority: 5
+depends_on:
+- A-004
+concepts:
+- C-017
+- C-012
+- C-010
+- C-013
+objects:
+- PublicCommandContract
+prompt: Modify lmrs/commands.py after A-001 through A-004. Append dataclass 
+  PublicCommandContract that declares, for each CommandName, its accepted 
+  operation category and the CommandResult shape it returns, as contract stubs. 
+  The estimate command performs dry-run token accounting and admission and 
+  returns a would_* outcome; the chat command performs token accounting and 
+  admission and returns executed, queued, or rejected; queue_status reports 
+  request queue state. It must not perform runtime execution or admission logic 
+  itself, only declare the contract.
+verification:
+  type: static_analysis
+  target: lmrs/commands.py::PublicCommandContract
+  expected: PublicCommandContract maps each command to its operation category 
+    and result shape and ties estimate/chat to token accounting and admission 
+    and queue_status to request queue state without executing them.
+status: draft

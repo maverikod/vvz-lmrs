@@ -1,0 +1,39 @@
+step_id: A-002
+parent_tactical_step: T-001
+name: Define KVCacheProfile fields
+target_file: lmrs/configuration.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-044
+- C-045
+objects:
+- KVCacheProfile
+prompt: "Target file: lmrs/configuration.py\nOperation: modify_file\n\nMRS excerpt:\n\
+  - C-044 KV Cache Byte Formula: worst-case KV-cache byte usage is computed from request
+  tokens and explicit model/runtime parameters.\n- C-045 Model KV Memory Profile:
+  derived memory profile stores KV-cache parameters, runtime KV dtype, bytes per token,
+  and full-window byte cost. Required parameters are layers, kv_heads, head_dim, kv_element_bytes,
+  and declared_context_window. Weight quantization does not reduce KV-cache bytes
+  unless runtime KV element dtype is reduced.\n\nCurrent full content of lmrs/configuration.py
+  before this modification:\n```python\nfrom __future__ import annotations\n\nfrom
+  dataclasses import dataclass, field\nfrom typing import Mapping\n\n\n@dataclass(frozen=True)\n\
+  class HardwareProfile:\n    \"\"\"Hardware capacity profile used by LMRS admission
+  and calibration logic.\"\"\"\n\n    gpu_count: int = 1\n    total_vram_bytes: int
+  = 24 * 1024**3\n    total_ram_bytes: int = 128 * 1024**3\n    gpu_model: str | None
+  = None\n    metadata: Mapping[str, str] = field(default_factory=dict)\n```\n\nModify
+  the file by adding this dataclass after HardwareProfile:\n```python\n\n@dataclass(frozen=True)\n\
+  class KVCacheProfile:\n    \"\"\"Model KV-cache parameters used to derive memory
+  facts.\"\"\"\n\n    layers: int\n    kv_heads: int\n    head_dim: int\n    kv_element_bytes:
+  int\n    declared_context_window: int\n    runtime_kv_dtype: str = \"fp16\"\n  \
+  \  quantization_profile: str | None = None\n```\n\nConstraints:\n- Keep HardwareProfile
+  unchanged.\n- Use existing imports only.\n- KVCacheProfile must be frozen.\n- Do
+  not add methods in this step."
+verification:
+  type: static_analysis
+  target: lmrs/configuration.py::KVCacheProfile
+  expected: The file defines a frozen KVCacheProfile dataclass with explicit KV 
+    parameters, runtime KV dtype, and quantization profile.
+status: draft

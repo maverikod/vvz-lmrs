@@ -1,0 +1,24 @@
+step_id: A-005
+parent_tactical_step: T-002
+name: Implement build_queue_entry_request
+target_file: lmrs/admission.py
+operation: modify_file
+priority: 5
+depends_on:
+- A-004
+concepts:
+- C-013
+- C-012
+objects:
+- build_queue_entry_request
+prompt: 'Modify lmrs/admission.py after A-001 through A-004. Append build_queue_entry_request(verdict:
+  AdmissionVerdict, estimate) -> dict[str, object]. It must only accept queueable
+  verdicts, include request_id, model_name, required_tokens, required_dynamic_vram_bytes,
+  admission decision timestamp placeholder, and reason_code. Do not implement queue
+  storage or scheduling here.'
+verification:
+  type: static_analysis
+  target: lmrs/admission.py::build_queue_entry_request
+  expected: Function converts a queueable verdict and estimate into a structured
+    queue input and rejects non-queueable verdicts.
+status: draft

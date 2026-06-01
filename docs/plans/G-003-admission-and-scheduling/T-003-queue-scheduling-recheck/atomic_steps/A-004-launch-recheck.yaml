@@ -1,0 +1,24 @@
+step_id: A-004
+parent_tactical_step: T-003
+name: Implement launch_recheck
+target_file: lmrs/queue.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-012
+- C-013
+- C-014
+objects:
+- launch_recheck
+prompt: 'Modify lmrs/queue.py after A-001 through A-003. Append launch_recheck(entry:
+  QueueEntry, usable_dynamic_vram_bytes: int) -> bool. It must re-check current usable
+  dynamic VRAM immediately before launch and return true only when the queued entry
+  still fits. Do not call runtime execution.'
+verification:
+  type: static_analysis
+  target: lmrs/queue.py::launch_recheck
+  expected: Function performs launch-time capacity recheck for a queued request 
+    without executing it.
+status: draft

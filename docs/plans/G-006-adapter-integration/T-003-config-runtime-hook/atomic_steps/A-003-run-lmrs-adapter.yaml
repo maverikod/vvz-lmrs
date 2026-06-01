@@ -1,0 +1,27 @@
+step_id: A-003
+parent_tactical_step: T-003
+name: Implement run_lmrs_adapter
+target_file: lmrs/adapter/runtime.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-032
+- C-003
+objects:
+- run_lmrs_adapter
+prompt: Modify lmrs/adapter/runtime.py after A-001 and A-002. Append 
+  run_lmrs_adapter() that is the startup boundary. It registers LMRS command 
+  hooks before adapter server startup, loads configuration and validates it, 
+  starts LMRS domain lifecycle services, and then hands control to the adapter 
+  create_and_run_server function. The adapter factory code must remain free of 
+  LMRS admission, tokenizer, VRAM, and model lifecycle logic. Do not implement 
+  command business logic here.
+verification:
+  type: static_analysis
+  target: lmrs/adapter/runtime.py::run_lmrs_adapter
+  expected: run_lmrs_adapter registers hooks, loads and validates configuration,
+    starts lifecycle services, and hands control to adapter 
+    create_and_run_server without embedding domain logic.
+status: draft

@@ -1,0 +1,26 @@
+step_id: A-004
+parent_tactical_step: T-003
+name: Implement build_calibration_profile
+target_file: lmrs/calibration.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-020
+objects:
+- build_calibration_profile
+prompt: 'Modify lmrs/calibration.py after A-001 through A-003. Append function build_calibration_profile(key:
+  CalibrationKey, observations: tuple[CalibrationObservation, ...]) -> CalibrationProfile.
+  It must reject empty observations, reject negative token or byte observations, compute
+  empirical kv_bytes_per_token from summed actual dynamic VRAM minus overhead divided
+  by summed tokens, clamp at zero, and set overhead values to the max observed overheads.
+  It must return a valid CalibrationProfile with observation_count. Do not perform
+  admission or runtime execution.'
+verification:
+  type: static_analysis
+  target: lmrs/calibration.py::build_calibration_profile
+  expected: Function builds a CalibrationProfile from empirical observations, 
+    validates inputs, computes calibrated KV bytes per token, and captures max 
+    overheads.
+status: draft

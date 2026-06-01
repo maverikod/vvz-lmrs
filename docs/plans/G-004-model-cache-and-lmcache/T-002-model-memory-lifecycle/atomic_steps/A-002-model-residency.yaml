@@ -1,0 +1,25 @@
+step_id: A-002
+parent_tactical_step: T-002
+name: Define ModelResidency
+target_file: lmrs/model_lifecycle.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-024
+- C-008
+objects:
+- ModelResidency
+prompt: Modify lmrs/model_lifecycle.py after A-001. Append frozen dataclass 
+  ModelResidency with model_name, runtime_backend, state, keep_loaded bool 
+  default True, measured_model_static_vram_bytes, model_loaded_free_vram_bytes, 
+  loaded_at, and metadata. It records current in-memory residency facts for one 
+  resident model. Do not add load, unload, or measurement logic in this step.
+verification:
+  type: static_analysis
+  target: lmrs/model_lifecycle.py::ModelResidency
+  expected: ModelResidency stores resident model identity, lifecycle state, 
+    keep_loaded policy, measured static VRAM, model-loaded free VRAM, and 
+    metadata.
+status: draft

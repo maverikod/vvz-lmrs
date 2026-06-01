@@ -1,0 +1,38 @@
+step_id: A-002
+parent_tactical_step: T-002
+name: Define DynamicVramState
+target_file: lmrs/vram.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-009
+- C-046
+objects:
+- DynamicVramState
+prompt: "Target file: lmrs/vram.py\nOperation: modify_file\n\nCurrent file after lower-priority
+  steps:\n```python\nfrom __future__ import annotations\n\nfrom dataclasses import
+  dataclass, field\nfrom typing import Mapping\n\n\n@dataclass(frozen=True)\nclass
+  VramRuntimeFacts:\n    \"\"\"Measured VRAM facts for one model/runtime/hardware
+  profile.\"\"\"\n\n    resident_services: tuple[str, ...]\n    service_baseline_free_vram_bytes:
+  int\n    model_loaded_free_vram_bytes: int | None = None\n    model_name: str |
+  None = None\n    runtime_backend: str | None = None\n    quantization_profile: str
+  | None = None\n    hardware_profile_id: str | None = None\n    measurement_metadata:
+  Mapping[str, str] = field(default_factory=dict)\n```\n\nMRS excerpt:\n- C-009 Dynamic
+  VRAM Pool: remaining VRAM available for KV-cache, runtime buffers, batching overhead,
+  and active request reservations after resident services and model static memory.\n\
+  - C-046 Usable Dynamic VRAM Formula: current usable dynamic memory after model load,
+  safety margin, runtime reserve, and active reservations.\n\nAppend exactly this
+  object:\n```python\n\n@dataclass(frozen=True)\nclass DynamicVramState:\n    \"\"\
+  \"Dynamic VRAM capacity state used by admission and scheduling.\"\"\"\n\n    model_loaded_free_vram_bytes:
+  int\n    safety_margin_bytes: int\n    runtime_reserve_bytes: int\n    active_reservation_bytes:
+  int = 0\n```\n\nConstraints:\n- Do not add calculation functions in this step.\n\
+  - Keep the dataclass frozen."
+verification:
+  type: static_analysis
+  target: lmrs/vram.py::DynamicVramState
+  expected: The file defines a frozen DynamicVramState dataclass with 
+    model-loaded free VRAM, safety margin, runtime reserve, and active 
+    reservations.
+status: draft

@@ -1,0 +1,25 @@
+step_id: A-001
+parent_tactical_step: T-001
+name: Define CachedModelRecord
+target_file: lmrs/model_cache.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-023
+- C-005
+objects:
+- CachedModelRecord
+prompt: Create lmrs/model_cache.py and define frozen dataclass CachedModelRecord
+  with model_name, runtime_backend, model_path, quantization_profile, 
+  declared_context_window, tokenizer_profile, checksum_or_revision, size_bytes, 
+  downloaded_at, compatibility_flags, cache_status, readiness_marker_path, and 
+  metadata. It represents disk cache metadata only; do not model VRAM residency 
+  here.
+verification:
+  type: static_analysis
+  target: lmrs/model_cache.py::CachedModelRecord
+  expected: CachedModelRecord stores disk model cache identity, model profile 
+    fields, integrity/revision, size, readiness marker, compatibility flags, 
+    status, and metadata.
+status: draft

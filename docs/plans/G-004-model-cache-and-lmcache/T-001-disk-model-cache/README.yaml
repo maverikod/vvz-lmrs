@@ -31,4 +31,7 @@ outputs:
     cache status.
 atomic_steps:
 - A-001
+- A-002
+- A-003
+- A-004
 status: draft

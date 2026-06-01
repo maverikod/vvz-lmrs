@@ -1,0 +1,24 @@
+step_id: A-001
+parent_tactical_step: T-003
+name: Define CalibrationKey
+target_file: lmrs/calibration.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-020
+objects:
+- CalibrationKey
+prompt: Create lmrs/calibration.py with imports for dataclass and Mapping. 
+  Define frozen dataclass CalibrationKey with fields model_name, 
+  runtime_backend, quantization_profile, hardware_profile_id, tokenizer_profile 
+  default None, and metadata Mapping[str, str] default empty. It identifies the 
+  model/runtime/quantization/hardware tuple that owns calibration facts. Do not 
+  add observations, profiles, builders, snapshots, admission, or runtime 
+  execution logic.
+verification:
+  type: static_analysis
+  target: lmrs/calibration.py::CalibrationKey
+  expected: Frozen CalibrationKey dataclass uniquely binds calibration data to 
+    model, runtime, quantization/profile, and hardware profile.
+status: draft

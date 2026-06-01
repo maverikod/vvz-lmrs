@@ -1,1 +1,89 @@
-{}
+step_id: A-005
+parent_tactical_step: T-002
+name: Validate gateway request payload
+target_file: lmrs/gateway.py
+operation: modify_file
+priority: 5
+depends_on:
+- A-004
+concepts:
+- C-001
+- C-002
+- C-003
+- C-004
+objects:
+- validate_gateway_request
+prompt: "Target file: lmrs/gateway.py\nOperation: modify_file\n\nMRS excerpt:\n- C-001
+  Local Model Runtime Service: consumes local model requests and blocks unsafe prompts
+  before runtime execution.\n- C-002 Provider Gateway Integration: the gateway owns
+  provider responsibilities while LMRS accepts the local provider backend request.\n\
+  - C-003 Adapter-Based MCP Interface: the adapter surface receives structured request
+  data with schemas, validation, structured responses, and structured errors.\n- C-004
+  Canonical Chat Request: contains session_id, request_id, model_name, messages, tools,
+  reserved_output_tokens, and options.\n\nCurrent full content of lmrs/gateway.py
+  before this modification:\n```python\nfrom __future__ import annotations\n\nfrom
+  dataclasses import dataclass, field\nfrom typing import Any, Mapping, Sequence\n\
+  \n\n@dataclass(frozen=True)\nclass ChatMessage:\n    \"\"\"One role-tagged message
+  from a canonical gateway chat request.\"\"\"\n\n    role: str\n    content: str
+  | list[Mapping[str, Any]]\n    name: str | None = None\n    metadata: Mapping[str,
+  Any] = field(default_factory=dict)\n\n\n@dataclass(frozen=True)\nclass CanonicalChatRequest:\n\
+  \    \"\"\"Gateway-owned request accepted by LMRS for local model routing.\"\"\"\
+  \n\n    session_id: str\n    request_id: str\n    model_name: str\n    messages:
+  tuple[ChatMessage, ...]\n    tools: tuple[Mapping[str, Any], ...] = ()\n    reserved_output_tokens:
+  int = 0\n    options: Mapping[str, Any] = field(default_factory=dict)\n\n\n@dataclass(frozen=True)\n\
+  class LocalProviderResponse:\n    \"\"\"Normalized LMRS response shape returned
+  to the provider gateway.\"\"\"\n\n    request_id: str\n    status: str\n    message:
+  ChatMessage | None = None\n    usage: Mapping[str, Any] = field(default_factory=dict)\n\
+  \    reason_code: str | None = None\n    runtime_metadata: Mapping[str, Any] = field(default_factory=dict)\n\
+  \    telemetry: Mapping[str, Any] = field(default_factory=dict)\n\n\ndef normalize_messages(raw_messages:
+  Sequence[Mapping[str, Any] | ChatMessage]) -> tuple[ChatMessage, ...]:\n    \"\"\
+  \"Convert canonical gateway message payloads into immutable ChatMessage objects.\"\
+  \"\"\n\n    messages: list[ChatMessage] = []\n    for raw_message in raw_messages:\n\
+  \        if isinstance(raw_message, ChatMessage):\n            messages.append(raw_message)\n\
+  \            continue\n        role = raw_message.get(\"role\")\n        content
+  = raw_message.get(\"content\")\n        if not isinstance(role, str) or not role:\n\
+  \            raise ValueError(\"message role must be a non-empty string\")\n   \
+  \     if not isinstance(content, (str, list)):\n            raise ValueError(\"\
+  message content must be a string or list payload\")\n        name = raw_message.get(\"\
+  name\")\n        if name is not None and not isinstance(name, str):\n          \
+  \  raise ValueError(\"message name must be a string when provided\")\n        metadata
+  = raw_message.get(\"metadata\", {})\n        if not isinstance(metadata, Mapping):\n\
+  \            raise ValueError(\"message metadata must be a mapping\")\n        messages.append(ChatMessage(role=role,
+  content=content, name=name, metadata=metadata))\n    return tuple(messages)\n```\n\
+  \nModify the file by adding this function after normalize_messages:\n\n```python\n\
+  \ndef validate_gateway_request(payload: Mapping[str, Any]) -> CanonicalChatRequest:\n\
+  \    \"\"\"Validate and normalize a canonical gateway request payload for LMRS.\"\
+  \"\"\n\n    session_id = payload.get(\"session_id\")\n    request_id = payload.get(\"\
+  request_id\")\n    model_name = payload.get(\"model_name\")\n    if not isinstance(session_id,
+  str) or not session_id:\n        raise ValueError(\"session_id must be a non-empty
+  string\")\n    if not isinstance(request_id, str) or not request_id:\n        raise
+  ValueError(\"request_id must be a non-empty string\")\n    if not isinstance(model_name,
+  str) or not model_name:\n        raise ValueError(\"model_name must be a non-empty
+  string\")\n\n    raw_messages = payload.get(\"messages\")\n    if not isinstance(raw_messages,
+  Sequence) or isinstance(raw_messages, (str, bytes)):\n        raise ValueError(\"\
+  messages must be a sequence\")\n    messages = normalize_messages(raw_messages)\n\
+  \    if not messages:\n        raise ValueError(\"messages must not be empty\")\n\
+  \n    raw_tools = payload.get(\"tools\", ())\n    if not isinstance(raw_tools, Sequence)
+  or isinstance(raw_tools, (str, bytes)):\n        raise ValueError(\"tools must be
+  a sequence when provided\")\n    tools = tuple(raw_tools)\n    if any(not isinstance(tool,
+  Mapping) for tool in tools):\n        raise ValueError(\"tools entries must be mappings\"\
+  )\n\n    reserved_output_tokens = payload.get(\"reserved_output_tokens\", 0)\n \
+  \   if not isinstance(reserved_output_tokens, int) or reserved_output_tokens < 0:\n\
+  \        raise ValueError(\"reserved_output_tokens must be a non-negative integer\"\
+  )\n\n    options = payload.get(\"options\", {})\n    if not isinstance(options,
+  Mapping):\n        raise ValueError(\"options must be a mapping\")\n\n    return
+  CanonicalChatRequest(\n        session_id=session_id,\n        request_id=request_id,\n\
+  \        model_name=model_name,\n        messages=messages,\n        tools=tools,\n\
+  \        reserved_output_tokens=reserved_output_tokens,\n        options=options,\n\
+  \    )\n```\n\nConstraints:\n- Keep all existing classes and normalize_messages
+  unchanged.\n- Use only existing imports.\n- The function signature and exception
+  messages must match exactly.\n- The function must return CanonicalChatRequest, not
+  a plain dict.\n- Do not perform token counting, admission, queueing, runtime execution,
+  or provider-gateway normalization in this step."
+verification:
+  type: static_analysis
+  target: lmrs/gateway.py::validate_gateway_request
+  expected: The file defines validate_gateway_request that validates required 
+    canonical fields, normalizes messages and tools, validates reserved output 
+    tokens and options, and returns CanonicalChatRequest.
+status: draft

@@ -1,0 +1,26 @@
+step_id: A-002
+parent_tactical_step: T-003
+name: Define CalibrationObservation
+target_file: lmrs/calibration.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-020
+- C-011
+objects:
+- CalibrationObservation
+prompt: Modify lmrs/calibration.py after A-001. Append frozen dataclass 
+  CalibrationObservation with measured prompt_tokens, output_tokens, 
+  predicted_dynamic_vram_bytes, actual_dynamic_vram_bytes, 
+  per_request_overhead_bytes default 0, runtime_batch_overhead_bytes default 0, 
+  and metadata Mapping[str, str] default empty. The object records empirical 
+  observations consumed by capacity estimation calibration. Do not add profile 
+  aggregation or admission logic.
+verification:
+  type: static_analysis
+  target: lmrs/calibration.py::CalibrationObservation
+  expected: Frozen CalibrationObservation dataclass stores empirical token, 
+    predicted VRAM, actual VRAM, and overhead facts for calibration.
+status: draft

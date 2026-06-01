@@ -1,0 +1,25 @@
+step_id: A-003
+parent_tactical_step: T-001
+name: Define DiskModelCache
+target_file: lmrs/model_cache.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-023
+- C-017
+objects:
+- DiskModelCache
+prompt: Modify lmrs/model_cache.py after A-001 and A-002. Append dataclass 
+  DiskModelCache with cache_root, records tuple[CachedModelRecord, ...], and 
+  command-wrapper methods or functions for preload, status, delete, list, 
+  integrity check, and metadata update as contract stubs. These commands operate
+  on disk cache metadata and readiness, not VRAM load.
+verification:
+  type: static_analysis
+  target: lmrs/model_cache.py::DiskModelCache
+  expected: DiskModelCache owns cached records and exposes 
+    preload/status/delete/list/integrity/metadata-update command surface without
+    VRAM load semantics.
+status: draft

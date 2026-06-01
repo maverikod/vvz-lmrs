@@ -1,0 +1,28 @@
+step_id: A-005
+parent_tactical_step: T-001
+name: Implement estimate_request_capacity
+target_file: lmrs/estimation.py
+operation: modify_file
+priority: 5
+depends_on:
+- A-004
+concepts:
+- C-010
+- C-011
+- C-047
+- C-044
+- C-046
+objects:
+- estimate_request_capacity
+prompt: Modify lmrs/estimation.py after A-001 through A-004. Append 
+  estimate_request_capacity(...) -> RequestCapacityEstimate that consumes 
+  request id, model name, TokenBreakdown, declared context window, usable 
+  dynamic VRAM, kv_bytes_per_token, and overheads; computes required_tokens and 
+  required_dynamic_vram_bytes; returns RequestCapacityEstimate. It must not 
+  classify execute, queue, or reject.
+verification:
+  type: static_analysis
+  target: lmrs/estimation.py::estimate_request_capacity
+  expected: Function builds a RequestCapacityEstimate from token breakdown and 
+    memory facts without producing an admission verdict.
+status: draft

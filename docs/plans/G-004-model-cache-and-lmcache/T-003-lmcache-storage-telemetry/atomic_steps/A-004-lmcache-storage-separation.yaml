@@ -1,0 +1,24 @@
+step_id: A-004
+parent_tactical_step: T-003
+name: Implement lmcache_storage_separation
+target_file: lmrs/lmcache.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-049
+- C-012
+objects:
+- lmcache_storage_separation
+prompt: 'Modify lmrs/lmcache.py after A-001 through A-003. Append lmcache_storage_separation(usable_dynamic_vram_bytes:
+  int, telemetry: LMCacheTelemetry) -> int. It must return usable_dynamic_vram_bytes
+  unchanged, proving CPU and disk LMCache capacity never count as free GPU VRAM. It
+  must not add cpu_cache_usage or disk_cache_usage to the VRAM pool and must not weaken
+  admission safety.'
+verification:
+  type: static_analysis
+  target: lmrs/lmcache.py::lmcache_storage_separation
+  expected: Function keeps usable dynamic VRAM independent of CPU and disk 
+    LMCache storage and never increases the VRAM pool from cache tiers.
+status: draft

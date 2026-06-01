@@ -1,0 +1,22 @@
+step_id: A-001
+parent_tactical_step: T-003
+name: Define QueueEntry
+target_file: lmrs/queue.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-013
+objects:
+- QueueEntry
+prompt: Create lmrs/queue.py and define frozen dataclass QueueEntry with 
+  request_id, session_id, model_name, required_tokens, 
+  required_dynamic_vram_bytes, admitted_at, expires_at, priority default 0, 
+  status default queued, and metadata. It stores precomputed request estimates 
+  and queue state only.
+verification:
+  type: static_analysis
+  target: lmrs/queue.py::QueueEntry
+  expected: QueueEntry stores request identity, model, token/VRAM estimates, 
+    timestamps, priority, status, and metadata.
+status: draft

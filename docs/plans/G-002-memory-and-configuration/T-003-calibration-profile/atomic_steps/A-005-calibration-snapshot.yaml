@@ -1,0 +1,24 @@
+step_id: A-005
+parent_tactical_step: T-003
+name: Implement calibration_snapshot
+target_file: lmrs/calibration.py
+operation: modify_file
+priority: 5
+depends_on:
+- A-004
+concepts:
+- C-020
+objects:
+- calibration_snapshot
+prompt: 'Modify lmrs/calibration.py after A-001 through A-004. Append function calibration_snapshot(profile:
+  CalibrationProfile) -> dict[str, object]. It must return a structured dictionary
+  with key fields, kv_bytes_per_token, per_request_overhead_bytes, runtime_batch_overhead_bytes,
+  observation_count, source, valid, invalidation_reason, and metadata. Keep measured/calibrated
+  facts explicit and do not include admission decisions.'
+verification:
+  type: static_analysis
+  target: lmrs/calibration.py::calibration_snapshot
+  expected: Function returns a structured snapshot of calibration identity, 
+    calibrated costs, observation count, validity, invalidation reason, and 
+    metadata.
+status: draft

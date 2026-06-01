@@ -1,0 +1,27 @@
+step_id: A-001
+parent_tactical_step: T-003
+name: Define CliCommandWrapper
+target_file: lmrs/cli/operations.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-040
+- C-027
+objects:
+- CliCommandWrapper
+prompt: Create lmrs/cli/operations.py and define CliCommandWrapper as a local 
+  operator wrapper contract that exposes the main LMRS user-facing and 
+  operator-facing commands behind a scriptable command-line interface. Each 
+  wrapper calls the canonical command contracts used by the adapter-facing thin 
+  command layer and must not re-implement command business logic; it is a local 
+  surface over existing command implementation. Provide a stable command_name 
+  and an invoke method that delegates to the canonical command contract. Do not 
+  add help rendering or server management here.
+verification:
+  type: static_analysis
+  target: lmrs/cli/operations.py::CliCommandWrapper
+  expected: CliCommandWrapper exposes main commands via a scriptable CLI that 
+    delegates to canonical command contracts without re-implementing business 
+    logic.
+status: draft

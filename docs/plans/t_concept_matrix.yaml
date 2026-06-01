@@ -122,8 +122,6 @@ rows:
   - C-012
   - C-010
   - C-013
-  - C-023
-  - C-024
 - global_step: G-005
   tactical_step: T-003
   path: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/README.yaml

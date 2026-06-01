@@ -1,0 +1,40 @@
+step_id: A-006
+parent_tactical_step: T-002
+name: Implement runtime_fact_snapshot
+target_file: lmrs/vram.py
+operation: modify_file
+priority: 6
+depends_on:
+- A-005
+concepts:
+- C-008
+objects:
+- runtime_fact_snapshot
+prompt: "Target file: lmrs/vram.py\nOperation: modify_file\n\nCurrent file after lower-priority
+  steps contains VramRuntimeFacts, DynamicVramState, calculate_static_vram, calculate_max_dynamic_pool,
+  and calculate_usable_dynamic_vram exactly as defined by A-001 through A-005.\n\n\
+  MRS excerpt:\n- C-008 runtime facts must be stored and exposed as facts for the
+  concrete model/runtime/quantization/hardware profile.\n- C-007 baseline and loaded-model
+  measurements remain distinct from calculated dynamic capacity facts.\n\nAppend exactly
+  this function:\n```python\n\n\ndef runtime_fact_snapshot(facts: VramRuntimeFacts,
+  state: DynamicVramState) -> dict[str, object]:\n    \"\"\"Return a structured snapshot
+  of measured and derived VRAM facts.\"\"\"\n    return {\n        \"resident_services\"\
+  : list(facts.resident_services),\n        \"service_baseline_free_vram_bytes\":
+  facts.service_baseline_free_vram_bytes,\n        \"model_loaded_free_vram_bytes\"\
+  : facts.model_loaded_free_vram_bytes,\n        \"measured_model_static_vram_bytes\"\
+  : calculate_static_vram(facts),\n        \"max_dynamic_pool_bytes\": calculate_max_dynamic_pool(state),\n\
+  \        \"usable_dynamic_vram_bytes\": calculate_usable_dynamic_vram(state),\n\
+  \        \"active_reservation_bytes\": state.active_reservation_bytes,\n       \
+  \ \"model_name\": facts.model_name,\n        \"runtime_backend\": facts.runtime_backend,\n\
+  \        \"quantization_profile\": facts.quantization_profile,\n        \"hardware_profile_id\"\
+  : facts.hardware_profile_id,\n        \"measurement_metadata\": dict(facts.measurement_metadata),\n\
+  \    }\n```\n\nConstraints:\n- Return measured facts and derived facts separately.\n\
+  - Do not silently hide missing model_loaded_free_vram_bytes; let calculate_static_vram
+  raise its stable ValueError."
+verification:
+  type: static_analysis
+  target: lmrs/vram.py::runtime_fact_snapshot
+  expected: The function returns a structured dictionary containing resident 
+    services, measured baseline and loaded VRAM facts, measured static VRAM, 
+    dynamic pool values, identity fields, and metadata.
+status: draft

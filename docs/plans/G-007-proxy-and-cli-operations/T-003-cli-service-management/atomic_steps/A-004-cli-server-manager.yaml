@@ -1,0 +1,29 @@
+step_id: A-004
+parent_tactical_step: T-003
+name: Define CliServerManager
+target_file: lmrs/cli/operations.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-042
+- C-032
+- C-043
+objects:
+- CliServerManager
+prompt: Modify lmrs/cli/operations.py after A-001 through A-003. Append class 
+  CliServerManager that provides start, stop, and status operations for the LMRS
+  service runtime. Start launches the configured service runtime through the 
+  adapter runtime entrypoint. Stop targets and stops the correct service 
+  instance. Status reports availability in a form useful for both humans and 
+  scripts by calling verify_service_health rather than relying on PID presence 
+  alone. Do not re-implement runtime entrypoint or health probe logic here; call
+  the existing contracts.
+verification:
+  type: static_analysis
+  target: lmrs/cli/operations.py::CliServerManager
+  expected: CliServerManager exposes start, stop, and status operations that 
+    launch via the adapter runtime entrypoint, stop the correct instance, and 
+    report status via active health verification.
+status: draft

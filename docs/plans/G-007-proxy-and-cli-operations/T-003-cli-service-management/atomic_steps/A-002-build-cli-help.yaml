@@ -1,0 +1,27 @@
+step_id: A-002
+parent_tactical_step: T-003
+name: Implement build_cli_help
+target_file: lmrs/cli/operations.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-041
+- C-029
+- C-028
+objects:
+- build_cli_help
+prompt: Modify lmrs/cli/operations.py after A-001. Append 
+  build_cli_help(metadata, schema) that derives CLI command documentation from 
+  the command metadata contract and schema contract as the single source of 
+  truth. It exposes command names, parameter descriptions, examples, return 
+  shape, error cases, and best practices from metadata, and must not maintain a 
+  separate hand-written help catalog that can drift from command code. Return 
+  the rendered help structure. Do not start or stop the service here.
+verification:
+  type: static_analysis
+  target: lmrs/cli/operations.py::build_cli_help
+  expected: build_cli_help renders CLI help from command metadata and schema 
+    contracts with no separate hand-written catalog.
+status: draft

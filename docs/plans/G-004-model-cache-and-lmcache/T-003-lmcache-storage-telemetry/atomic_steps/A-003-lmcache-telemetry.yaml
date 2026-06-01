@@ -1,0 +1,26 @@
+step_id: A-003
+parent_tactical_step: T-003
+name: Define LMCacheTelemetry
+target_file: lmrs/lmcache.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-049
+- C-019
+objects:
+- LMCacheTelemetry
+prompt: Modify lmrs/lmcache.py after A-001 and A-002. Append frozen dataclass 
+  LMCacheTelemetry with hit_tokens, miss_tokens, hit_quality, restore_latency, 
+  write_latency, cpu_cache_usage, cpu_cache_limit, disk_cache_usage, 
+  disk_cache_limit, evictions, memory_pressure, swap_indicators, and metadata. 
+  It is the telemetry accounting contract for LMCache CPU and disk tiers. Do not
+  add GPU VRAM capacity fields here.
+verification:
+  type: static_analysis
+  target: lmrs/lmcache.py::LMCacheTelemetry
+  expected: LMCacheTelemetry exposes hit/miss tokens, hit quality, restore and 
+    write latency, CPU and disk usage and limits, evictions, memory pressure, 
+    and swap indicators.
+status: draft

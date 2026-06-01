@@ -7,35 +7,60 @@ meta:
   - TS
   - AS
   status: draft
-  coverage_scope: partial_first_triple
+  coverage_scope: complete_all_g001_through_g007
 rows:
 - concept: C-001
   atomic_steps:
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-003-service-boundary.yaml
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-005-boundary-snapshot.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-002-canonical-chat-request.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-005-validate-gateway-request.yaml
   objects:
   - ServiceBoundary
   - build_default_service_boundary
   - boundary_snapshot
+  - CanonicalChatRequest
+  - validate_gateway_request
 - concept: C-002
   atomic_steps:
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-003-service-boundary.yaml
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-002-canonical-chat-request.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-003-local-provider-response.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-005-validate-gateway-request.yaml
   objects:
   - ServiceBoundary
   - build_default_service_boundary
+  - CanonicalChatRequest
+  - LocalProviderResponse
+  - validate_gateway_request
 - concept: C-003
   atomic_steps:
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-001-adapter-exposure.yaml
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-003-service-boundary.yaml
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-005-boundary-snapshot.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-005-validate-gateway-request.yaml
   objects:
   - AdapterExposure
   - ServiceBoundary
   - build_default_service_boundary
   - boundary_snapshot
+  - validate_gateway_request
+- concept: C-004
+  atomic_steps:
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-001-chat-message.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-002-canonical-chat-request.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-003-local-provider-response.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-004-normalize-messages.yaml
+  - docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-005-validate-gateway-request.yaml
+  objects:
+  - ChatMessage
+  - CanonicalChatRequest
+  - LocalProviderResponse
+  - normalize_messages
+  - validate_gateway_request
 - concept: C-022
   atomic_steps:
   - docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-002-mvp-scope.yaml
@@ -47,6 +72,515 @@ rows:
   - ServiceBoundary
   - build_default_service_boundary
   - boundary_snapshot
+- concept: C-005
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-005-model-profile.yaml
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-006-runtime-configuration.yaml
+  objects:
+  - ModelProfile
+  - RuntimeConfiguration
+- concept: C-006
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-001-hardware-profile.yaml
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-006-runtime-configuration.yaml
+  objects:
+  - HardwareProfile
+  - RuntimeConfiguration
+- concept: C-021
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-006-runtime-configuration.yaml
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-007-validate-runtime-configuration.yaml
+  objects:
+  - RuntimeConfiguration
+  - validate_runtime_configuration
+- concept: C-044
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-002-kv-cache-profile.yaml
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-003-kv-bytes-per-token.yaml
+  objects:
+  - KVCacheProfile
+  - KVCacheProfile.kv_bytes_per_token
+- concept: C-045
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-002-kv-cache-profile.yaml
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-004-kv-full-window-bytes.yaml
+  - docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-005-model-profile.yaml
+  objects:
+  - KVCacheProfile
+  - KVCacheProfile.kv_full_window_bytes
+  - ModelProfile
+- concept: C-007
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-001-vram-runtime-facts.yaml
+  objects:
+  - VramRuntimeFacts
+- concept: C-008
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-001-vram-runtime-facts.yaml
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-003-calculate-static-vram.yaml
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-006-runtime-fact-snapshot.yaml
+  objects:
+  - VramRuntimeFacts
+  - calculate_static_vram
+  - runtime_fact_snapshot
+- concept: C-009
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-002-dynamic-vram-state.yaml
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-004-calculate-max-dynamic-pool.yaml
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-005-calculate-usable-dynamic-vram.yaml
+  objects:
+  - DynamicVramState
+  - calculate_max_dynamic_pool
+  - calculate_usable_dynamic_vram
+- concept: C-046
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-002-dynamic-vram-state.yaml
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-004-calculate-max-dynamic-pool.yaml
+  - docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-005-calculate-usable-dynamic-vram.yaml
+  objects:
+  - DynamicVramState
+  - calculate_max_dynamic_pool
+  - calculate_usable_dynamic_vram
+- concept: C-020
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-001-calibration-key.yaml
+  - docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-002-calibration-observation.yaml
+  - docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-003-calibration-profile.yaml
+  - docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-004-build-calibration-profile.yaml
+  - docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-005-calibration-snapshot.yaml
+  objects:
+  - CalibrationKey
+  - CalibrationObservation
+  - CalibrationProfile
+  - build_calibration_profile
+  - calibration_snapshot
+- concept: C-011
+  atomic_steps:
+  - docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-002-calibration-observation.yaml
+  objects:
+  - CalibrationObservation
+- concept: C-010
+  atomic_steps:
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-001-token-breakdown.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-003-calculate-required-tokens.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-005-estimate-request-capacity.yaml
+  objects:
+  - TokenBreakdown
+  - calculate_required_tokens
+  - estimate_request_capacity
+- concept: C-011
+  atomic_steps:
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-002-request-capacity-estimate.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-003-calculate-required-tokens.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-005-estimate-request-capacity.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-004-decide-admission.yaml
+  objects:
+  - RequestCapacityEstimate
+  - calculate_required_tokens
+  - estimate_request_capacity
+  - decide_admission
+- concept: C-047
+  atomic_steps:
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-002-request-capacity-estimate.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-004-calculate-dynamic-vram-requirement.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-005-estimate-request-capacity.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-001-capacity-snapshot.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-004-decide-admission.yaml
+  objects:
+  - RequestCapacityEstimate
+  - calculate_dynamic_vram_requirement
+  - estimate_request_capacity
+  - CapacitySnapshot
+  - decide_admission
+- concept: C-048
+  atomic_steps:
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-003-evaluate-lmcache-admission.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-004-decide-admission.yaml
+  objects:
+  - evaluate_lmcache_admission
+  - decide_admission
+- concept: C-012
+  atomic_steps:
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-001-capacity-snapshot.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-002-admission-verdict.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-004-decide-admission.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-005-build-queue-entry-request.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/atomic_steps/A-004-launch-recheck.yaml
+  objects:
+  - CapacitySnapshot
+  - AdmissionVerdict
+  - decide_admission
+  - build_queue_entry_request
+  - launch_recheck
+- concept: C-013
+  atomic_steps:
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-002-admission-verdict.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-005-build-queue-entry-request.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/atomic_steps/A-001-queue-entry.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/atomic_steps/A-002-request-queue.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/atomic_steps/A-003-largest-fit-scheduler.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/atomic_steps/A-004-launch-recheck.yaml
+  objects:
+  - AdmissionVerdict
+  - build_queue_entry_request
+  - QueueEntry
+  - RequestQueue
+  - largest_fit_scheduler
+  - launch_recheck
+- concept: C-014
+  atomic_steps:
+  - docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/atomic_steps/A-003-largest-fit-scheduler.yaml
+  - docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/atomic_steps/A-004-launch-recheck.yaml
+  objects:
+  - largest_fit_scheduler
+  - launch_recheck
+- concept: C-023
+  atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-001-cached-model-record.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-002-cache-state-enum.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-003-disk-model-cache.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-004-cache-command-results.yaml
+  objects:
+  - CachedModelRecord
+  - CacheState
+  - DiskModelCache
+  - CacheCommandResult
+- concept: C-005
+  atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-001-cached-model-record.yaml
+  objects:
+  - CachedModelRecord
+- concept: C-017
+  atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-003-disk-model-cache.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-004-cache-command-results.yaml
+  objects:
+  - DiskModelCache
+  - CacheCommandResult
+- concept: C-024
+  atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-001-lifecycle-state.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-002-model-residency.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-004-model-memory-lifecycle.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-005-lifecycle-command-result.yaml
+  objects:
+  - LifecycleState
+  - ModelResidency
+  - ModelMemoryLifecycle
+  - LifecycleCommandResult
+- concept: C-008
+  atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-002-model-residency.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-003-measure-model-static-vram.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-005-lifecycle-command-result.yaml
+  objects:
+  - ModelResidency
+  - measure_model_static_vram
+  - LifecycleCommandResult
+- concept: C-017
+  atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-004-model-memory-lifecycle.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-005-lifecycle-command-result.yaml
+  objects:
+  - ModelMemoryLifecycle
+  - LifecycleCommandResult
+- atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-001-lmcache-storage-policy.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-002-lmcache-estimate.yaml
+  concept: C-025
+  objects:
+  - LMCacheStoragePolicy
+  - LMCacheEstimate
+- atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-003-lmcache-telemetry.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-004-lmcache-storage-separation.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-005-build-lmcache-telemetry.yaml
+  concept: C-049
+  objects:
+  - LMCacheTelemetry
+  - lmcache_storage_separation
+  - build_lmcache_telemetry
+- atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-001-lmcache-storage-policy.yaml
+  concept: C-021
+  objects:
+  - LMCacheStoragePolicy
+- atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-002-lmcache-estimate.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-004-lmcache-storage-separation.yaml
+  concept: C-012
+  objects:
+  - LMCacheEstimate
+  - lmcache_storage_separation
+- atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-003-lmcache-telemetry.yaml
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-005-build-lmcache-telemetry.yaml
+  concept: C-019
+  objects:
+  - LMCacheTelemetry
+  - build_lmcache_telemetry
+- atomic_steps:
+  - docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-005-build-lmcache-telemetry.yaml
+  concept: C-015
+  objects:
+  - build_lmcache_telemetry
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-001-runtime-backend.yaml
+  - docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-004-runtime-client.yaml
+  concept: C-015
+  objects:
+  - RuntimeBackend
+  - RuntimeClient
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-002-normalized-runtime-result.yaml
+  - docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-003-runtime-failure-signal.yaml
+  - docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-004-runtime-client.yaml
+  concept: C-016
+  objects:
+  - NormalizedRuntimeResult
+  - RuntimeFailureSignal
+  - RuntimeClient
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-001-command-name.yaml
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-003-command-outcome.yaml
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-004-command-result.yaml
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-005-public-command-contract.yaml
+  concept: C-017
+  objects:
+  - CommandName
+  - CommandOutcome
+  - CommandResult
+  - PublicCommandContract
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-002-error-code.yaml
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-004-command-result.yaml
+  concept: C-018
+  objects:
+  - ErrorCode
+  - CommandResult
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-005-public-command-contract.yaml
+  concept: C-012
+  objects:
+  - PublicCommandContract
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-005-public-command-contract.yaml
+  concept: C-010
+  objects:
+  - PublicCommandContract
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-005-public-command-contract.yaml
+  concept: C-013
+  objects:
+  - PublicCommandContract
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-001-telemetry-record.yaml
+  - docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-002-build-telemetry-record.yaml
+  - docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-003-calibration-observation.yaml
+  - docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-004-collect-calibration-observations.yaml
+  concept: C-019
+  objects:
+  - TelemetryRecord
+  - build_telemetry_record
+  - TelemetryCalibrationObservation
+  - collect_calibration_observations
+- atomic_steps:
+  - docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-003-calibration-observation.yaml
+  - docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-004-collect-calibration-observations.yaml
+  concept: C-020
+  objects:
+  - TelemetryCalibrationObservation
+  - collect_calibration_observations
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-001-thin-adapter-command.yaml
+  concept: C-027
+  objects:
+  - ThinAdapterCommand
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-002-register-lmrs-commands.yaml
+  - docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-003-register-custom-commands-hook.yaml
+  concept: C-026
+  objects:
+  - register_lmrs_commands
+  - register_custom_commands_hook
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-001-thin-adapter-command.yaml
+  - docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-003-register-custom-commands-hook.yaml
+  concept: C-003
+  objects:
+  - ThinAdapterCommand
+  - register_custom_commands_hook
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-001-command-schema-contract.yaml
+  - docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-002-command-metadata-contract.yaml
+  - docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-003-build-command-metadata.yaml
+  concept: C-028
+  objects:
+  - CommandSchemaContract
+  - CommandMetadataContract
+  - build_command_metadata
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-002-command-metadata-contract.yaml
+  - docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-003-build-command-metadata.yaml
+  concept: C-029
+  objects:
+  - CommandMetadataContract
+  - build_command_metadata
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-001-generate-lmrs-config.yaml
+  concept: C-030
+  objects:
+  - generate_lmrs_config
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-002-validate-lmrs-config.yaml
+  concept: C-031
+  objects:
+  - validate_lmrs_config
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-003-run-lmrs-adapter.yaml
+  concept: C-032
+  objects:
+  - run_lmrs_adapter
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-004-adapter-documentation-baseline.yaml
+  concept: C-033
+  objects:
+  - ADAPTER_DOCUMENTATION_BASELINE
+- atomic_steps:
+  - docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-001-generate-lmrs-config.yaml
+  - docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-002-validate-lmrs-config.yaml
+  concept: C-021
+  objects:
+  - generate_lmrs_config
+  - validate_lmrs_config
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-001-server-listen-endpoint.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-006-lmrs-network-config-contract.yaml
+  concept: C-034
+  objects:
+  - ServerListenEndpoint
+  - lmrs_network_config_contract
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-002-resolve-advertised-url.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-005-build-registration-payload.yaml
+  concept: C-035
+  objects:
+  - resolve_advertised_url
+  - build_registration_payload
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-003-proxy-registration-endpoint.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-004-resolve-registration-protocol.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-005-build-registration-payload.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-006-lmrs-network-config-contract.yaml
+  concept: C-036
+  objects:
+  - ProxyRegistrationEndpoint
+  - resolve_registration_protocol
+  - build_registration_payload
+  - lmrs_network_config_contract
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-004-resolve-registration-protocol.yaml
+  concept: C-037
+  objects:
+  - resolve_registration_protocol
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-005-build-registration-payload.yaml
+  concept: C-039
+  objects:
+  - build_registration_payload
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-006-lmrs-network-config-contract.yaml
+  concept: C-030
+  objects:
+  - lmrs_network_config_contract
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-006-lmrs-network-config-contract.yaml
+  concept: C-031
+  objects:
+  - lmrs_network_config_contract
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-001-registration-state.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-002-registration-lifecycle-policy.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-003-run-registration-lifecycle.yaml
+  concept: C-038
+  objects:
+  - RegistrationState
+  - RegistrationLifecyclePolicy
+  - run_registration_lifecycle
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-002-registration-lifecycle-policy.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-003-run-registration-lifecycle.yaml
+  concept: C-036
+  objects:
+  - RegistrationLifecyclePolicy
+  - run_registration_lifecycle
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-003-run-registration-lifecycle.yaml
+  concept: C-035
+  objects:
+  - run_registration_lifecycle
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-003-run-registration-lifecycle.yaml
+  concept: C-039
+  objects:
+  - run_registration_lifecycle
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-001-cli-command-wrapper.yaml
+  concept: C-040
+  objects:
+  - CliCommandWrapper
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-001-cli-command-wrapper.yaml
+  concept: C-027
+  objects:
+  - CliCommandWrapper
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-002-build-cli-help.yaml
+  concept: C-041
+  objects:
+  - build_cli_help
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-002-build-cli-help.yaml
+  concept: C-029
+  objects:
+  - build_cli_help
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-002-build-cli-help.yaml
+  concept: C-028
+  objects:
+  - build_cli_help
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-003-verify-service-health.yaml
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-004-cli-server-manager.yaml
+  concept: C-043
+  objects:
+  - verify_service_health
+  - CliServerManager
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-003-verify-service-health.yaml
+  concept: C-034
+  objects:
+  - verify_service_health
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-003-verify-service-health.yaml
+  concept: C-035
+  objects:
+  - verify_service_health
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-003-verify-service-health.yaml
+  concept: C-038
+  objects:
+  - verify_service_health
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-004-cli-server-manager.yaml
+  concept: C-042
+  objects:
+  - CliServerManager
+- atomic_steps:
+  - docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-004-cli-server-manager.yaml
+  concept: C-032
+  objects:
+  - CliServerManager
 checks:
 - scope: G-001/T-001
   t_concepts:
@@ -74,3 +608,493 @@ checks:
   - build_default_service_boundary
   - boundary_snapshot
   result: green
+- scope: G-001/T-002
+  t_concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-004
+  a_concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-004
+  result: green
+- scope: G-001/T-002
+  t_objects:
+  - ChatMessage
+  - CanonicalChatRequest
+  - LocalProviderResponse
+  - normalize_messages
+  - validate_gateway_request
+  a_objects:
+  - ChatMessage
+  - CanonicalChatRequest
+  - LocalProviderResponse
+  - normalize_messages
+  - validate_gateway_request
+  result: green
+- scope: G-002/T-001
+  t_concepts:
+  - C-005
+  - C-006
+  - C-021
+  - C-044
+  - C-045
+  a_concepts:
+  - C-005
+  - C-006
+  - C-021
+  - C-044
+  - C-045
+  result: green
+- scope: G-002/T-001
+  t_objects:
+  - HardwareProfile
+  - KVCacheProfile
+  - KVCacheProfile.kv_bytes_per_token
+  - KVCacheProfile.kv_full_window_bytes
+  - ModelProfile
+  - RuntimeConfiguration
+  - validate_runtime_configuration
+  a_objects:
+  - HardwareProfile
+  - KVCacheProfile
+  - KVCacheProfile.kv_bytes_per_token
+  - KVCacheProfile.kv_full_window_bytes
+  - ModelProfile
+  - RuntimeConfiguration
+  - validate_runtime_configuration
+  result: green
+- scope: G-002/T-002
+  t_concepts:
+  - C-007
+  - C-008
+  - C-009
+  - C-046
+  a_concepts:
+  - C-007
+  - C-008
+  - C-009
+  - C-046
+  result: green
+- scope: G-002/T-002
+  t_objects:
+  - VramRuntimeFacts
+  - DynamicVramState
+  - calculate_static_vram
+  - calculate_max_dynamic_pool
+  - calculate_usable_dynamic_vram
+  - runtime_fact_snapshot
+  a_objects:
+  - VramRuntimeFacts
+  - DynamicVramState
+  - calculate_static_vram
+  - calculate_max_dynamic_pool
+  - calculate_usable_dynamic_vram
+  - runtime_fact_snapshot
+  result: green
+- scope: G-002/T-003
+  t_concepts:
+  - C-020
+  - C-011
+  a_concepts:
+  - C-020
+  - C-011
+  result: green
+- scope: G-002/T-003
+  t_objects:
+  - CalibrationKey
+  - CalibrationObservation
+  - CalibrationProfile
+  - build_calibration_profile
+  - calibration_snapshot
+  a_objects:
+  - CalibrationKey
+  - CalibrationObservation
+  - CalibrationProfile
+  - build_calibration_profile
+  - calibration_snapshot
+  result: green
+- scope: G-003/T-001
+  t_concepts:
+  - C-010
+  - C-011
+  - C-047
+  - C-044
+  - C-046
+  a_concepts:
+  - C-010
+  - C-011
+  - C-047
+  - C-044
+  - C-046
+  result: green
+- scope: G-003/T-001
+  t_objects:
+  - TokenBreakdown
+  - RequestCapacityEstimate
+  - calculate_required_tokens
+  - calculate_dynamic_vram_requirement
+  - estimate_request_capacity
+  a_objects:
+  - TokenBreakdown
+  - RequestCapacityEstimate
+  - calculate_required_tokens
+  - calculate_dynamic_vram_requirement
+  - estimate_request_capacity
+  result: green
+- scope: G-003/T-002
+  t_concepts:
+  - C-011
+  - C-012
+  - C-013
+  - C-047
+  - C-048
+  a_concepts:
+  - C-011
+  - C-012
+  - C-013
+  - C-047
+  - C-048
+  result: green
+- scope: G-003/T-002
+  t_objects:
+  - CapacitySnapshot
+  - AdmissionVerdict
+  - evaluate_lmcache_admission
+  - decide_admission
+  - build_queue_entry_request
+  a_objects:
+  - CapacitySnapshot
+  - AdmissionVerdict
+  - evaluate_lmcache_admission
+  - decide_admission
+  - build_queue_entry_request
+  result: green
+- scope: G-003/T-003
+  t_concepts:
+  - C-012
+  - C-013
+  - C-014
+  a_concepts:
+  - C-012
+  - C-013
+  - C-014
+  result: green
+- scope: G-003/T-003
+  t_objects:
+  - QueueEntry
+  - RequestQueue
+  - largest_fit_scheduler
+  - launch_recheck
+  a_objects:
+  - QueueEntry
+  - RequestQueue
+  - largest_fit_scheduler
+  - launch_recheck
+  result: green
+- scope: G-004/T-001
+  t_concepts:
+  - C-023
+  - C-005
+  - C-017
+  a_concepts:
+  - C-023
+  - C-005
+  - C-017
+  result: green
+- scope: G-004/T-001
+  t_objects:
+  - CachedModelRecord
+  - CacheState
+  - DiskModelCache
+  - CacheCommandResult
+  a_objects:
+  - CachedModelRecord
+  - CacheState
+  - DiskModelCache
+  - CacheCommandResult
+  result: green
+- scope: G-004/T-002
+  t_concepts:
+  - C-024
+  - C-023
+  - C-008
+  - C-017
+  a_concepts:
+  - C-024
+  - C-023
+  - C-008
+  - C-017
+  result: green
+- scope: G-004/T-002
+  t_objects:
+  - LifecycleState
+  - ModelResidency
+  - measure_model_static_vram
+  - ModelMemoryLifecycle
+  - LifecycleCommandResult
+  a_objects:
+  - LifecycleState
+  - ModelResidency
+  - measure_model_static_vram
+  - ModelMemoryLifecycle
+  - LifecycleCommandResult
+  result: green
+- a_concepts:
+  - C-025
+  - C-049
+  - C-019
+  - C-021
+  - C-015
+  - C-012
+  result: green
+  scope: G-004/T-003
+  t_concepts:
+  - C-025
+  - C-049
+  - C-019
+  - C-021
+  - C-015
+  - C-012
+- a_objects:
+  - LMCacheStoragePolicy
+  - LMCacheEstimate
+  - LMCacheTelemetry
+  - lmcache_storage_separation
+  - build_lmcache_telemetry
+  result: green
+  scope: G-004/T-003
+  t_objects:
+  - LMCacheStoragePolicy
+  - LMCacheEstimate
+  - LMCacheTelemetry
+  - lmcache_storage_separation
+  - build_lmcache_telemetry
+- a_concepts:
+  - C-015
+  - C-016
+  result: green
+  scope: G-005/T-001
+  t_concepts:
+  - C-015
+  - C-016
+- a_objects:
+  - RuntimeBackend
+  - NormalizedRuntimeResult
+  - RuntimeFailureSignal
+  - RuntimeClient
+  result: green
+  scope: G-005/T-001
+  t_objects:
+  - RuntimeBackend
+  - NormalizedRuntimeResult
+  - RuntimeFailureSignal
+  - RuntimeClient
+- a_concepts:
+  - C-017
+  - C-018
+  - C-012
+  - C-010
+  - C-013
+  result: green
+  scope: G-005/T-002
+  t_concepts:
+  - C-017
+  - C-018
+  - C-012
+  - C-010
+  - C-013
+- a_objects:
+  - CommandName
+  - ErrorCode
+  - CommandOutcome
+  - CommandResult
+  - PublicCommandContract
+  result: green
+  scope: G-005/T-002
+  t_objects:
+  - CommandName
+  - ErrorCode
+  - CommandOutcome
+  - CommandResult
+  - PublicCommandContract
+- a_concepts:
+  - C-019
+  - C-020
+  result: green
+  scope: G-005/T-003
+  t_concepts:
+  - C-019
+  - C-020
+- a_objects:
+  - TelemetryRecord
+  - build_telemetry_record
+  - TelemetryCalibrationObservation
+  - collect_calibration_observations
+  result: green
+  scope: G-005/T-003
+  t_objects:
+  - TelemetryRecord
+  - build_telemetry_record
+  - TelemetryCalibrationObservation
+  - collect_calibration_observations
+- a_concepts:
+  - C-026
+  - C-027
+  - C-003
+  result: green
+  scope: G-006/T-001
+  t_concepts:
+  - C-026
+  - C-027
+  - C-003
+- a_objects:
+  - ThinAdapterCommand
+  - register_lmrs_commands
+  - register_custom_commands_hook
+  result: green
+  scope: G-006/T-001
+  t_objects:
+  - ThinAdapterCommand
+  - register_lmrs_commands
+  - register_custom_commands_hook
+- a_concepts:
+  - C-028
+  - C-029
+  result: green
+  scope: G-006/T-002
+  t_concepts:
+  - C-028
+  - C-029
+- a_objects:
+  - CommandSchemaContract
+  - CommandMetadataContract
+  - build_command_metadata
+  result: green
+  scope: G-006/T-002
+  t_objects:
+  - CommandSchemaContract
+  - CommandMetadataContract
+  - build_command_metadata
+- a_concepts:
+  - C-030
+  - C-031
+  - C-032
+  - C-033
+  - C-021
+  result: green
+  scope: G-006/T-003
+  t_concepts:
+  - C-030
+  - C-031
+  - C-032
+  - C-033
+  - C-021
+- a_objects:
+  - generate_lmrs_config
+  - validate_lmrs_config
+  - run_lmrs_adapter
+  - ADAPTER_DOCUMENTATION_BASELINE
+  result: green
+  scope: G-006/T-003
+  t_objects:
+  - generate_lmrs_config
+  - validate_lmrs_config
+  - run_lmrs_adapter
+  - ADAPTER_DOCUMENTATION_BASELINE
+- a_concepts:
+  - C-034
+  - C-035
+  - C-036
+  - C-037
+  - C-039
+  - C-030
+  - C-031
+  result: green
+  scope: G-007/T-001
+  t_concepts:
+  - C-034
+  - C-035
+  - C-036
+  - C-037
+  - C-039
+  - C-030
+  - C-031
+- a_objects:
+  - ServerListenEndpoint
+  - resolve_advertised_url
+  - ProxyRegistrationEndpoint
+  - resolve_registration_protocol
+  - build_registration_payload
+  - lmrs_network_config_contract
+  result: green
+  scope: G-007/T-001
+  t_objects:
+  - ServerListenEndpoint
+  - resolve_advertised_url
+  - ProxyRegistrationEndpoint
+  - resolve_registration_protocol
+  - build_registration_payload
+  - lmrs_network_config_contract
+- a_concepts:
+  - C-038
+  - C-036
+  - C-035
+  - C-039
+  result: green
+  scope: G-007/T-002
+  t_concepts:
+  - C-038
+  - C-036
+  - C-035
+  - C-039
+- a_objects:
+  - RegistrationState
+  - RegistrationLifecyclePolicy
+  - run_registration_lifecycle
+  result: green
+  scope: G-007/T-002
+  t_objects:
+  - RegistrationState
+  - RegistrationLifecyclePolicy
+  - run_registration_lifecycle
+- a_concepts:
+  - C-040
+  - C-041
+  - C-042
+  - C-043
+  - C-027
+  - C-028
+  - C-029
+  - C-032
+  - C-034
+  - C-035
+  - C-038
+  result: green
+  scope: G-007/T-003
+  t_concepts:
+  - C-040
+  - C-041
+  - C-042
+  - C-043
+  - C-027
+  - C-028
+  - C-029
+  - C-032
+  - C-034
+  - C-035
+  - C-038
+- a_objects:
+  - CliCommandWrapper
+  - build_cli_help
+  - verify_service_health
+  - CliServerManager
+  result: green
+  scope: G-007/T-003
+  t_objects:
+  - CliCommandWrapper
+  - build_cli_help
+  - verify_service_health
+  - CliServerManager

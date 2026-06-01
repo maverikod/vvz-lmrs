@@ -1,0 +1,31 @@
+step_id: A-005
+parent_tactical_step: T-002
+name: Implement calculate_usable_dynamic_vram
+target_file: lmrs/vram.py
+operation: modify_file
+priority: 5
+depends_on:
+- A-004
+concepts:
+- C-009
+- C-046
+objects:
+- calculate_usable_dynamic_vram
+prompt: "Target file: lmrs/vram.py\nOperation: modify_file\n\nCurrent file after lower-priority
+  steps contains VramRuntimeFacts, DynamicVramState, calculate_static_vram, and calculate_max_dynamic_pool
+  exactly as defined by A-001 through A-004.\n\nMRS excerpt:\n- C-046 formula: usable_dynamic_vram_bytes
+  = model_loaded_free_vram_bytes - safety_margin_bytes - runtime_reserve_bytes - active_reservation_bytes.\n\
+  - Active reservation bytes are the sum of reservations held by running requests.\n\
+  \nAppend exactly this function:\n```python\n\n\ndef calculate_usable_dynamic_vram(state:
+  DynamicVramState) -> int:\n    \"\"\"Return currently usable dynamic VRAM after
+  active reservations.\"\"\"\n    if state.active_reservation_bytes < 0:\n       \
+  \ raise ValueError(\"active_reservation_bytes must be non-negative\")\n    return
+  max(0, calculate_max_dynamic_pool(state) - state.active_reservation_bytes)\n```\n\
+  \nConstraints:\n- This function is the only step that subtracts active reservations.\n\
+  - Do not use total VRAM, RAM, disk cache, or LMCache capacity."
+verification:
+  type: static_analysis
+  target: lmrs/vram.py::calculate_usable_dynamic_vram
+  expected: The function computes current usable dynamic VRAM by subtracting 
+    active reservations from max dynamic pool and clamping to zero.
+status: draft

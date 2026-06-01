@@ -1,0 +1,85 @@
+meta:
+  title: GS x Concept Coverage Matrix
+  axis: concept
+  materializes: invariant I1.a (union of G-step concepts == concepts of 
+    machine_spec)
+  built_from: G-001..G-007 README concepts lists
+  note: No empty column (every machine_spec concept belongs to >= 1 global 
+    step). Concept overlap across global steps is allowed; here each concept 
+    maps to exactly one global step.
+matrix:
+  G-001:
+    name: Service Boundary and Gateway Contract
+    concepts:
+    - C-001
+    - C-002
+    - C-003
+    - C-004
+    - C-022
+  G-002:
+    name: Model Profiles, Configuration, and VRAM Facts
+    concepts:
+    - C-005
+    - C-006
+    - C-007
+    - C-008
+    - C-009
+    - C-020
+    - C-021
+    - C-044
+    - C-045
+    - C-046
+  G-003:
+    name: Token Accounting, Admission, Queue, and Scheduling
+    concepts:
+    - C-010
+    - C-011
+    - C-012
+    - C-013
+    - C-014
+    - C-047
+    - C-048
+  G-004:
+    name: Model Disk Cache, Memory Lifecycle, and LMCache Storage
+    concepts:
+    - C-023
+    - C-024
+    - C-025
+    - C-049
+  G-005:
+    name: Runtime Execution, Public Commands, Errors, and Telemetry
+    concepts:
+    - C-015
+    - C-016
+    - C-017
+    - C-018
+    - C-019
+  G-006:
+    name: Adapter Command Surface and Configuration Integration
+    concepts:
+    - C-026
+    - C-027
+    - C-028
+    - C-029
+    - C-030
+    - C-031
+    - C-032
+    - C-033
+  G-007:
+    name: Proxy Registration and CLI Operations
+    concepts:
+    - C-034
+    - C-035
+    - C-036
+    - C-037
+    - C-038
+    - C-039
+    - C-040
+    - C-041
+    - C-042
+    - C-043
+coverage:
+  total_concepts: 49
+  covered_concepts: 49
+  uncovered_concepts: []
+  empty_columns: []

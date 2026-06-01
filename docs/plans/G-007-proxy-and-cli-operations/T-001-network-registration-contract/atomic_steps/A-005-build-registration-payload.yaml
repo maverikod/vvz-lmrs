@@ -1,0 +1,30 @@
+step_id: A-005
+parent_tactical_step: T-001
+name: Implement build_registration_payload
+target_file: lmrs/proxy/registration.py
+operation: modify_file
+priority: 5
+depends_on:
+- A-004
+concepts:
+- C-039
+- C-035
+- C-036
+objects:
+- build_registration_payload
+prompt: Modify lmrs/proxy/registration.py after A-001 through A-004. Append 
+  build_registration_payload(endpoint, advertised_url) that assembles the 
+  registration payload sent to the MCP proxy during registration and heartbeat. 
+  It resolves the server name by preferring an explicit server identifier, then 
+  an explicit server name, then a deterministic default from normalized host and
+  port. It includes the reachable advertised URL, capabilities, and metadata 
+  where metadata includes server protocol, host, port, stable instance UUID when
+  available, and adapter-specific discovery or routing metadata. Return the 
+  payload mapping. Do not perform the network call here.
+verification:
+  type: static_analysis
+  target: lmrs/proxy/registration.py::build_registration_payload
+  expected: build_registration_payload returns server identity, reachable URL, 
+    capabilities, and metadata with deterministic server-name resolution and 
+    protocol/host/port/instance UUID metadata.
+status: draft

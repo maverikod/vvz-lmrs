@@ -1,0 +1,27 @@
+step_id: A-004
+parent_tactical_step: T-003
+name: Define ADAPTER_DOCUMENTATION_BASELINE
+target_file: lmrs/adapter/runtime.py
+operation: modify_file
+priority: 4
+depends_on:
+- A-003
+concepts:
+- C-033
+- C-003
+objects:
+- ADAPTER_DOCUMENTATION_BASELINE
+prompt: Modify lmrs/adapter/runtime.py after A-001 through A-003. Append a 
+  module-level constant ADAPTER_DOCUMENTATION_BASELINE that records the 
+  mcp_proxy_adapter README and project rules used as the integration reference 
+  for server structure, hooks, commands, configuration generator and validator, 
+  and metadata discovery. It is a reference baseline only; it guides 
+  implementation conventions but does not replace LMRS HRS and MRS product 
+  requirements. Do not add executable logic to this constant.
+verification:
+  type: static_analysis
+  target: lmrs/adapter/runtime.py::ADAPTER_DOCUMENTATION_BASELINE
+  expected: ADAPTER_DOCUMENTATION_BASELINE records the adapter documentation and
+    project rules as an integration reference that does not replace LMRS HRS and
+    MRS requirements.
+status: draft

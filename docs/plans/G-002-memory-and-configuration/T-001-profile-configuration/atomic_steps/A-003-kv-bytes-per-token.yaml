@@ -1,0 +1,36 @@
+step_id: A-003
+parent_tactical_step: T-001
+name: Add KV bytes per token formula
+target_file: lmrs/configuration.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-044
+objects:
+- KVCacheProfile.kv_bytes_per_token
+prompt: "Target file: lmrs/configuration.py\nOperation: modify_file\n\nMRS excerpt:\n\
+  - C-044 KV Cache Byte Formula: kv_bytes_per_token = layers * 2 * kv_heads * head_dim
+  * kv_element_bytes. The factor 2 represents Key and Value tensors.\n\nCurrent full
+  content of lmrs/configuration.py before this modification:\n```python\nfrom __future__
+  import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import
+  Mapping\n\n\n@dataclass(frozen=True)\nclass HardwareProfile:\n    \"\"\"Hardware
+  capacity profile used by LMRS admission and calibration logic.\"\"\"\n\n    gpu_count:
+  int = 1\n    total_vram_bytes: int = 24 * 1024**3\n    total_ram_bytes: int = 128
+  * 1024**3\n    gpu_model: str | None = None\n    metadata: Mapping[str, str] = field(default_factory=dict)\n\
+  \n\n@dataclass(frozen=True)\nclass KVCacheProfile:\n    \"\"\"Model KV-cache parameters
+  used to derive memory facts.\"\"\"\n\n    layers: int\n    kv_heads: int\n    head_dim:
+  int\n    kv_element_bytes: int\n    declared_context_window: int\n    runtime_kv_dtype:
+  str = \"fp16\"\n    quantization_profile: str | None = None\n```\n\nModify KVCacheProfile
+  by adding this method as the last member of the class:\n```python\n    def kv_bytes_per_token(self)
+  -> int:\n        \"\"\"Return worst-case KV-cache bytes required for one token.\"\
+  \"\"\n\n        return self.layers * 2 * self.kv_heads * self.head_dim * self.kv_element_bytes\n\
+  ```\n\nConstraints:\n- Keep all existing fields unchanged.\n- Do not add kv_full_window_bytes
+  in this step.\n- The method signature and formula must match exactly."
+verification:
+  type: static_analysis
+  target: lmrs/configuration.py::KVCacheProfile.kv_bytes_per_token
+  expected: KVCacheProfile exposes kv_bytes_per_token using layers * 2 * 
+    kv_heads * head_dim * kv_element_bytes.
+status: draft

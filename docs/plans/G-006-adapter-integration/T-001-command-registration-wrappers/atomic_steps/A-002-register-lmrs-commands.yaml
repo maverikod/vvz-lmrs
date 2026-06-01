@@ -1,0 +1,24 @@
+step_id: A-002
+parent_tactical_step: T-001
+name: Implement register_lmrs_commands
+target_file: lmrs/adapter/registration.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-026
+objects:
+- register_lmrs_commands
+prompt: 'Modify lmrs/adapter/registration.py after A-001. Append register_lmrs_commands(registry)
+  that registers each LMRS public command class with the adapter command registry.
+  Registration is idempotent: before registering a command it checks whether that
+  command is already registered and skips it if so. Each command is registered as
+  a custom adapter command via registry.register(CommandClass, "custom"). Do not start
+  the adapter server or install hooks here.'
+verification:
+  type: static_analysis
+  target: lmrs/adapter/registration.py::register_lmrs_commands
+  expected: register_lmrs_commands idempotently registers LMRS command classes 
+    as custom adapter commands, skipping any already registered.
+status: draft

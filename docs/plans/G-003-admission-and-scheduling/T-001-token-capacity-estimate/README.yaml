@@ -31,4 +31,8 @@ outputs:
     request tokens and overhead fields.
 atomic_steps:
 - A-001
+- A-002
+- A-003
+- A-004
+- A-005
 status: draft

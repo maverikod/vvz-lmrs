@@ -1,0 +1,24 @@
+step_id: A-002
+parent_tactical_step: T-002
+name: Define AdmissionVerdict
+target_file: lmrs/admission.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-012
+- C-013
+objects:
+- AdmissionVerdict
+prompt: Modify lmrs/admission.py after A-001. Append frozen dataclass 
+  AdmissionVerdict with decision, reason_code, request_id, model_name, 
+  required_tokens, required_dynamic_vram_bytes, queueable bool default False, 
+  and metadata. Decisions are would_execute, would_queue, or would_reject. Keep 
+  it as a data contract only.
+verification:
+  type: static_analysis
+  target: lmrs/admission.py::AdmissionVerdict
+  expected: AdmissionVerdict stores execute/queue/reject decision, stable reason
+    code, request identity, requirement facts, queueability, and metadata.
+status: draft

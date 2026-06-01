@@ -1,0 +1,26 @@
+step_id: A-001
+parent_tactical_step: T-003
+name: Define LMCacheStoragePolicy
+target_file: lmrs/lmcache.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-025
+- C-021
+objects:
+- LMCacheStoragePolicy
+prompt: Create lmrs/lmcache.py and define frozen dataclass LMCacheStoragePolicy 
+  with enabled bool default False, storage_tiers (ram and disk), 
+  cache_storage_path, namespace_binding, session_binding, cpu_cache_limit_bytes,
+  disk_cache_limit_bytes, eviction_policy, compatibility_mode, and metadata. 
+  LMCache is a separate caching backend distinct from the disk model cache and 
+  does not replace admission control. Do not add telemetry or estimate fields in
+  this step.
+verification:
+  type: static_analysis
+  target: lmrs/lmcache.py::LMCacheStoragePolicy
+  expected: LMCacheStoragePolicy captures enablement, CPU and disk tiers, 
+    storage path, namespace/session binding, limits, eviction policy, and 
+    runtime/model compatibility, separate from disk model cache.
+status: draft

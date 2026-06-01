@@ -1,0 +1,55 @@
+step_id: A-006
+parent_tactical_step: T-001
+name: Define RuntimeConfiguration
+target_file: lmrs/configuration.py
+operation: modify_file
+priority: 6
+depends_on:
+- A-005
+concepts:
+- C-005
+- C-006
+- C-021
+objects:
+- RuntimeConfiguration
+prompt: "Target file: lmrs/configuration.py\nOperation: modify_file\n\nMRS excerpt:\n\
+  - C-005 Model Profile: runtime description for local models.\n- C-006 Hardware Profile:
+  hardware capacity description for admission and calibration.\n- C-021 Runtime Configuration:
+  service configuration owns hardware profile, resident services, safety margin, runtime
+  reserve, model profiles, runtime backend, tokenizer, queue policy, and queue limits.\n\
+  \nCurrent full content of lmrs/configuration.py before this modification:\n```python\n\
+  from __future__ import annotations\n\nfrom dataclasses import dataclass, field\n\
+  from typing import Mapping\n\n\n@dataclass(frozen=True)\nclass HardwareProfile:\n\
+  \    \"\"\"Hardware capacity profile used by LMRS admission and calibration logic.\"\
+  \"\"\n\n    gpu_count: int = 1\n    total_vram_bytes: int = 24 * 1024**3\n    total_ram_bytes:
+  int = 128 * 1024**3\n    gpu_model: str | None = None\n    metadata: Mapping[str,
+  str] = field(default_factory=dict)\n\n\n@dataclass(frozen=True)\nclass KVCacheProfile:\n\
+  \    \"\"\"Model KV-cache parameters used to derive memory facts.\"\"\"\n\n    layers:
+  int\n    kv_heads: int\n    head_dim: int\n    kv_element_bytes: int\n    declared_context_window:
+  int\n    runtime_kv_dtype: str = \"fp16\"\n    quantization_profile: str | None
+  = None\n\n    def kv_bytes_per_token(self) -> int:\n        \"\"\"Return worst-case
+  KV-cache bytes required for one token.\"\"\"\n\n        return self.layers * 2 *
+  self.kv_heads * self.head_dim * self.kv_element_bytes\n\n    def kv_full_window_bytes(self)
+  -> int:\n        \"\"\"Return worst-case KV-cache bytes for the declared context
+  window.\"\"\"\n\n        return self.declared_context_window * self.kv_bytes_per_token()\n\
+  \n\n@dataclass(frozen=True)\nclass ModelProfile:\n    \"\"\"Runtime-independent
+  profile for one locally executable model.\"\"\"\n\n    model_name: str\n    runtime_backend:
+  str\n    model_path_or_endpoint: str\n    declared_context_window: int\n    tokenizer_profile:
+  str\n    load_policy: str\n    kv_cache_profile: KVCacheProfile\n    concurrency_policy:
+  Mapping[str, int] = field(default_factory=dict)\n    options: Mapping[str, str]
+  = field(default_factory=dict)\n```\n\nModify the file by adding this dataclass after
+  ModelProfile:\n```python\n\n@dataclass(frozen=True)\nclass RuntimeConfiguration:\n\
+  \    \"\"\"Configuration-owned LMRS profile facts consumed by capacity logic.\"\"\
+  \"\n\n    hardware_profile: HardwareProfile\n    model_profiles: Mapping[str, ModelProfile]\n\
+  \    default_model_name: str\n    resident_services: tuple[str, ...] = ()\n    safety_margin_bytes:
+  int = 0\n    runtime_reserve_bytes: int = 0\n    queue_policy: str = \"largest_fit\"\
+  \n    queue_limits: Mapping[str, int] = field(default_factory=dict)\n```\n\nConstraints:\n\
+  - Keep previous classes unchanged.\n- Use existing imports only.\n- RuntimeConfiguration
+  must be frozen.\n- Do not add validation in this step."
+verification:
+  type: static_analysis
+  target: lmrs/configuration.py::RuntimeConfiguration
+  expected: The file defines a frozen RuntimeConfiguration dataclass owning 
+    hardware profile, model profiles, default model, resident services, 
+    safety/reserve bytes, queue policy, and queue limits.
+status: draft
