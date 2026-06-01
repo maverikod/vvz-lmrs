@@ -1,5 +1,5 @@
 {
-  "source_sha256": "cd297356a8dcbc1c6ce5a9d7a0d472c89944993c128bc494153ed2cbb1fd130a",
+  "source_sha256": "d8aafa1b1170070a1b7e0f4167a3c15c4f7deab0836380043c66c1ec783136ca",
   "root": [
     {
       "stable_id": "8cf0e090-c25b-48bf-92f6-b97b63f0000c",
@@ -308,7 +308,23 @@
           "stable_id": "e2beeadd-af21-439e-a2b6-17930e06ed76",
           "type": "array",
           "key": "tactical_steps",
-          "children": []
+          "children": [
+            {
+              "stable_id": "aa94c55b-d6f6-4c45-b72f-875eb772e9df",
+              "type": "string",
+              "value": "T-001"
+            },
+            {
+              "stable_id": "91ff056a-2d3f-473c-870e-d403f2535300",
+              "type": "string",
+              "value": "T-002"
+            },
+            {
+              "stable_id": "0380e1fa-0708-4f7a-9204-de254555be88",
+              "type": "string",
+              "value": "T-003"
+            }
+          ]
         },
         {
           "stable_id": "860550c6-aafa-4b34-b04b-d2d1feee5b13",
