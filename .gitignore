@@ -108,3 +108,4 @@ docker/data//.terminals/
 old_code/*
 .trees/
 .trees/*
+*.tree

@@ -4,32 +4,36 @@ name: Admission Verdict Contract
 description: 'Create the admission verdict contract: use Admission Control (C-012),
   Request Capacity Estimate (C-011), Request Dynamic VRAM Requirement (C-047), LMCache
   Admission Constraint (C-048), and Request Queue (C-013) to produce execute, queue,
-  or reject decisions with stable capacity reasons.'
+  or reject decisions with stable capacity reasons. At admission, compute and attach
+  the Cache Affinity Record (C-051) to the queue entry, and for grouped requests apply
+  Group VRAM Admission (C-054) using peak simultaneous VRAM rather than the sum of
+  input KV.'
 concepts:
 - C-011
 - C-012
 - C-013
 - C-047
 - C-048
+- C-051
+- C-054
 inputs:
 - name: capacity_estimate
   type: estimate_result
-  description: Token and VRAM estimate consumed by the admission verdict 
-    contract.
+  description: Token and VRAM estimate consumed by the admission verdict contract.
 - name: current_runtime_capacity
   type: capacity_snapshot
-  description: Current usable dynamic VRAM and runtime readiness facts needed to
-    classify the request.
+  description: Current usable dynamic VRAM and runtime readiness facts needed to classify
+    the request.
 outputs:
 - name: admission_verdict
   type: decision_contract
-  description: A structured decision of execute, queue, or reject with reason 
-    codes for context overflow, oversized request, insufficient hardware, or 
-    temporary capacity pressure.
+  description: A structured decision of execute, queue, or reject with reason codes
+    for context overflow, oversized request, insufficient hardware, or temporary capacity
+    pressure.
 - name: queue_entry_request
   type: queue_input
-  description: A queueable request representation emitted only when the request 
-    fits the maximum dynamic pool but not the current pool.
+  description: A queueable request representation emitted only when the request fits
+    the maximum dynamic pool but not the current pool.
 atomic_steps:
 - A-001
 - A-002

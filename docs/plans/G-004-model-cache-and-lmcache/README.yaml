@@ -1,14 +1,15 @@
 step_id: G-004
 name: Model Disk Cache, Memory Lifecycle, and LMCache Storage
-description: Define the model disk cache lifecycle, explicit model memory load 
-  and unload lifecycle, and vLLM LMCache integration as a cache subsystem. This 
-  step separates model files, model residency, LMCache runtime artifacts, CPU 
-  and disk cache tiers, and cache telemetry from GPU admission capacity.
+description: Define the model disk cache lifecycle, explicit model memory load and
+  unload lifecycle, and vLLM LMCache integration as a cache subsystem. This step separates
+  model files, model residency, LMCache runtime artifacts, CPU and disk cache tiers,
+  and cache telemetry from GPU admission capacity.
 concepts:
 - C-023
 - C-024
 - C-025
 - C-049
+- C-050
 relations:
 - from_concept: C-017
   to_concept: C-023
@@ -46,6 +47,12 @@ relations:
 - from_concept: C-049
   to_concept: C-025
   type: depends_on
+- from_concept: C-010
+  to_concept: C-050
+  type: produces
+- from_concept: C-050
+  to_concept: C-025
+  type: consumes
 source_labels:
 - '{dcache1}'
 - '{dcache2}'
@@ -64,6 +71,9 @@ source_labels:
 - '{lmcache7}'
 - '{inv4}'
 - '{lmc2}'
+- '{lmc3}'
+- '{lmc4}'
+- '{lmc6}'
 depends_on:
 - G-002
 - G-003

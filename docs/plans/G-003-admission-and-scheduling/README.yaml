@@ -1,10 +1,10 @@
 step_id: G-003
 name: Token Accounting, Admission, Queue, and Scheduling
-description: Define the request preflight path from final prompt token 
-  accounting through capacity estimation, conservative admission, queue 
-  placement, largest-fit scheduling, and launch-time recheck. This step includes
-  the request dynamic VRAM formula and the LMCache admission constraint only as 
-  admission semantics, not as cache storage management.
+description: Define the request preflight path from final prompt token accounting
+  through capacity estimation, conservative admission, queue placement, largest-fit
+  scheduling, and launch-time recheck. This step includes the request dynamic VRAM
+  formula and the LMCache admission constraint only as admission semantics, not as
+  cache storage management.
 concepts:
 - C-010
 - C-011
@@ -13,6 +13,10 @@ concepts:
 - C-014
 - C-047
 - C-048
+- C-051
+- C-052
+- C-053
+- C-054
 relations:
 - from_concept: C-009
   to_concept: C-012
@@ -53,6 +57,36 @@ relations:
 - from_concept: C-048
   to_concept: C-045
   type: depends_on
+- from_concept: C-013
+  to_concept: C-051
+  type: owns
+- from_concept: C-012
+  to_concept: C-051
+  type: produces
+- from_concept: C-014
+  to_concept: C-052
+  type: owns
+- from_concept: C-052
+  to_concept: C-051
+  type: depends_on
+- from_concept: C-052
+  to_concept: C-009
+  type: consumes
+- from_concept: C-014
+  to_concept: C-053
+  type: owns
+- from_concept: C-053
+  to_concept: C-052
+  type: produces
+- from_concept: C-012
+  to_concept: C-054
+  type: uses
+- from_concept: C-054
+  to_concept: C-046
+  type: depends_on
+- from_concept: C-054
+  to_concept: C-047
+  type: uses
 source_labels:
 - '{tok1}'
 - '{tok2}'
@@ -74,6 +108,16 @@ source_labels:
 - '{lmcache2}'
 - '{lmcache6}'
 - '{inv5}'
+- '{que4}'
+- '{adm4}'
+- '{adm5}'
+- '{adm6}'
+- '{adm7}'
+- '{adm8}'
+- '{inv6}'
+- '{inv7}'
+- '{inv8}'
+- '{resv2}'
 depends_on:
 - G-002
 tactical_steps:
