@@ -35,4 +35,4 @@ verification:
   expected: The file defines a frozen DynamicVramState dataclass with 
     model-loaded free VRAM, safety margin, runtime reserve, and active 
     reservations.
-status: draft
+status: done

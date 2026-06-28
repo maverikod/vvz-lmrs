@@ -37,4 +37,4 @@ verification:
   expected: The function returns a structured dictionary containing resident 
     services, measured baseline and loaded VRAM facts, measured static VRAM, 
     dynamic pool values, identity fields, and metadata.
-status: draft
+status: done

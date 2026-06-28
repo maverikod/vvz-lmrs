@@ -31,4 +31,4 @@ verification:
   target: lmrs/vram.py::calculate_max_dynamic_pool
   expected: The function computes max dynamic VRAM as model-loaded free VRAM 
     minus safety margin and runtime reserve, clamped to zero.
-status: draft
+status: done

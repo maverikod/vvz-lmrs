@@ -32,4 +32,4 @@ verification:
   expected: The file defines a frozen VramRuntimeFacts dataclass carrying 
     baseline free VRAM, optional model-loaded free VRAM, model/runtime/profile 
     identity, resident services, and metadata.
-status: draft
+status: done

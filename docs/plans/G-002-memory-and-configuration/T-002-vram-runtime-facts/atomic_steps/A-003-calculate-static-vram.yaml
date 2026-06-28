@@ -32,4 +32,4 @@ verification:
   expected: The function computes measured static VRAM as service baseline free 
     VRAM minus model-loaded free VRAM and rejects missing or impossible 
     measurements.
-status: draft
+status: done

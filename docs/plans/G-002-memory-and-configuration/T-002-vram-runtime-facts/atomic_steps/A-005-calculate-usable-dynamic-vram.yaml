@@ -28,4 +28,4 @@ verification:
   target: lmrs/vram.py::calculate_usable_dynamic_vram
   expected: The function computes current usable dynamic VRAM by subtracting 
     active reservations from max dynamic pool and clamping to zero.
-status: draft
+status: done
