@@ -27,4 +27,4 @@ verification:
   target: lmrs/gateway.py::ChatMessage
   expected: The file defines a frozen ChatMessage dataclass with role, content, 
     optional name, and metadata fields.
-status: draft
+status: done
