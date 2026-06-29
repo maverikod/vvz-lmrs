@@ -83,13 +83,9 @@ concepts:
     always-on processes.
   - The baseline is not an empty GPU state.
   - The service measures service_baseline_free_vram at start or calibration.
-  - Resident GPU services may change VRAM consumption under load, so service_baseline_free_vram
-    measured at one moment does not guarantee that value at admission time; the safety
-    margin must cover observed resident-service volatility.
   source_labels:
   - '{base}'
   - '{mem1}'
-  - '{base2}'
 - concept_id: C-008
   name: VRAM Runtime Facts
   definition: Measured runtime facts describing baseline free VRAM, model-loaded free
@@ -192,16 +188,9 @@ concepts:
   - The primary policy is largest-fit scheduling.
   - Largest-fit selects the largest queued request that fits the current dynamic pool.
   - FIFO is allowed only as fallback or a configurable mode.
-  - Beyond largest-fit, selection also uses cache-affinity (shared-prefix grouping),
-    connected-group scheduling, dense bin-packing by peak VRAM utilization, and discharge-group
-    promotion for starving requests; ties prefer keeping more shared hot prefixes
-    resident.
   source_labels:
   - '{que2}'
   - '{que3}'
-  - '{adm4}'
-  - '{adm7}'
-  - '{adm8}'
 - concept_id: C-015
   name: Runtime Backend
   definition: An execution backend abstraction that runs only requests admitted by
@@ -256,14 +245,9 @@ concepts:
   - Additional errors include MODEL_NOT_CACHED, MODEL_CACHE_PRELOAD_FAILED, MODEL_CACHE_CORRUPTED,
     MODEL_ALREADY_LOADED, MODEL_UNLOAD_FAILED, LMCACHE_UNAVAILABLE, LMCACHE_LOOKUP_FAILED,
     and LMCACHE_WRITE_FAILED.
-  - Scheduler and cache errors include BATCH_ADMISSION_FAILED (a group failed the
-    peak simultaneous VRAM check) and CACHE_BLOCK_LOOKUP_FAILED (prompt block decomposition
-    or cache-state comparison failed during affinity estimation). No starvation-timeout
-    error code exists because discharge always succeeds.
   source_labels:
   - '{err1}'
   - '{err2}'
-  - '{err3}'
 - concept_id: C-019
   name: Telemetry
   definition: The observable data emitted and returned by LMRS for debugging, admission
@@ -291,13 +275,9 @@ concepts:
     and hardware profile.
   - Changing model, runtime, or GPU invalidates or requires renewing the calibration
     profile.
-  - Calibration must include an estimate of resident-service volatility (free-VRAM
-    spread between idle and loaded states of always-on processes) as an input for
-    choosing the safety margin so admission stays safe at peak resident-service consumption.
   source_labels:
   - '{cal1}'
   - '{cal2}'
-  - '{cal3}'
 - concept_id: C-021
   name: Runtime Configuration
   definition: The service configuration that defines hardware, resident services,
@@ -479,7 +459,8 @@ concepts:
   properties:
   - The entrypoint registers LMRS command hooks before adapter server startup.
   - The entrypoint loads configuration and starts LMRS domain lifecycle services.
-  - The entrypoint hands control to adapter create_and_run_server.
+  - The entrypoint hands control to the adapter startup mechanism (create_app to build
+    the application, then run via the adapter application runner).
   - Adapter factory code remains free of LMRS admission, tokenizer, VRAM, and model
     lifecycle logic.
   source_labels:
@@ -688,19 +669,11 @@ concepts:
       hit matching token chunks, model profile, runtime profile, and namespace.
     miss_rule: If the hit is not guaranteed before execution, the request is admitted
       as a cache miss.
-    hot_tier_rule: For VRAM accounting only hot-tier blocks physically resident in
-      VRAM count as loaded; RAM-tier and disk-tier LMCache blocks reduce restore time
-      but are treated as new until actually loaded into VRAM.
-    block_deduction_rule: Deduction of loaded blocks from required VRAM is allowed
-      only on a pre-admission confirmed exact hit; on an unconfirmed or partial hit
-      the deduction is zero and the request is estimated as a full cache miss.
   source_labels:
   - '{lmc1}'
   - '{lmcache2}'
   - '{lmcache6}'
   - '{inv5}'
-  - '{lmc4}'
-  - '{lmc5}'
 - concept_id: C-049
   name: LMCache Storage Telemetry
   definition: Telemetry and storage accounting contract that separates LMCache CPU/disk
@@ -726,95 +699,6 @@ concepts:
   source_labels:
   - '{lmc2}'
   - '{lmcache7}'
-- concept_id: C-050
-  definition: Deterministic decomposition of the final tokenized prompt into KV-cache
-    blocks used as the unit of LMCache prefix matching.
-  name: Request Block Decomposition
-  properties:
-    deterministic: The same prompt under the same configuration yields the same block
-      boundaries.
-    hot_tier_only: For VRAM accounting only blocks physically resident in VRAM (hot
-      tier) for the exact model, runtime, quant/profile, and namespace are counted
-      as already loaded.
-    match_unit: A block is the unit of comparison against LMCache.
-    prefix_match: Matching is prefix-based, left to right until the first divergence.
-  source_labels:
-  - '{lmc3}'
-  - '{lmc4}'
-  - '{lmc6}'
-- concept_id: C-051
-  definition: The cache-affinity fields stored in a queue entry that describe the
-    shared prefix block and connected group a request belongs to, computed at enqueue
-    time.
-  name: Cache Affinity Record
-  properties:
-    co_queued_refs: References to co-queued requests sharing the same prefix.
-    computed_at_enqueue: Fields are computed when the request is enqueued, by actual
-      prefix-block match, and are available to the scheduler without re-scanning the
-      queue at selection time.
-    group_id: Identifier of the connected request group.
-    match_length: Length of the matching prefix in blocks or tokens.
-    shared_prefix_id: Identifier of the shared prefix block.
-  source_labels:
-  - '{que4}'
-  - '{adm4}'
-- concept_id: C-052
-  definition: A group of requests sharing a common prefix block, treated as a unit
-    of scheduler selection.
-  name: Connected Request Group
-  properties:
-    formation: 'Formed by maximum similarity: requests with the longest common prefix
-      block are grouped.'
-    indivisible_in_execution: A group that has started execution runs to completion
-      of all members with highest priority and is not preempted.
-    no_dilution: Dilution with requests lacking the common prefix is forbidden.
-    prefix_residency: VRAM freed by members of an executing group is held for its
-      remaining members so the shared prefix block stays resident until the whole
-      group completes.
-    splitting: A group that does not fit the free pool by peak VRAM is split along
-      common-prefix boundaries into maximum-similarity subgroups; the fitting subgroup
-      is selected.
-  source_labels:
-  - '{adm6}'
-  - '{adm7}'
-  - '{adm8}'
-  - '{inv8}'
-- concept_id: C-053
-  definition: The anti-starvation mechanism that guarantees every admitted queued
-    request eventually executes.
-  name: Queue Starvation Guard
-  properties:
-    discharge_group: On TTL the manager forms a discharge group of all TTL-reached
-      requests in waiting-age order while their combined peak VRAM fits the dynamic
-      pool, then fills remaining room with non-TTL requests by the main selection
-      policy.
-    liveness: No admitted queued request waits indefinitely; on TTL it enters the
-      discharge group and executes.
-    monotonic: 'Aging is monotonic: a starving request priority is never lowered by
-      later arrivals.'
-    ttl_promotion: On reaching a configurable TTL the request enters discharge mode
-      and gets highest selection priority regardless of size and cache-affinity.
-    waiting_age: Each queued request has a waiting age.
-  source_labels:
-  - '{adm5}'
-  - '{adm6}'
-  - '{inv6}'
-- concept_id: C-054
-  definition: Admission of a request group by peak simultaneous VRAM occupancy rather
-    than by the sum of input KV.
-  name: Group VRAM Admission
-  properties:
-    input_sum_insufficient: The sum of input KV alone is not sufficient ground to
-      admit a group.
-    peak_formula: Required group VRAM equals the sum over all members of input_kv_bytes
-      plus reserved_output_kv_bytes plus per_request_overhead_bytes, plus batch_overhead_bytes.
-    same_check: The group requirement must pass the usable_dynamic_vram_bytes check
-      by the same formula as a single request.
-    simultaneous_output: Output reservations of group members are counted simultaneously,
-      not sequentially.
-  source_labels:
-  - '{resv2}'
-  - '{inv7}'
 relations:
 - from_concept: C-001
   to_concept: C-003
@@ -1086,45 +970,6 @@ relations:
 - from_concept: C-049
   to_concept: C-025
   type: depends_on
-- from_concept: C-010
-  to_concept: C-050
-  type: produces
-- from_concept: C-050
-  to_concept: C-025
-  type: consumes
-- from_concept: C-013
-  to_concept: C-051
-  type: owns
-- from_concept: C-051
-  to_concept: C-050
-  type: depends_on
-- from_concept: C-012
-  to_concept: C-051
-  type: produces
-- from_concept: C-014
-  to_concept: C-052
-  type: owns
-- from_concept: C-052
-  to_concept: C-051
-  type: depends_on
-- from_concept: C-052
-  to_concept: C-009
-  type: consumes
-- from_concept: C-014
-  to_concept: C-053
-  type: owns
-- from_concept: C-053
-  to_concept: C-052
-  type: produces
-- from_concept: C-012
-  to_concept: C-054
-  type: uses
-- from_concept: C-054
-  to_concept: C-046
-  type: depends_on
-- from_concept: C-054
-  to_concept: C-047
-  type: uses
 source_label_coverage:
   covered_labels:
   - '{lmrs}'
@@ -1215,22 +1060,5 @@ source_label_coverage:
   - '{resv1}'
   - '{lmc1}'
   - '{lmc2}'
-  - '{base2}'
-  - '{que4}'
-  - '{adm4}'
-  - '{adm5}'
-  - '{adm6}'
-  - '{adm7}'
-  - '{adm8}'
-  - '{cal3}'
-  - '{err3}'
-  - '{inv6}'
-  - '{inv7}'
-  - '{inv8}'
-  - '{resv2}'
-  - '{lmc3}'
-  - '{lmc4}'
-  - '{lmc5}'
-  - '{lmc6}'
   uncovered_labels: []
   non_binding_labels: []

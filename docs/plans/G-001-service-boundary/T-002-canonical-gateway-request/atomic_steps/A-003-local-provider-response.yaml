@@ -11,34 +11,33 @@ concepts:
 - C-004
 objects:
 - LocalProviderResponse
-prompt: "Target file: lmrs/gateway.py\nOperation: modify_file\n\nMRS excerpt:\n- C-002
-  Provider Gateway Integration: LMRS appears to model_access_core as a local provider
-  backend and returns responses normalizable into canonical provider responses.\n\
-  - C-004 Canonical Chat Request: the gateway request contract also fixes normalized
-  response expectations for local provider routing.\n\nCurrent full content of lmrs/gateway.py
-  before this modification:\n```python\nfrom __future__ import annotations\n\nfrom
-  dataclasses import dataclass, field\nfrom typing import Any, Mapping\n\n\n@dataclass(frozen=True)\n\
-  class ChatMessage:\n    \"\"\"One role-tagged message from a canonical gateway chat
-  request.\"\"\"\n\n    role: str\n    content: str | list[Mapping[str, Any]]\n  \
-  \  name: str | None = None\n    metadata: Mapping[str, Any] = field(default_factory=dict)\n\
-  \n\n@dataclass(frozen=True)\nclass CanonicalChatRequest:\n    \"\"\"Gateway-owned
-  request accepted by LMRS for local model routing.\"\"\"\n\n    session_id: str\n\
+prompt: "Target file: lmrs/gateway.py\nOperation: modify_file\n\nMRS excerpt:\n- C-002\
+  \ Provider Gateway Integration: LMRS appears to model_access_core as a local provider\
+  \ backend and returns responses normalizable into canonical provider responses.\n\
+  - C-004 Canonical Chat Request: the gateway request contract also fixes normalized\
+  \ response expectations for local provider routing.\n\nCurrent full content of lmrs/gateway.py\
+  \ before this modification:\n```python\nfrom __future__ import annotations\n\nfrom\
+  \ dataclasses import dataclass, field\nfrom typing import Any, Mapping\n\n\n@dataclass(frozen=True)\n\
+  class ChatMessage:\n    \"\"\"One role-tagged message from a canonical gateway chat\
+  \ request.\"\"\"\n\n    role: str\n    content: str | list[Mapping[str, Any]]\n\
+  \    name: str | None = None\n    metadata: Mapping[str, Any] = field(default_factory=dict)\n\
+  \n\n@dataclass(frozen=True)\nclass CanonicalChatRequest:\n    \"\"\"Gateway-owned\
+  \ request accepted by LMRS for local model routing.\"\"\"\n\n    session_id: str\n\
   \    request_id: str\n    model_name: str\n    messages: tuple[ChatMessage, ...]\n\
-  \    tools: tuple[Mapping[str, Any], ...] = ()\n    reserved_output_tokens: int
-  = 0\n    options: Mapping[str, Any] = field(default_factory=dict)\n```\n\nModify
-  the file by adding the following dataclass after CanonicalChatRequest:\n\n```python\n\
-  \n@dataclass(frozen=True)\nclass LocalProviderResponse:\n    \"\"\"Normalized LMRS
-  response shape returned to the provider gateway.\"\"\"\n\n    request_id: str\n\
-  \    status: str\n    message: ChatMessage | None = None\n    usage: Mapping[str,
-  Any] = field(default_factory=dict)\n    reason_code: str | None = None\n    runtime_metadata:
-  Mapping[str, Any] = field(default_factory=dict)\n    telemetry: Mapping[str, Any]
-  = field(default_factory=dict)\n```\n\nConstraints:\n- Keep existing classes unchanged.\n\
+  \    tools: tuple[Mapping[str, Any], ...] = ()\n    reserved_output_tokens: int\
+  \ = 0\n    options: Mapping[str, Any] = field(default_factory=dict)\n```\n\nModify\
+  \ the file by adding the following dataclass after CanonicalChatRequest:\n\n```python\n\
+  \n@dataclass(frozen=True)\nclass LocalProviderResponse:\n    \"\"\"Normalized LMRS\
+  \ response shape returned to the provider gateway.\"\"\"\n\n    request_id: str\n\
+  \    status: str\n    message: ChatMessage | None = None\n    usage: Mapping[str,\
+  \ Any] = field(default_factory=dict)\n    reason_code: str | None = None\n    runtime_metadata:\
+  \ Mapping[str, Any] = field(default_factory=dict)\n    telemetry: Mapping[str, Any]\
+  \ = field(default_factory=dict)\n```\n\nConstraints:\n- Keep existing classes unchanged.\n\
   - Use the existing imports; do not add new imports.\n- The dataclass must be frozen.\n\
   - Do not add validation or normalization functions in this step."
 verification:
   type: static_analysis
   target: lmrs/gateway.py::LocalProviderResponse
-  expected: The file defines a frozen LocalProviderResponse dataclass carrying 
-    status, optional assistant message, usage, reason code, runtime metadata, 
-    and telemetry.
-status: draft
+  expected: The file defines a frozen LocalProviderResponse dataclass carrying status,
+    optional assistant message, usage, reason code, runtime metadata, and telemetry.
+status: done

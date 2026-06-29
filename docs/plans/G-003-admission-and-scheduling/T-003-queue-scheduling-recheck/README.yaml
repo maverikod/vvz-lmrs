@@ -3,34 +3,29 @@ parent_global_step: G-003
 name: Queue Scheduling and Launch Recheck
 description: 'Create the queue execution contract: manage Request Queue (C-013), apply
   Scheduler Policy (C-014), and perform launch-time recheck through Admission Control
-  (C-012) before a queued request is released to runtime execution. Scheduler Policy
-  forms Connected Request Groups (C-052) by maximum shared-prefix similarity and enforces
-  the Queue Starvation Guard (C-053): on TTL a starving request enters a discharge
-  group and is always executed, never rejected.'
+  (C-012) before a queued request is released to runtime execution.'
 concepts:
 - C-012
 - C-013
 - C-014
-- C-052
-- C-053
 inputs:
 - name: queue_entry_request
   type: queue_input
-  description: Queueable request representation consumed by scheduler policy and launch-time
-    recheck.
+  description: Queueable request representation consumed by scheduler policy and
+    launch-time recheck.
 - name: capacity_release_event
   type: runtime_event
-  description: A signal that dynamic VRAM or scheduler state changed and queued requests
-    may be reconsidered.
+  description: A signal that dynamic VRAM or scheduler state changed and queued 
+    requests may be reconsidered.
 outputs:
 - name: scheduled_request
   type: execution_candidate
-  description: The largest fitting queued request selected under scheduler policy
-    and validated by launch-time capacity recheck.
+  description: The largest fitting queued request selected under scheduler 
+    policy and validated by launch-time capacity recheck.
 - name: queue_state_snapshot
   type: queue_status
-  description: A structured queue status containing stored estimates, priorities,
-    timestamps, and request states.
+  description: A structured queue status containing stored estimates, 
+    priorities, timestamps, and request states.
 atomic_steps:
 - A-001
 - A-002

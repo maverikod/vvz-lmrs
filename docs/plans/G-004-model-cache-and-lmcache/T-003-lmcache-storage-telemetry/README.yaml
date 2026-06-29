@@ -4,10 +4,7 @@ name: LMCache Storage and Telemetry Contract
 description: 'Create the LMCache storage contract: define LMCache Integration (C-025)
   and LMCache Storage Telemetry (C-049) as CPU and disk cache tiers, namespace/session
   binding, hit/miss estimate fields, restore and write latency facts, eviction facts,
-  and telemetry outputs that never count as free GPU VRAM. Define Request Block Decomposition
-  (C-050) as the deterministic split of the tokenized prompt into KV-cache blocks
-  used as the unit of LMCache prefix matching, where only hot-tier VRAM-resident blocks
-  count as loaded for VRAM accounting.'
+  and telemetry outputs that never count as free GPU VRAM.'
 concepts:
 - C-025
 - C-049
@@ -15,25 +12,27 @@ concepts:
 - C-021
 - C-015
 - C-012
-- C-050
 inputs:
 - name: lmcache_claims
   type: source_labels
-  description: Binding claims {lmcache1}, {lmcache3}, {lmcache4}, {lmcache5}, {lmcache7},
-    {lmc2}, and {inv5} defining LMCache integration and storage separation.
+  description: Binding claims {lmcache1}, {lmcache3}, {lmcache4}, {lmcache5}, 
+    {lmcache7}, {lmc2}, and {inv5} defining LMCache integration and storage 
+    separation.
 - name: runtime_and_admission_facts
   type: runtime_context
-  description: Runtime backend and admission context consumed to bind LMCache reuse
-    and telemetry without weakening admission safety.
+  description: Runtime backend and admission context consumed to bind LMCache 
+    reuse and telemetry without weakening admission safety.
 outputs:
 - name: lmcache_storage_policy
   type: cache_policy_contract
-  description: A policy contract for enabled state, storage tiers, namespace binding,
-    limits, eviction, and compatibility with runtime and model profiles.
+  description: A policy contract for enabled state, storage tiers, namespace 
+    binding, limits, eviction, and compatibility with runtime and model 
+    profiles.
 - name: lmcache_telemetry_contract
   type: telemetry_contract
-  description: Telemetry fields for hit tokens, miss tokens, hit quality, restore
-    latency, CPU and disk usage, evictions, memory pressure, and swap indicators.
+  description: Telemetry fields for hit tokens, miss tokens, hit quality, 
+    restore latency, CPU and disk usage, evictions, memory pressure, and swap 
+    indicators.
 atomic_steps:
 - A-001
 - A-002

@@ -1,11 +1,12 @@
 meta:
   title: GS x Concept Coverage Matrix
   axis: concept
-  materializes: invariant I1.a (union of G-step concepts == concepts of machine_spec)
+  materializes: invariant I1.a (union of G-step concepts == concepts of 
+    machine_spec)
   built_from: G-001..G-007 README concepts lists
-  note: No empty column (every machine_spec concept belongs to >= 1 global step).
-    Concept overlap across global steps is allowed; here each concept maps to exactly
-    one global step.
+  note: No empty column (every machine_spec concept belongs to >= 1 global 
+    step). Concept overlap across global steps is allowed; here each concept 
+    maps to exactly one global step.
 matrix:
   G-001:
     name: Service Boundary and Gateway Contract
@@ -38,10 +39,6 @@ matrix:
     - C-014
     - C-047
     - C-048
-    - C-051
-    - C-052
-    - C-053
-    - C-054
   G-004:
     name: Model Disk Cache, Memory Lifecycle, and LMCache Storage
     concepts:
@@ -49,7 +46,6 @@ matrix:
     - C-024
     - C-025
     - C-049
-    - C-050
   G-005:
     name: Runtime Execution, Public Commands, Errors, and Telemetry
     concepts:
@@ -83,7 +79,7 @@ matrix:
     - C-042
     - C-043
 coverage:
-  total_concepts: 54
-  covered_concepts: 54
+  total_concepts: 49
+  covered_concepts: 49
   uncovered_concepts: []
   empty_columns: []

@@ -13,21 +13,29 @@ concepts:
 objects:
 - boundary_snapshot
 - __all__
-prompt: "Target file: lmrs/contracts.py\nOperation: modify_file\nCurrent file content
-  before this step: the file contains AdapterExposure, MVPScope, ServiceBoundary,
-  and build_default_service_boundary exactly as produced by A-001 through A-004.\n\
-  \nMRS excerpt: C-001 service boundary must be observable; C-003 adapter-facing commands
+prompt: 'Target file: lmrs/contracts.py
+
+  Operation: modify_file
+
+  Current file content before this step: the file contains AdapterExposure, MVPScope,
+  ServiceBoundary, and build_default_service_boundary exactly as produced by A-001
+  through A-004.
+
+
+  MRS excerpt: C-001 service boundary must be observable; C-003 adapter-facing commands
   need serializable contract data; C-022 MVP scope must be externally visible without
-  exposing implementation internals.\n\nModify imports to include Mapping if needed.
-  Add only function boundary_snapshot(boundary: ServiceBoundary) -> Mapping[str, object]
-  and __all__: Sequence[str]. boundary_snapshot must return serializable lists for
-  service_name, owned_responsibilities, delegated_responsibilities, command_surface,
-  included_capabilities, excluded_capabilities, and invariants. __all__ must export
-  AdapterExposure, MVPScope, ServiceBoundary, build_default_service_boundary, and
-  boundary_snapshot."
+  exposing implementation internals.
+
+
+  Modify imports to include Mapping if needed. Add only function boundary_snapshot(boundary:
+  ServiceBoundary) -> Mapping[str, object] and __all__: Sequence[str]. boundary_snapshot
+  must return serializable lists for service_name, owned_responsibilities, delegated_responsibilities,
+  command_surface, included_capabilities, excluded_capabilities, and invariants. __all__
+  must export AdapterExposure, MVPScope, ServiceBoundary, build_default_service_boundary,
+  and boundary_snapshot.'
 verification:
   type: import
   target: lmrs.contracts.boundary_snapshot
-  expected: boundary_snapshot returns a serializable mapping and __all__ exports
-    the public contract objects.
-status: draft
+  expected: boundary_snapshot returns a serializable mapping and __all__ exports the
+    public contract objects.
+status: done
