@@ -21,4 +21,4 @@ verification:
   target: lmrs/admission.py::build_queue_entry_request
   expected: Function converts a queueable verdict and estimate into a structured
     queue input and rejects non-queueable verdicts.
-status: draft
+status: done

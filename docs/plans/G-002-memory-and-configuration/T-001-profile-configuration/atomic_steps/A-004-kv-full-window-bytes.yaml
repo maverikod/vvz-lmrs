@@ -36,4 +36,4 @@ verification:
   target: lmrs/configuration.py::KVCacheProfile.kv_full_window_bytes
   expected: KVCacheProfile exposes kv_full_window_bytes using 
     declared_context_window * kv_bytes_per_token().
-status: draft
+status: done

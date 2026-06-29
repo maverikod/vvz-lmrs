@@ -27,4 +27,4 @@ verification:
   target: lmrs/configuration.py::HardwareProfile
   expected: The file defines a frozen HardwareProfile dataclass with GPU count, 
     VRAM bytes, RAM bytes, optional GPU model, and metadata fields.
-status: draft
+status: done

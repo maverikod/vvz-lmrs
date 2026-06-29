@@ -46,4 +46,4 @@ verification:
   expected: The file defines a frozen ModelProfile dataclass with model 
     identity, runtime, endpoint/path, context window, tokenizer, load policy, KV
     cache profile, concurrency policy, and options.
-status: draft
+status: done

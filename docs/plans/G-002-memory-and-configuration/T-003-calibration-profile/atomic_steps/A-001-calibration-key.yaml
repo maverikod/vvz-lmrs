@@ -21,4 +21,4 @@ verification:
   target: lmrs/calibration.py::CalibrationKey
   expected: Frozen CalibrationKey dataclass uniquely binds calibration data to 
     model, runtime, quantization/profile, and hardware profile.
-status: draft
+status: done

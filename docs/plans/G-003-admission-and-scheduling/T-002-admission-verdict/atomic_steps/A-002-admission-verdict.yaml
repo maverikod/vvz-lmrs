@@ -21,4 +21,4 @@ verification:
   target: lmrs/admission.py::AdmissionVerdict
   expected: AdmissionVerdict stores execute/queue/reject decision, stable reason
     code, request identity, requirement facts, queueability, and metadata.
-status: draft
+status: done

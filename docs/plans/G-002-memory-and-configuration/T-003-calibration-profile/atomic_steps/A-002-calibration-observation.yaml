@@ -23,4 +23,4 @@ verification:
   target: lmrs/calibration.py::CalibrationObservation
   expected: Frozen CalibrationObservation dataclass stores empirical token, 
     predicted VRAM, actual VRAM, and overhead facts for calibration.
-status: draft
+status: done

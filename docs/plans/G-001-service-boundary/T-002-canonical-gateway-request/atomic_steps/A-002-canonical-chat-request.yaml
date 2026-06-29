@@ -40,4 +40,4 @@ verification:
   expected: The file defines a frozen CanonicalChatRequest dataclass with 
     gateway request identity, model, message, tool, output reservation, and 
     options fields.
-status: draft
+status: done

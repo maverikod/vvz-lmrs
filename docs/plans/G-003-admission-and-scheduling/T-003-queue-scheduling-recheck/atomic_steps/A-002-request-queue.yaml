@@ -19,4 +19,4 @@ verification:
   target: lmrs/queue.py::RequestQueue
   expected: RequestQueue owns queued entries and supports queue state 
     mutation/snapshot semantics without scheduling or runtime execution.
-status: draft
+status: done

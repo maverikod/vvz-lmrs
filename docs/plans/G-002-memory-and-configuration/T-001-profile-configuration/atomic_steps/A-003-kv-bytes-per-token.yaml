@@ -33,4 +33,4 @@ verification:
   target: lmrs/configuration.py::KVCacheProfile.kv_bytes_per_token
   expected: KVCacheProfile exposes kv_bytes_per_token using layers * 2 * 
     kv_heads * head_dim * kv_element_bytes.
-status: draft
+status: done

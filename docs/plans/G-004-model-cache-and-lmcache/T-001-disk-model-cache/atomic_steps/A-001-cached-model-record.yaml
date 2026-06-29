@@ -22,4 +22,4 @@ verification:
   expected: CachedModelRecord stores disk model cache identity, model profile 
     fields, integrity/revision, size, readiness marker, compatibility flags, 
     status, and metadata.
-status: draft
+status: done

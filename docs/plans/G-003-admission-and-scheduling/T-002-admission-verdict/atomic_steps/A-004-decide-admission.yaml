@@ -26,4 +26,4 @@ verification:
   expected: Function returns stable execute, queue, or reject AdmissionVerdict 
     based on context window, max pool, current pool, and conservative LMCache 
     adjustment.
-status: draft
+status: done

@@ -21,4 +21,4 @@ verification:
   expected: Function returns a structured snapshot of calibration identity, 
     calibrated costs, observation count, validity, invalidation reason, and 
     metadata.
-status: draft
+status: done

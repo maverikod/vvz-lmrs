@@ -29,4 +29,4 @@ verification:
   target: lmrs.contracts.ServiceBoundary
   expected: Module imports and ServiceBoundary links AdapterExposure and 
     MVPScope.
-status: draft
+status: done

@@ -72,4 +72,4 @@ verification:
   expected: The file defines validate_runtime_configuration that validates 
     hardware, model mapping, default model, safety/reserve bytes, KV dimensions,
     and context-window consistency.
-status: draft
+status: done

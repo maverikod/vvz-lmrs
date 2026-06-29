@@ -21,4 +21,4 @@ verification:
   target: lmrs/queue.py::largest_fit_scheduler
   expected: Function selects the largest fitting queued request under current 
     usable dynamic VRAM with deterministic tie-breaking.
-status: draft
+status: done

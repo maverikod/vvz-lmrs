@@ -1,0 +1,344 @@
+# MCP Coder Agent Guide — LMRS Project
+# Read this file before performing any file operations.
+# All file access is ONLY through MCP proxy servers — no local bash, no Read/Write/Edit tools.
+
+meta:
+  project_id: "03d7a632-fae5-4290-bcee-ba84d19dc1c9"
+  mcp_tool: "mcp__claude_ai_MCP-Proxy__call_server"
+  servers:
+    ca: "code-analysis-server"        # sessions, quality gates, FS read
+    editor: "ai-editor-server"        # file create/modify lifecycle
+
+# ─────────────────────────────────────────────────────────────────────
+# 1. CALL PATTERN
+# ─────────────────────────────────────────────────────────────────────
+# Every MCP call:
+#   mcp__claude_ai_MCP-Proxy__call_server(
+#     server_id = "code-analysis-server" | "ai-editor-server",
+#     copy_number = 1,
+#     command = "<name>",
+#     params = { ... }
+#   )
+#
+# All file_path values are project-relative (e.g. "lmrs/contracts.py")
+# NEVER pass host absolute paths.
+
+# ─────────────────────────────────────────────────────────────────────
+# 2. CA SERVER — READ / SEARCH / QUALITY / SESSIONS
+# ─────────────────────────────────────────────────────────────────────
+ca_commands:
+
+  session_create:
+    server: code-analysis-server
+    params: {}
+    returns: { session_id: "<uuid>" }
+    note: "Call first. Reuse session_id for all subsequent editor calls."
+
+  list_project_files:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      file_pattern: "lmrs/*.py"   # optional fnmatch; * crosses /
+      page_size: 50               # optional, default 20
+    returns: { items: [{ file_path, file_id }] }
+
+  get_file_lines:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      file_path: "lmrs/contracts.py"
+      start_line: 1               # optional, 1-based
+      end_line: 50                # optional
+    returns: { lines: ["..."], total_lines: N }
+    note: "Read-only. Use to inspect file content without opening an editor session."
+
+  universal_file_preview:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      file_path: "lmrs/contracts.py"
+      # session_id omitted = one-shot read without lock
+      node_ref: ""                # "" = root (list all top-level nodes)
+    returns: { nodes: [{ short_id, kind, name, ... }] }
+    note: "One-shot preview (no lock). Returns short_id integers for nodes."
+
+  search:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      query: "class AdapterExposure"
+      enable_semantic: false
+      enable_grep: true
+      file_pattern: "lmrs/"
+    returns: { items: [...], has_more, job_id }
+    note: "Use search_get_page(job_id, block_position=2) for next pages."
+
+  file_structure:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      file_path: "lmrs/contracts.py"
+    returns: { classes: [...], functions: [...] }
+
+  lint_code:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      file_path: "lmrs/contracts.py"
+    returns: { success: bool, errors: [...], error_count: N }
+    pass_condition: "success == true AND error_count == 0"
+
+  type_check_code:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      file_path: "lmrs/contracts.py"
+    returns: { success: bool, errors: [...], error_count: N }
+    pass_condition: "success == true AND error_count == 0"
+
+  run_project_module:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      module: "lmrs.contracts"    # python -m lmrs.contracts
+      timeout_seconds: 30         # optional
+    returns: { returncode: N, stdout, stderr, timed_out }
+    pass_condition: "returncode == 0"
+    note: "Module name only, not file path. Tests importability."
+
+  fs_move:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      source_path: "calibration.py"
+      dest_path: "lmrs/calibration.py"
+    note: "Use to move/rename files within project. Updates version history."
+
+  fs_remove:
+    server: code-analysis-server
+    params:
+      project_id: "<uuid>"
+      file_path: "old_file.py"
+      backup: true                # default true, backs up to old_code/
+
+# ─────────────────────────────────────────────────────────────────────
+# 3. EDITOR SERVER — FILE LIFECYCLE
+# ─────────────────────────────────────────────────────────────────────
+# MANDATORY order: open → preview → edit → write(preview) → write(commit) → close
+# session_id comes from CA session_create, NOT from open.
+# close MUST always be called, even after error.
+
+editor_commands:
+
+  universal_file_open:
+    server: ai-editor-server
+    # Existing file:
+    params_existing:
+      project_id: "<uuid>"
+      file_path: "lmrs/contracts.py"
+      session_id: "<ca-session-id>"
+    # New file:
+    params_new:
+      project_id: "<uuid>"
+      file_path: "lmrs/new_file.py"
+      session_id: "<ca-session-id>"
+      create: true
+      initial_content: "# file content as single string with \\n"
+    returns: { format_group, draft_path, multi_file_bundle }
+    errors: ["FILE_ALREADY_OPEN", "OPEN_ERROR", "SESSION_NOT_FOUND", "UNKNOWN_FORMAT"]
+    note: |
+      For .py files: format_group = "sidecar"
+      For .yaml/.yml/.json: format_group = "tree-temp"
+      For .md/.txt: format_group = "text"
+      For unknown extensions: pass format_group explicitly.
+
+  universal_file_preview:
+    server: ai-editor-server
+    params:
+      project_id: "<uuid>"
+      file_path: "lmrs/contracts.py"
+      session_id: "<ca-session-id>"
+      node_ref: ""                # "" = root; integer string to drill down
+    returns: |
+      nodes list, each with:
+        short_id: integer (use as string in edit operations)
+        kind: "class" | "function" | "import" | ...
+        name: "ClassName" | "function_name"
+    note: |
+      Re-preview after every edit before targeting node_refs.
+      short_id values change after edits — always re-preview.
+
+  universal_file_edit:
+    server: ai-editor-server
+    params:
+      project_id: "<uuid>"
+      session_id: "<ca-session-id>"
+      operations: []              # list of operation objects
+    note: "Mutates draft only. CA file unchanged until commit."
+
+  universal_file_write:
+    server: ai-editor-server
+    # Preview (check diff):
+    params_preview:
+      project_id: "<uuid>"
+      session_id: "<ca-session-id>"
+      file_path: "lmrs/contracts.py"
+      write_mode: "preview"
+    returns_preview: { diff: "..." }
+    # Commit (validate + upload):
+    params_commit:
+      project_id: "<uuid>"
+      session_id: "<ca-session-id>"
+      file_path: "lmrs/contracts.py"
+      write_mode: "commit"
+    returns_commit: { uploaded: true }   # MUST have uploaded:true
+    errors: ["VALIDATION_ERROR"]
+    note: |
+      ALWAYS call write(preview) before write(commit) in same session.
+      If VALIDATION_ERROR: fix via edit → write(preview) → write(commit).
+      uploaded:true is REQUIRED to confirm success.
+
+  universal_file_close:
+    server: ai-editor-server
+    params:
+      project_id: "<uuid>"
+      session_id: "<ca-session-id>"
+    note: "ALWAYS call, including after errors. Releases CA lock."
+
+# ─────────────────────────────────────────────────────────────────────
+# 4. EDIT OPERATION TYPES
+# ─────────────────────────────────────────────────────────────────────
+operations:
+
+  # Python (.py / sidecar) — use short_id as string in node_id / target_node_id
+  python_insert_after:
+    type: "insert"
+    target_node_id: "5"           # short_id string from preview
+    position: "after"
+    code_lines:                   # list of strings, one per line
+      - ""
+      - "def new_function() -> None:"
+      - "    pass"
+
+  python_replace_node:
+    type: "replace"
+    node_id: "3"                  # short_id string from preview
+    code_lines:
+      - "class Updated:"
+      - "    pass"
+
+  # YAML / JSON (.yaml/.yml / tree-temp) — use short_id as string in node_ref
+  yaml_replace_value:
+    type: "replace"
+    node_ref: "12"                # short_id string from preview
+    value: "done"                 # new scalar value
+
+  yaml_replace_by_pointer:
+    type: "replace"
+    json_pointer: "/status"       # JSON Pointer path (legacy alternative)
+    value: "done"
+
+  # IMPORTANT: Do NOT mix parent and child nodes in one batch (NESTED_BATCH_FORBIDDEN)
+
+# ─────────────────────────────────────────────────────────────────────
+# 5. COMMON WORKFLOW PATTERNS
+# ─────────────────────────────────────────────────────────────────────
+patterns:
+
+  CREATE_FILE:
+    steps:
+      1: "CA: session_create → session_id"
+      2: "Editor: open(create=true, initial_content=<full content>)"
+      3: "Editor: write(preview) → check diff"
+      4: "Editor: write(commit) → check uploaded:true"
+      5: "Editor: close"
+      6: "CA: run_project_module, lint_code, type_check_code → all pass"
+      7: "MARK_YAML_DONE"
+
+  MODIFY_APPEND:
+    description: "Add code after the last node in file"
+    steps:
+      1: "CA: session_create → session_id"
+      2: "Editor: open(file_path)"
+      3: "Editor: preview(node_ref='') → find last node short_id"
+      4: "Editor: edit([{type:insert, target_node_id:<last>, position:after, code_lines:[...]}])"
+      5: "Editor: write(preview) → verify diff"
+      6: "Editor: write(commit) → check uploaded:true"
+      7: "Editor: close"
+      8: "CA: run_project_module, lint_code, type_check_code → all pass"
+      9: "MARK_YAML_DONE"
+
+  MODIFY_REPLACE_NODE:
+    description: "Replace an existing node (e.g. update a class with new methods)"
+    steps:
+      1: "CA: session_create → session_id"
+      2: "Editor: open(file_path)"
+      3: "Editor: preview(node_ref='') → find target node short_id"
+      4: "Editor: edit([{type:replace, node_id:<target>, code_lines:[...]}])"
+      5: "Editor: write(preview) → verify diff"
+      6: "Editor: write(commit) → check uploaded:true"
+      7: "Editor: close"
+      8: "CA: run_project_module, lint_code, type_check_code → all pass"
+      9: "MARK_YAML_DONE"
+
+  MARK_YAML_DONE:
+    description: "Mark an atomic step YAML file status field as done"
+    steps:
+      1: "CA: session_create → session_id"
+      2: "Editor: open(file_path=<yaml path>)"
+      3: "Editor: preview(node_ref='') → find 'status' field node short_id"
+      4: "Editor: edit([{type:replace, node_ref:<short_id>, value:'done'}])"
+      5: "Editor: write(preview)"
+      6: "Editor: write(commit) → check uploaded:true"
+      7: "Editor: close"
+
+  READ_FILE:
+    description: "Read file content without locking (inspection only)"
+    steps:
+      1: "CA: get_file_lines(project_id, file_path, start_line, end_line)"
+      note: "No session needed. Use for reading YAMLs, checking current state."
+
+# ─────────────────────────────────────────────────────────────────────
+# 6. QUALITY GATE — REQUIRED AFTER EVERY CODE STEP
+# ─────────────────────────────────────────────────────────────────────
+quality_gate:
+  required_checks:
+    - command: run_project_module
+      params: { project_id: "<uuid>", module: "<module_name>" }
+      pass: "returncode == 0"
+    - command: lint_code
+      params: { project_id: "<uuid>", file_path: "<file>" }
+      pass: "success == true"
+    - command: type_check_code
+      params: { project_id: "<uuid>", file_path: "<file>" }
+      pass: "success == true"
+  on_failure: "STOP. Report exact error + step + command. Do NOT proceed."
+
+# ─────────────────────────────────────────────────────────────────────
+# 7. FORBIDDEN
+# ─────────────────────────────────────────────────────────────────────
+forbidden:
+  - "Using bash/shell commands to read or modify project files"
+  - "Using local Read/Write/Edit tools on project files"
+  - "write(commit) without preceding write(preview) in same session"
+  - "Reusing node short_ids after an edit without re-preview"
+  - "# noqa, # type: ignore, placeholder docstrings, weakening to Any"
+  - "Skipping quality gate"
+  - "Silently retrying on error without reporting"
+  - "Editing immutable files: docs/plans/source_spec.md, docs/plans/spec.yaml, **/README.yaml"
+  - "Touching read-only projects: mcp_proxy_adapter, model_access_core, vast_srv"
+
+# ─────────────────────────────────────────────────────────────────────
+# 8. ERROR RECOVERY
+# ─────────────────────────────────────────────────────────────────────
+error_recovery:
+  VALIDATION_ERROR:
+    action: "fix via edit → write(preview) → write(commit); DO NOT close and reopen"
+  UPSTREAM_UPLOAD_FAILED:
+    action: "STOP. Report. Do not retry blindly."
+  FILE_ALREADY_OPEN:
+    action: "Another session holds lock. Wait or use session_list to inspect."
+  uploaded_missing_from_commit:
+    action: "STOP. uploaded:true is REQUIRED. Report."
+  SESSION_NOT_FOUND:
+    action: "Session expired. Create new session, reopen file from scratch."

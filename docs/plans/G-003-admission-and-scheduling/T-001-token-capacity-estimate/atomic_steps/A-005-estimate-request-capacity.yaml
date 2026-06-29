@@ -25,4 +25,4 @@ verification:
   target: lmrs/estimation.py::estimate_request_capacity
   expected: Function builds a RequestCapacityEstimate from token breakdown and 
     memory facts without producing an admission verdict.
-status: draft
+status: done

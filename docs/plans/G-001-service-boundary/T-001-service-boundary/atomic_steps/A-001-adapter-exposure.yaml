@@ -23,4 +23,4 @@ verification:
   type: import
   target: lmrs.contracts.AdapterExposure
   expected: Module imports and AdapterExposure exists with the listed fields.
-status: draft
+status: done

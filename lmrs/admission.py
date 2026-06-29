@@ -1,0 +1,160 @@
+"""Admission control and verdict contracts for the LMRS package.
+
+Author: Vasiliy Zdanovskiy
+email: vasilyvz@gmail.com
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Mapping
+
+
+@dataclass(frozen=True)
+class CapacitySnapshot:
+    """Current runtime capacity input for admission decisions.
+
+    Attributes:
+        usable_dynamic_vram_bytes: Currently usable dynamic VRAM in bytes.
+        max_dynamic_pool_bytes: Maximum dynamic VRAM pool in bytes.
+        model_loaded: Whether the target model is currently loaded.
+        runtime_ready: Whether the runtime is ready to accept requests.
+        metadata: Arbitrary metadata for this snapshot.
+    """
+
+    usable_dynamic_vram_bytes: int
+    max_dynamic_pool_bytes: int
+    model_loaded: bool
+    runtime_ready: bool
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class AdmissionVerdict:
+    """Admission decision for a gateway request.
+
+    Attributes:
+        decision: Admission decision: would_execute, would_queue, or would_reject.
+        reason_code: Stable machine-readable reason code for this decision.
+        request_id: Unique identifier for the request.
+        model_name: Name of the model for this request.
+        required_tokens: Total required tokens for this request.
+        required_dynamic_vram_bytes: Dynamic VRAM required for this request.
+        queueable: Whether this request is eligible for queueing.
+        metadata: Arbitrary metadata for this verdict.
+    """
+
+    decision: str
+    reason_code: str
+    request_id: str
+    model_name: str
+    required_tokens: int
+    required_dynamic_vram_bytes: int
+    queueable: bool = False
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+
+def evaluate_lmcache_admission(
+    cache_hit_confirmed: bool,
+    full_required_dynamic_vram_bytes: int,
+    cache_adjusted_dynamic_vram_bytes: int | None,
+) -> int:
+    """Return adjusted VRAM requirement using conservative LMCache admission.
+
+    Args:
+        cache_hit_confirmed: Whether an LMCache hit has been confirmed.
+        full_required_dynamic_vram_bytes: Full cache-miss VRAM requirement in bytes.
+        cache_adjusted_dynamic_vram_bytes: Adjusted VRAM when cache hit is confirmed.
+
+    Returns:
+        Adjusted dynamic VRAM bytes if cache hit confirmed; full estimate otherwise.
+    """
+    if cache_hit_confirmed and cache_adjusted_dynamic_vram_bytes is not None:
+        return cache_adjusted_dynamic_vram_bytes
+    return full_required_dynamic_vram_bytes
+
+
+def decide_admission(
+    estimate: Any,
+    capacity: CapacitySnapshot,
+    cache_hit_confirmed: bool = False,
+    cache_adjusted_dynamic_vram_bytes: int | None = None,
+) -> AdmissionVerdict:
+    """Return an AdmissionVerdict for a gateway request.
+
+    Args:
+        estimate: Request capacity estimate with token and VRAM requirements.
+        capacity: Current runtime capacity snapshot.
+        cache_hit_confirmed: Whether an LMCache cache hit has been confirmed.
+        cache_adjusted_dynamic_vram_bytes: VRAM adjustment from confirmed cache hit.
+
+    Returns:
+        An AdmissionVerdict with decision, reason code, and queueability.
+    """
+    required_tokens = estimate.required_tokens
+    required_vram = evaluate_lmcache_admission(
+        cache_hit_confirmed=cache_hit_confirmed,
+        full_required_dynamic_vram_bytes=estimate.required_dynamic_vram_bytes,
+        cache_adjusted_dynamic_vram_bytes=cache_adjusted_dynamic_vram_bytes,
+    )
+    if required_tokens > estimate.declared_context_window:
+        return AdmissionVerdict(
+            decision="would_reject",
+            reason_code="CONTEXT_OVERFLOW",
+            request_id=estimate.request_id,
+            model_name=estimate.model_name,
+            required_tokens=required_tokens,
+            required_dynamic_vram_bytes=required_vram,
+            queueable=False,
+        )
+    if required_vram > capacity.max_dynamic_pool_bytes:
+        return AdmissionVerdict(
+            decision="would_reject",
+            reason_code="REQUEST_TOO_LARGE",
+            request_id=estimate.request_id,
+            model_name=estimate.model_name,
+            required_tokens=required_tokens,
+            required_dynamic_vram_bytes=required_vram,
+            queueable=False,
+        )
+    if required_vram > capacity.usable_dynamic_vram_bytes:
+        return AdmissionVerdict(
+            decision="would_queue",
+            reason_code="CAPACITY_CONSTRAINED",
+            request_id=estimate.request_id,
+            model_name=estimate.model_name,
+            required_tokens=required_tokens,
+            required_dynamic_vram_bytes=required_vram,
+            queueable=True,
+        )
+    return AdmissionVerdict(
+        decision="would_execute",
+        reason_code="CAPACITY_AVAILABLE",
+        request_id=estimate.request_id,
+        model_name=estimate.model_name,
+        required_tokens=required_tokens,
+        required_dynamic_vram_bytes=required_vram,
+        queueable=False,
+    )
+
+
+def build_queue_entry_request(verdict: AdmissionVerdict, estimate: Any) -> dict[str, object]:
+    """Convert a queueable verdict and estimate into a structured queue input.
+
+    Args:
+        verdict: Admission verdict that must have queueable set to True.
+        estimate: Request capacity estimate with identity and requirement facts.
+
+    Returns:
+        A structured dictionary suitable for queue entry creation.
+    """
+    if not verdict.queueable:
+        raise ValueError("build_queue_entry_request requires a queueable verdict")
+    return {
+        "request_id": verdict.request_id,
+        "model_name": verdict.model_name,
+        "required_tokens": verdict.required_tokens,
+        "required_dynamic_vram_bytes": verdict.required_dynamic_vram_bytes,
+        "reason_code": verdict.reason_code,
+        "admitted_at": None,
+    }

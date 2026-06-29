@@ -36,4 +36,4 @@ verification:
   target: lmrs/configuration.py::KVCacheProfile
   expected: The file defines a frozen KVCacheProfile dataclass with explicit KV 
     parameters, runtime KV dtype, and quantization profile.
-status: draft
+status: done

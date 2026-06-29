@@ -52,4 +52,4 @@ verification:
   expected: The file defines a frozen RuntimeConfiguration dataclass owning 
     hardware profile, model profiles, default model, resident services, 
     safety/reserve bytes, queue policy, and queue limits.
-status: draft
+status: done

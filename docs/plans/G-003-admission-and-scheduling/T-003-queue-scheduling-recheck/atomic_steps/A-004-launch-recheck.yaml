@@ -21,4 +21,4 @@ verification:
   target: lmrs/queue.py::launch_recheck
   expected: Function performs launch-time capacity recheck for a queued request 
     without executing it.
-status: draft
+status: done

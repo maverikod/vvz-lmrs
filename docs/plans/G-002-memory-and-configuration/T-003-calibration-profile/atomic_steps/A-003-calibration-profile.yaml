@@ -22,4 +22,4 @@ verification:
   expected: Frozen CalibrationProfile dataclass stores calibrated KV cost, 
     overhead costs, observation count, validity, invalidation reason, and 
     metadata.
-status: draft
+status: done

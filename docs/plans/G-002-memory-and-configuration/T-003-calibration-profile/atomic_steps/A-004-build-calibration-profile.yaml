@@ -23,4 +23,4 @@ verification:
   expected: Function builds a CalibrationProfile from empirical observations, 
     validates inputs, computes calibrated KV bytes per token, and captures max 
     overheads.
-status: draft
+status: done

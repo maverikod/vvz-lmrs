@@ -21,4 +21,4 @@ verification:
   target: lmrs/estimation.py::calculate_dynamic_vram_requirement
   expected: Function computes request dynamic VRAM using required tokens, KV 
     bytes per token, and overhead fields.
-status: draft
+status: done

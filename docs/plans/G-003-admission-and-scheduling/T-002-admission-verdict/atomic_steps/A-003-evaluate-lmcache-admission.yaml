@@ -20,4 +20,4 @@ verification:
   target: lmrs/admission.py::evaluate_lmcache_admission
   expected: Function treats LMCache as optional confirmed reduction only and 
     otherwise returns cache-miss dynamic VRAM requirement.
-status: draft
+status: done

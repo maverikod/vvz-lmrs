@@ -20,4 +20,4 @@ verification:
   target: lmrs/estimation.py::calculate_required_tokens
   expected: Function sums all token components and rejects negative token 
     counts.
-status: draft
+status: done

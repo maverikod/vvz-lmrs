@@ -19,4 +19,4 @@ verification:
   target: lmrs/queue.py::QueueEntry
   expected: QueueEntry stores request identity, model, token/VRAM estimates, 
     timestamps, priority, status, and metadata.
-status: draft
+status: done

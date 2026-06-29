@@ -27,4 +27,4 @@ verification:
   type: import
   target: lmrs.contracts.MVPScope
   expected: Module imports and MVPScope includes includes/excludes methods.
-status: draft
+status: done

@@ -27,4 +27,4 @@ verification:
   target: lmrs.contracts.build_default_service_boundary
   expected: Factory returns a ServiceBoundary with adapter exposure and MVP 
     scope populated.
-status: draft
+status: done

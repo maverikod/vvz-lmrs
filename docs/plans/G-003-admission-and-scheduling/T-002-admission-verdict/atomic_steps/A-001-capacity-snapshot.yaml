@@ -19,4 +19,4 @@ verification:
   target: lmrs/admission.py::CapacitySnapshot
   expected: CapacitySnapshot captures current and maximum dynamic VRAM plus 
     model/runtime readiness.
-status: draft
+status: done
