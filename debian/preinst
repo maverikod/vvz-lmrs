@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# preinst for lmrs: stop the service before install/upgrade.
+#
+# Author: Vasiliy Zdanovskiy
+# email: vasilyvz@gmail.com
+set -e
+
+case "$1" in
+    install|upgrade)
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl stop lmrs.service >/dev/null 2>&1 || true
+        fi
+        ;;
+esac
+
+#DEBHELPER#
+exit 0

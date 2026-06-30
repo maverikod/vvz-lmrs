@@ -1,0 +1,97 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8012,
+    "protocol": "https",
+    "servername": "lmrs",
+    "ssl": {
+      "cert": "/etc/lmrs/certs/lmrs.crt",
+      "key": "/etc/lmrs/certs/lmrs.key",
+      "ca": "/etc/lmrs/certs/ca.crt",
+      "crl": null,
+      "dnscheck": false,
+      "check_hostname": null
+    },
+    "rules": null,
+    "log_dir": "/var/log/lmrs",
+    "debug": false,
+    "log_level": "INFO",
+    "advertised_host": null
+  },
+  "client": {
+    "enabled": false,
+    "protocol": "http",
+    "ssl": null
+  },
+  "registration": {
+    "enabled": false,
+    "protocol": "http",
+    "register_url": "http://localhost:3005/register",
+    "unregister_url": "http://localhost:3005/unregister",
+    "heartbeat_interval": 30,
+    "ssl": null,
+    "server_id": null,
+    "server_name": null,
+    "instance_uuid": null,
+    "auto_on_startup": true,
+    "auto_on_shutdown": true,
+    "metadata": null,
+    "heartbeat": {
+      "url": "http://localhost:3005/proxy/heartbeat",
+      "interval": 30
+    }
+  },
+  "server_validation": {
+    "enabled": false,
+    "protocol": "http",
+    "ssl": null,
+    "timeout": 10,
+    "use_token": false,
+    "use_roles": false,
+    "tokens": {},
+    "roles": {},
+    "auth_header": "X-API-Key",
+    "roles_header": "X-Roles",
+    "health_path": "/health",
+    "check_hostname": false
+  },
+  "auth": {
+    "use_token": false,
+    "use_roles": false,
+    "tokens": {},
+    "roles": {}
+  },
+  "queue_manager": {
+    "enabled": true,
+    "in_memory": true,
+    "registry_path": null,
+    "shutdown_timeout": 30.0,
+    "max_concurrent_jobs": 10,
+    "max_queue_size": null,
+    "per_job_type_limits": null,
+    "completed_job_retention_seconds": 21600,
+    "default_poll_interval": 0.0,
+    "default_max_wait_time": null,
+    "command_timeout": null,
+    "stop_job_wait_timeout": null
+  },
+  "orchestration": {
+    "discovery_enabled": false,
+    "polling_interval": 30.0,
+    "initial_poll_timeout": 60.0,
+    "stale_snapshot_behavior": "keep",
+    "mutex_lock_timeout": 5.0,
+    "static_servers": []
+  },
+  "commands": {
+    "enabled": true,
+    "auto_discover": true,
+    "commands_directory": "lmrs",
+    "custom_commands_path": "lmrs"
+  },
+  "logging": {
+    "level": "INFO",
+    "log_dir": "/var/log/lmrs",
+    "file_output": true
+  }
+}
