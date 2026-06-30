@@ -47,7 +47,7 @@ fi
 
 # LMRS adapter server — the only externally published service.
 echo "lmrs-entrypoint: starting LMRS adapter with config ${LMRS_CONFIG}"
-python -m lmrs --config "${LMRS_CONFIG}" &
+python3 -m lmrs --config "${LMRS_CONFIG}" &
 LMRS_PID=$!
 
 # Exit as soon as either supervised process exits; stop the survivor first.
