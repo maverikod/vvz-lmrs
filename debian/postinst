@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# postinst for lmrs: create user/group + layout, install templates, pull image
+# and create the container, then enable/start the service.
+#
+# Author: Vasiliy Zdanovskiy
+# email: vasilyvz@gmail.com
+set -e
+
+LMRS_USER="lmrsuser"
+LMRS_GROUP="lmrsgrp"
+ETC_DIR="/etc/lmrs"
+CERT_DIR="/etc/lmrs/certs"
+VAR_DIR="/var/lmrs"
+LOG_DIR="/var/log/lmrs"
+DEFAULT_FILE="/etc/default/lmrs"
+CONFIG="/etc/lmrs/config.json"
+SHARE="/usr/share/lmrs"
+BIN="/usr/lib/lmrs/bin"
+
+create_user() {
+    if ! getent group "${LMRS_GROUP}" >/dev/null; then
+        addgroup --system "${LMRS_GROUP}"
+    fi
+    if ! getent passwd "${LMRS_USER}" >/dev/null; then
+        adduser --system --ingroup "${LMRS_GROUP}" --no-create-home \
+            --home "${VAR_DIR}" "${LMRS_USER}"
+    fi
+}
+
+create_layout() {
+    install -d -o root -g "${LMRS_GROUP}" -m 0750 "${ETC_DIR}" "${CERT_DIR}"
+    install -d -o "${LMRS_USER}" -g "${LMRS_GROUP}" -m 0750 \
+        "${VAR_DIR}" "${VAR_DIR}/hf-cache" "${LOG_DIR}"
+    if [ ! -f "${CONFIG}" ] && [ -f "${SHARE}/config.json.template" ]; then
+        install -o root -g "${LMRS_GROUP}" -m 0640 \
+            "${SHARE}/config.json.template" "${CONFIG}"
+    fi
+    if [ ! -f "${DEFAULT_FILE}" ] && [ -f "${SHARE}/lmrs.default.template" ]; then
+        install -o root -g "${LMRS_GROUP}" -m 0640 \
+            "${SHARE}/lmrs.default.template" "${DEFAULT_FILE}"
+    fi
+    if [ -f "${SHARE}/docker-image" ]; then
+        install -o root -g "${LMRS_GROUP}" -m 0644 \
+            "${SHARE}/docker-image" "${VAR_DIR}/docker-image"
+    fi
+}
+
+setup_container() {
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "lmrs: docker not found; skipping image pull and container creation." >&2
+        return 0
+    fi
+    "${BIN}/lmrs-container" pull || true
+    "${BIN}/lmrs-container" recreate || true
+}
+
+certs_present() {
+    [ -f "${CERT_DIR}/lmrs.crt" ] && [ -f "${CERT_DIR}/lmrs.key" ]
+}
+
+case "$1" in
+    configure)
+        create_user
+        create_layout
+        setup_container
+        systemctl daemon-reload || true
+        systemctl enable lmrs.service || true
+        if command -v docker >/dev/null 2>&1; then
+            if certs_present; then
+                systemctl start lmrs.service || true
+            else
+                echo "lmrs: TLS certs missing in ${CERT_DIR} (need lmrs.crt + lmrs.key)."
+                echo "lmrs: deploy certs, set LMRS_MODEL in ${DEFAULT_FILE}, then: systemctl start lmrs"
+            fi
+        fi
+        ;;
+esac
+
+#DEBHELPER#
+exit 0

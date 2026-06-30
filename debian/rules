@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+# Debian rules for the lmrs package. All file staging is done by
+# debian/install-package.sh; systemd units are installed but not started.
+#
+# Author: Vasiliy Zdanovskiy
+# email: vasilyvz@gmail.com
+export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	:
+
+override_dh_auto_build:
+	:
+
+override_dh_auto_test:
+	:
+
+override_dh_auto_install:
+	$(CURDIR)/debian/install-package.sh $(CURDIR)
+
+override_dh_installsystemd:
+	dh_installsystemd --name=lmrs --no-start
