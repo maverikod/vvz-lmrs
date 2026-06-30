@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lmrs"
+version = "0.1.0"
+description = "Local Model Runtime Service"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Vasiliy Zdanovskiy", email = "vasilyvz@gmail.com"},
+]
+dependencies = [
+    "PyYAML",
+]
+
+[project.optional-dependencies]
+server = [
+    "mcp-proxy-adapter>=8.10",
+]
+
+[project.scripts]
+lmrs = "lmrs.__main__:main"
+lmrsmgr = "lmrs.manager:main"
+
+[tool.setuptools.packages.find]
+include = ["lmrs*"]
+namespaces = false
