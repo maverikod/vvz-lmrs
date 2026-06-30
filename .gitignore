@@ -112,3 +112,9 @@ old_code/*
 .terminals/
 mtls-certs/
 
+debian/lmrs-docker-image
+debian/lmrs/
+debian/.debhelper/
+debian/files
+debian/*.substvars
+debian/debhelper-build-stamp

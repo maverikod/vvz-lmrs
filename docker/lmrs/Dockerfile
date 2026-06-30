@@ -23,7 +23,10 @@ RUN pip install --no-cache-dir lmcache
 WORKDIR /opt/lmrs
 COPY pyproject.toml README.md LICENSE ./
 COPY lmrs ./lmrs
-RUN pip install --no-cache-dir ".[server]"
+# blinker is pre-installed via distutils in the base image; pip cannot uninstall
+# it to satisfy the flask>=blinker 1.9 requirement, so force a clean install first.
+RUN pip install --no-cache-dir --ignore-installed blinker \
+    && pip install --no-cache-dir ".[server]"
 
 # In-container defaults (overridden by /etc/default/lmrs via --env-file and by
 # the mounted /etc/lmrs/config.json).
