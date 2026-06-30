@@ -9,14 +9,14 @@ concepts:
 - C-015
 objects:
 - RuntimeBackend
-prompt: Create lmrs/runtime_client.py and define RuntimeBackend string constants
-  or enum values for vllm, ollama, llama_cpp, gpt_oss, and other_local. It names
-  the execution backend abstraction that runs only requests already admitted by 
-  LMRS. The runtime backend must not make admission decisions. Do not add client
-  execution or result types in this step.
+prompt: Create lmrs/runtime_client.py and define RuntimeBackend string constants or
+  enum values for vllm, ollama, llama_cpp, gpt_oss, and other_local. It names the
+  execution backend abstraction that runs only requests already admitted by LMRS.
+  The runtime backend must not make admission decisions. Do not add client execution
+  or result types in this step.
 verification:
   type: static_analysis
   target: lmrs/runtime_client.py::RuntimeBackend
-  expected: RuntimeBackend exposes stable local backend identifiers and carries 
-    no admission-decision logic.
-status: draft
+  expected: RuntimeBackend exposes stable local backend identifiers and carries no
+    admission-decision logic.
+status: done

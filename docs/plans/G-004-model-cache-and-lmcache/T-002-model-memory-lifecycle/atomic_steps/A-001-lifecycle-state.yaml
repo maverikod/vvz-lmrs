@@ -9,14 +9,14 @@ concepts:
 - C-024
 objects:
 - LifecycleState
-prompt: Create lmrs/model_lifecycle.py and define LifecycleState string 
-  constants or enum values for not_loaded, loading, loaded, unloading, 
-  reloading, and failed, plus a keep_loaded policy marker. It represents 
-  in-memory model residency state only and must stay separate from disk cache 
-  state. Do not add load or unload operations in this step.
+prompt: Create lmrs/model_lifecycle.py and define LifecycleState string constants
+  or enum values for not_loaded, loading, loaded, unloading, reloading, and failed,
+  plus a keep_loaded policy marker. It represents in-memory model residency state
+  only and must stay separate from disk cache state. Do not add load or unload operations
+  in this step.
 verification:
   type: static_analysis
   target: lmrs/model_lifecycle.py::LifecycleState
-  expected: LifecycleState exposes stable memory-residency state names and a 
-    keep_loaded marker, separate from disk cache state.
-status: draft
+  expected: LifecycleState exposes stable memory-residency state names and a keep_loaded
+    marker, separate from disk cache state.
+status: done

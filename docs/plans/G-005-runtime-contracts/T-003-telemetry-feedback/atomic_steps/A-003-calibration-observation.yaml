@@ -11,19 +11,17 @@ concepts:
 - C-020
 objects:
 - TelemetryCalibrationObservation
-prompt: Modify lmrs/telemetry.py after A-001 and A-002. Append frozen dataclass 
-  TelemetryCalibrationObservation with model_name, runtime_backend, 
-  quantization_profile, hardware_profile, prompt_length, measured_vram_growth, 
-  kv_cache_cost_sample, per_request_overhead_sample, sample_count, and metadata.
-  It is an aggregated observation input offered to Calibration Profile keyed by 
-  model, runtime, quantization, and hardware. It does not own or compute the 
-  calibration profile, and it is distinct from the calibration-owned 
-  CalibrationObservation defined in lmrs.calibration.
+prompt: Modify lmrs/telemetry.py after A-001 and A-002. Append frozen dataclass TelemetryCalibrationObservation
+  with model_name, runtime_backend, quantization_profile, hardware_profile, prompt_length,
+  measured_vram_growth, kv_cache_cost_sample, per_request_overhead_sample, sample_count,
+  and metadata. It is an aggregated observation input offered to Calibration Profile
+  keyed by model, runtime, quantization, and hardware. It does not own or compute
+  the calibration profile, and it is distinct from the calibration-owned CalibrationObservation
+  defined in lmrs.calibration.
 verification:
   type: static_analysis
   target: lmrs/telemetry.py::TelemetryCalibrationObservation
-  expected: TelemetryCalibrationObservation carries 
-    model/runtime/quantization/hardware keys with measured VRAM growth and 
-    KV-cache and overhead samples as inputs to calibration, without owning 
-    calibration.
-status: draft
+  expected: TelemetryCalibrationObservation carries model/runtime/quantization/hardware
+    keys with measured VRAM growth and KV-cache and overhead samples as inputs to
+    calibration, without owning calibration.
+status: done

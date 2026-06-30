@@ -10,19 +10,17 @@ concepts:
 - C-036
 objects:
 - ProxyRegistrationEndpoint
-prompt: Modify lmrs/proxy/registration.py after A-001 and A-002. Append frozen 
-  dataclass ProxyRegistrationEndpoint with enabled bool default False, 
-  register_on_startup bool, unregister_on_shutdown bool, register_url, 
-  unregister_url, heartbeat_url, heartbeat_interval_seconds, server_id, 
-  server_name, instance_uuid, metadata, client_cert, client_key, ca_cert. It is 
-  the registration-side contract for registering, unregistering, and sending 
-  heartbeat data to the MCP proxy. Registration settings are separate from 
-  listener settings. Do not add protocol resolution or payload assembly here.
+prompt: Modify lmrs/proxy/registration.py after A-001 and A-002. Append frozen dataclass
+  ProxyRegistrationEndpoint with enabled bool default False, register_on_startup bool,
+  unregister_on_shutdown bool, register_url, unregister_url, heartbeat_url, heartbeat_interval_seconds,
+  server_id, server_name, instance_uuid, metadata, client_cert, client_key, ca_cert.
+  It is the registration-side contract for registering, unregistering, and sending
+  heartbeat data to the MCP proxy. Registration settings are separate from listener
+  settings. Do not add protocol resolution or payload assembly here.
 verification:
   type: static_analysis
   target: lmrs/proxy/registration.py::ProxyRegistrationEndpoint
-  expected: ProxyRegistrationEndpoint captures enablement, startup and shutdown 
-    behavior, registration and heartbeat URLs and interval, server identity, 
-    instance UUID, metadata, and client credentials, separate from listener 
-    settings.
-status: draft
+  expected: ProxyRegistrationEndpoint captures enablement, startup and shutdown behavior,
+    registration and heartbeat URLs and interval, server identity, instance UUID,
+    metadata, and client credentials, separate from listener settings.
+status: done

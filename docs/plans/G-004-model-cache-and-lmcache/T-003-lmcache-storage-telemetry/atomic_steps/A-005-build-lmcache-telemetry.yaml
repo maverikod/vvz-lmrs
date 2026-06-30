@@ -12,16 +12,15 @@ concepts:
 - C-015
 objects:
 - build_lmcache_telemetry
-prompt: Modify lmrs/lmcache.py after A-001 through A-004. Append 
-  build_lmcache_telemetry(policy, observations) -> LMCacheTelemetry that 
-  consumes the LMCacheStoragePolicy and a mapping of runtime backend 
-  observations and assembles an LMCacheTelemetry record with hit/miss tokens, 
-  hit quality, restore and write latency, CPU and disk usage, evictions, memory 
-  pressure, and swap indicators. It reports observed facts only and must not 
-  weaken admission or count cache storage as free VRAM.
+prompt: Modify lmrs/lmcache.py after A-001 through A-004. Append build_lmcache_telemetry(policy,
+  observations) -> LMCacheTelemetry that consumes the LMCacheStoragePolicy and a mapping
+  of runtime backend observations and assembles an LMCacheTelemetry record with hit/miss
+  tokens, hit quality, restore and write latency, CPU and disk usage, evictions, memory
+  pressure, and swap indicators. It reports observed facts only and must not weaken
+  admission or count cache storage as free VRAM.
 verification:
   type: static_analysis
   target: lmrs/lmcache.py::build_lmcache_telemetry
-  expected: Function assembles an LMCacheTelemetry record from policy and 
-    runtime observations without altering admission or VRAM accounting.
-status: draft
+  expected: Function assembles an LMCacheTelemetry record from policy and runtime
+    observations without altering admission or VRAM accounting.
+status: done

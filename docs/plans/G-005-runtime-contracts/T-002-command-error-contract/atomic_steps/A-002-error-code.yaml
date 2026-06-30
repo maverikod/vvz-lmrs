@@ -10,19 +10,16 @@ concepts:
 - C-018
 objects:
 - ErrorCode
-prompt: Modify lmrs/commands.py after A-001. Append ErrorCode string constants 
-  or enum values for CONTEXT_OVERFLOW, REQUEST_TOO_LARGE, 
-  HARDWARE_VRAM_INSUFFICIENT, HARDWARE_CAPACITY_UNKNOWN, TOKENIZER_UNAVAILABLE, 
-  MODEL_BUSY_AND_QUEUE_FULL, MODEL_NOT_LOADED, MODEL_LOAD_FAILED, 
-  RUNTIME_CALL_FAILED, REQUEST_CANCELLED, MODEL_NOT_CACHED, 
-  MODEL_CACHE_PRELOAD_FAILED, MODEL_CACHE_CORRUPTED, MODEL_ALREADY_LOADED, 
-  MODEL_UNLOAD_FAILED, LMCACHE_UNAVAILABLE, LMCACHE_LOOKUP_FAILED, and 
-  LMCACHE_WRITE_FAILED. It is the stable machine-readable error catalog. Do not 
-  add command routing here.
+prompt: Modify lmrs/commands.py after A-001. Append ErrorCode string constants or
+  enum values for CONTEXT_OVERFLOW, REQUEST_TOO_LARGE, HARDWARE_VRAM_INSUFFICIENT,
+  HARDWARE_CAPACITY_UNKNOWN, TOKENIZER_UNAVAILABLE, MODEL_BUSY_AND_QUEUE_FULL, MODEL_NOT_LOADED,
+  MODEL_LOAD_FAILED, RUNTIME_CALL_FAILED, REQUEST_CANCELLED, MODEL_NOT_CACHED, MODEL_CACHE_PRELOAD_FAILED,
+  MODEL_CACHE_CORRUPTED, MODEL_ALREADY_LOADED, MODEL_UNLOAD_FAILED, LMCACHE_UNAVAILABLE,
+  LMCACHE_LOOKUP_FAILED, and LMCACHE_WRITE_FAILED. It is the stable machine-readable
+  error catalog. Do not add command routing here.
 verification:
   type: static_analysis
   target: lmrs/commands.py::ErrorCode
-  expected: ErrorCode exposes the full stable error catalog for admission, 
-    tokenizer, hardware, model lifecycle, runtime, cache, LMCache, and 
-    cancellation failures.
-status: draft
+  expected: ErrorCode exposes the full stable error catalog for admission, tokenizer,
+    hardware, model lifecycle, runtime, cache, LMCache, and cancellation failures.
+status: done

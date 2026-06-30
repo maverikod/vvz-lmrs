@@ -138,7 +138,10 @@ def decide_admission(
     )
 
 
-def build_queue_entry_request(verdict: AdmissionVerdict, estimate: Any) -> dict[str, object]:
+def build_queue_entry_request(
+    verdict: AdmissionVerdict,
+    estimate: Any,
+) -> dict[str, object]:
     """Convert a queueable verdict and estimate into a structured queue input.
 
     Args:

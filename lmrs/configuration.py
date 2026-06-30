@@ -120,7 +120,9 @@ class RuntimeConfiguration:
     queue_limits: Mapping[str, int] = field(default_factory=dict)
 
 
-def validate_runtime_configuration(config: RuntimeConfiguration) -> RuntimeConfiguration:
+def validate_runtime_configuration(
+    config: RuntimeConfiguration,
+) -> RuntimeConfiguration:
     """Validate configuration-owned profile facts and return the same config.
 
     Args:
@@ -150,10 +152,17 @@ def validate_runtime_configuration(config: RuntimeConfiguration) -> RuntimeConfi
         if model.declared_context_window <= 0:
             raise ValueError("model declared_context_window must be positive")
         kv_profile = model.kv_cache_profile
-        if kv_profile.layers <= 0 or kv_profile.kv_heads <= 0 or kv_profile.head_dim <= 0:
+        if (
+            kv_profile.layers <= 0
+            or kv_profile.kv_heads <= 0
+            or kv_profile.head_dim <= 0
+        ):
             raise ValueError("kv cache dimensions must be positive")
         if kv_profile.kv_element_bytes <= 0:
             raise ValueError("kv_element_bytes must be positive")
         if kv_profile.declared_context_window != model.declared_context_window:
-            raise ValueError("kv profile context window must match model context window")
+            raise ValueError(
+                "kv profile context window must match"
+                " model context window"
+            )
     return config

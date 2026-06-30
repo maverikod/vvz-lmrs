@@ -11,17 +11,16 @@ concepts:
 - C-016
 objects:
 - RuntimeClient
-prompt: Modify lmrs/runtime_client.py after A-001 through A-003. Append 
-  dataclass RuntimeClient with backend RuntimeBackend and an execute method or 
-  function that accepts an already-admitted request and a runtime profile, calls
-  the selected backend, and returns NormalizedRuntimeResult on success or 
-  RuntimeFailureSignal on failure as contract stubs. It hides backend 
-  differences and must not make admission decisions or re-run admission. Do not 
-  generate public command metadata here.
+prompt: Modify lmrs/runtime_client.py after A-001 through A-003. Append dataclass
+  RuntimeClient with backend RuntimeBackend and an execute method or function that
+  accepts an already-admitted request and a runtime profile, calls the selected backend,
+  and returns NormalizedRuntimeResult on success or RuntimeFailureSignal on failure
+  as contract stubs. It hides backend differences and must not make admission decisions
+  or re-run admission. Do not generate public command metadata here.
 verification:
   type: static_analysis
   target: lmrs/runtime_client.py::RuntimeClient
-  expected: RuntimeClient executes admitted requests against a selected backend 
-    and returns a normalized result or a structured failure signal without 
-    making admission decisions.
-status: draft
+  expected: RuntimeClient executes admitted requests against a selected backend and
+    returns a normalized result or a structured failure signal without making admission
+    decisions.
+status: done

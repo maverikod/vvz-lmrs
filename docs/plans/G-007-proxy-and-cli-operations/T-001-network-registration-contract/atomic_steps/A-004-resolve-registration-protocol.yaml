@@ -11,18 +11,16 @@ concepts:
 - C-036
 objects:
 - resolve_registration_protocol
-prompt: Modify lmrs/proxy/registration.py after A-001 through A-003. Append 
-  resolve_registration_protocol(endpoint) that resolves the proxy client 
-  protocol from a ProxyRegistrationEndpoint registration URL scheme and 
-  credential material. HTTP registration URLs select HTTP. HTTPS registration 
-  URLs select HTTPS unless client certificate, client key, and CA material are 
-  all present. HTTPS registration with full client credential material selects 
-  mTLS. A missing or unsupported URL scheme is a configuration error and must be
-  reported as such. Return the resolved protocol value.
+prompt: Modify lmrs/proxy/registration.py after A-001 through A-003. Append resolve_registration_protocol(endpoint)
+  that resolves the proxy client protocol from a ProxyRegistrationEndpoint registration
+  URL scheme and credential material. HTTP registration URLs select HTTP. HTTPS registration
+  URLs select HTTPS unless client certificate, client key, and CA material are all
+  present. HTTPS registration with full client credential material selects mTLS. A
+  missing or unsupported URL scheme is a configuration error and must be reported
+  as such. Return the resolved protocol value.
 verification:
   type: static_analysis
   target: lmrs/proxy/registration.py::resolve_registration_protocol
-  expected: resolve_registration_protocol returns http, https, or mtls per URL 
-    scheme and credentials, and reports missing or unsupported schemes as 
-    configuration errors.
-status: draft
+  expected: resolve_registration_protocol returns http, https, or mtls per URL scheme
+    and credentials, and reports missing or unsupported schemes as configuration errors.
+status: done

@@ -10,18 +10,18 @@ concepts:
 - C-003
 objects:
 - ThinAdapterCommand
-prompt: Create lmrs/adapter/registration.py and define ThinAdapterCommand as a 
-  base class contract for adapter-facing LMRS command wrappers. Each subclass 
-  inherits the adapter Command base, exposes a stable name attribute, may set 
-  use_queue for long-running work, validates parameters, delegates to a domain 
-  executor or service, and returns adapter SuccessResult or ErrorResult. The 
-  class must not embed admission, tokenizer, VRAM, or model lifecycle business 
-  logic; it only translates adapter calls into domain service execution per the 
-  Adapter-Based MCP Interface. Do not add registration functions in this step.
+prompt: Create lmrs/adapter/registration.py and define ThinAdapterCommand as a base
+  class contract for adapter-facing LMRS command wrappers. Each subclass inherits
+  the adapter Command base, exposes a stable name attribute, may set use_queue for
+  long-running work, validates parameters, delegates to a domain executor or service,
+  and returns adapter SuccessResult or ErrorResult. The class must not embed admission,
+  tokenizer, VRAM, or model lifecycle business logic; it only translates adapter calls
+  into domain service execution per the Adapter-Based MCP Interface. Do not add registration
+  functions in this step.
 verification:
   type: static_analysis
   target: lmrs/adapter/registration.py::ThinAdapterCommand
-  expected: ThinAdapterCommand defines a stable-name validate-delegate-return 
-    wrapper contract that returns adapter success or error results and embeds no
-    LMRS business logic.
-status: draft
+  expected: ThinAdapterCommand defines a stable-name validate-delegate-return wrapper
+    contract that returns adapter success or error results and embeds no LMRS business
+    logic.
+status: done

@@ -18,7 +18,6 @@ prompt: 'Create lmrs/adapter/schemas.py and define CommandSchemaContract as the 
 verification:
   type: static_analysis
   target: lmrs/adapter/schemas.py::CommandSchemaContract
-  expected: CommandSchemaContract declares request, result, and error schema 
-    providers separate from executor code for adapter validation before domain 
-    checks.
-status: draft
+  expected: CommandSchemaContract declares request, result, and error schema providers
+    separate from executor code for adapter validation before domain checks.
+status: done

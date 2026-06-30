@@ -12,20 +12,18 @@ concepts:
 - C-017
 objects:
 - ModelMemoryLifecycle
-prompt: Modify lmrs/model_lifecycle.py after A-001 through A-003. Append 
-  dataclass ModelMemoryLifecycle with current residency optional ModelResidency 
-  and command methods or functions load_model, unload_model, reload_model, 
-  model_status, and model_lifecycle_status as contract stubs. Before loading it 
-  must verify disk cache presence and runtime compatibility or return 
-  MODEL_NOT_CACHED unless preload is explicitly allowed. Unloading frees memory 
-  residency without deleting disk cache. The MVP policy keeps one resident model
-  loaded until explicit unload or replacement. Do not implement VRAM measurement
+prompt: Modify lmrs/model_lifecycle.py after A-001 through A-003. Append dataclass
+  ModelMemoryLifecycle with current residency optional ModelResidency and command
+  methods or functions load_model, unload_model, reload_model, model_status, and model_lifecycle_status
+  as contract stubs. Before loading it must verify disk cache presence and runtime
+  compatibility or return MODEL_NOT_CACHED unless preload is explicitly allowed. Unloading
+  frees memory residency without deleting disk cache. The MVP policy keeps one resident
+  model loaded until explicit unload or replacement. Do not implement VRAM measurement
   arithmetic here.
 verification:
   type: static_analysis
   target: lmrs/model_lifecycle.py::ModelMemoryLifecycle
-  expected: ModelMemoryLifecycle exposes load/unload/reload/status commands, 
-    verifies disk cache before load with MODEL_NOT_CACHED, and keeps one 
-    resident model under keep_loaded policy without deleting disk cache on 
-    unload.
-status: draft
+  expected: ModelMemoryLifecycle exposes load/unload/reload/status commands, verifies
+    disk cache before load with MODEL_NOT_CACHED, and keeps one resident model under
+    keep_loaded policy without deleting disk cache on unload.
+status: done

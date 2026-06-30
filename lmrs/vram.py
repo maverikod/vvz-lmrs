@@ -63,10 +63,15 @@ def calculate_static_vram(facts: VramRuntimeFacts) -> int:
     """
     if facts.model_loaded_free_vram_bytes is None:
         raise ValueError("model_loaded_free_vram_bytes is required")
-    if facts.service_baseline_free_vram_bytes < 0 or facts.model_loaded_free_vram_bytes < 0:
+    if (
+        facts.service_baseline_free_vram_bytes < 0
+        or facts.model_loaded_free_vram_bytes < 0
+    ):
         raise ValueError("VRAM measurements must be non-negative")
     if facts.model_loaded_free_vram_bytes > facts.service_baseline_free_vram_bytes:
-        raise ValueError("model-loaded free VRAM cannot exceed service baseline free VRAM")
+        raise ValueError(
+            "model-loaded free VRAM cannot exceed service baseline free VRAM"
+        )
     return facts.service_baseline_free_vram_bytes - facts.model_loaded_free_vram_bytes
 
 
@@ -105,7 +110,9 @@ def calculate_usable_dynamic_vram(state: DynamicVramState) -> int:
     return max(0, calculate_max_dynamic_pool(state) - state.active_reservation_bytes)
 
 
-def runtime_fact_snapshot(facts: VramRuntimeFacts, state: DynamicVramState) -> dict[str, object]:
+def runtime_fact_snapshot(
+    facts: VramRuntimeFacts, state: DynamicVramState
+) -> dict[str, object]:
     """Return a structured snapshot of measured and derived VRAM facts.
 
     Args:

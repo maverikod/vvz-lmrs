@@ -9,17 +9,16 @@ concepts:
 - C-019
 objects:
 - TelemetryRecord
-prompt: Create lmrs/telemetry.py and define frozen dataclass TelemetryRecord 
-  with request_id, predicted_tokens, predicted_vram, actual_prompt_tokens, 
-  actual_output_tokens, latency, queue_wait, vram_snapshot, admission_verdict, 
-  reason_code, lmcache_hit_tokens, lmcache_miss_tokens, lmcache_lookup_latency, 
-  lmcache_write_latency, eviction_events, and metadata. It is the structured 
-  telemetry record for one request comparing predicted versus actual facts. Do 
-  not add aggregation or calibration logic in this step.
+prompt: Create lmrs/telemetry.py and define frozen dataclass TelemetryRecord with
+  request_id, predicted_tokens, predicted_vram, actual_prompt_tokens, actual_output_tokens,
+  latency, queue_wait, vram_snapshot, admission_verdict, reason_code, lmcache_hit_tokens,
+  lmcache_miss_tokens, lmcache_lookup_latency, lmcache_write_latency, eviction_events,
+  and metadata. It is the structured telemetry record for one request comparing predicted
+  versus actual facts. Do not add aggregation or calibration logic in this step.
 verification:
   type: static_analysis
   target: lmrs/telemetry.py::TelemetryRecord
-  expected: TelemetryRecord captures predicted and actual tokens and VRAM, 
-    latency, queue wait, VRAM snapshot, admission verdict, reason code, and 
-    LMCache hit/miss and latency fields.
-status: draft
+  expected: TelemetryRecord captures predicted and actual tokens and VRAM, latency,
+    queue wait, VRAM snapshot, admission verdict, reason code, and LMCache hit/miss
+    and latency fields.
+status: done

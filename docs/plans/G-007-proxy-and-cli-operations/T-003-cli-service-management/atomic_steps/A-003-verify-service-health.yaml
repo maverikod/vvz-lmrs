@@ -13,19 +13,17 @@ concepts:
 - C-038
 objects:
 - verify_service_health
-prompt: Modify lmrs/cli/operations.py after A-001 and A-002. Append 
-  verify_service_health(listen_endpoint, advertised_url, registration_state) 
-  that proves service availability beyond a running PID. A running PID alone is 
-  not sufficient proof. Status combines process identity with active service 
-  verification, where valid probes include listener reachability against the 
-  server listen endpoint, health endpoint response, command or help 
-  availability, registration state, heartbeat freshness, or another explicit 
-  protocol-appropriate runtime check. Return a structured health result 
-  combining these signals.
+prompt: Modify lmrs/cli/operations.py after A-001 and A-002. Append verify_service_health(listen_endpoint,
+  advertised_url, registration_state) that proves service availability beyond a running
+  PID. A running PID alone is not sufficient proof. Status combines process identity
+  with active service verification, where valid probes include listener reachability
+  against the server listen endpoint, health endpoint response, command or help availability,
+  registration state, heartbeat freshness, or another explicit protocol-appropriate
+  runtime check. Return a structured health result combining these signals.
 verification:
   type: static_analysis
   target: lmrs/cli/operations.py::verify_service_health
-  expected: verify_service_health combines process identity with active probes 
-    (listener reachability, health response, command/help availability, 
-    registration state, heartbeat freshness) instead of PID-only evidence.
-status: draft
+  expected: verify_service_health combines process identity with active probes (listener
+    reachability, health response, command/help availability, registration state,
+    heartbeat freshness) instead of PID-only evidence.
+status: done

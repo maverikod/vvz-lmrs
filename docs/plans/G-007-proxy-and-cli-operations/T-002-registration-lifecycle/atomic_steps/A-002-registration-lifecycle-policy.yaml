@@ -11,17 +11,15 @@ concepts:
 - C-036
 objects:
 - RegistrationLifecyclePolicy
-prompt: Modify lmrs/proxy/lifecycle.py after A-001. Append frozen dataclass 
-  RegistrationLifecyclePolicy with wait_for_listener bool, 
-  listener_wait_timeout, register_on_startup bool, heartbeat_interval_seconds, 
-  retry_attempts, retry_backoff_seconds, re_register_on_unrecognized bool, and 
-  unregister_on_shutdown bool. It encodes the startup, heartbeat, retry, 
-  re-registration, and shutdown policy and is derived from a 
-  ProxyRegistrationEndpoint. Do not implement the run loop in this step.
+prompt: Modify lmrs/proxy/lifecycle.py after A-001. Append frozen dataclass RegistrationLifecyclePolicy
+  with wait_for_listener bool, listener_wait_timeout, register_on_startup bool, heartbeat_interval_seconds,
+  retry_attempts, retry_backoff_seconds, re_register_on_unrecognized bool, and unregister_on_shutdown
+  bool. It encodes the startup, heartbeat, retry, re-registration, and shutdown policy
+  and is derived from a ProxyRegistrationEndpoint. Do not implement the run loop in
+  this step.
 verification:
   type: static_analysis
   target: lmrs/proxy/lifecycle.py::RegistrationLifecyclePolicy
-  expected: RegistrationLifecyclePolicy captures listener-wait, startup 
-    registration, heartbeat interval, retry, re-registration, and shutdown 
-    unregistration policy.
-status: draft
+  expected: RegistrationLifecyclePolicy captures listener-wait, startup registration,
+    heartbeat interval, retry, re-registration, and shutdown unregistration policy.
+status: done

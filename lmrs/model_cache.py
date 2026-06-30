@@ -67,3 +67,110 @@ class CacheState:
     LOADED_IN_MEMORY: str = "loaded_in_memory"
     UNLOADING: str = "unloading"
     FAILED: str = "failed"
+
+
+@dataclass
+class DiskModelCache:
+    """Disk-backed model cache owning cached model records.
+
+    Exposes the public disk-cache command surface as contract stubs: preload,
+    status, delete, list, integrity check, and metadata update. All commands
+    operate on disk cache metadata and readiness only and never load model
+    weights into GPU memory.
+
+    Attributes:
+        cache_root: Filesystem root directory holding cached model artifacts.
+        records: Cache records currently tracked on disk by this cache.
+    """
+
+    cache_root: str
+    records: tuple[CachedModelRecord, ...] = ()
+
+    def preload(self, model_name: str) -> CacheCommandResult:
+        """Download and cache a model on disk without loading it into memory.
+
+        Args:
+            model_name: Name of the model to preload onto disk.
+
+        Returns:
+            A CacheCommandResult describing the preload outcome.
+        """
+        raise NotImplementedError("DiskModelCache.preload is a contract stub")
+
+    def status(self, model_name: str) -> CacheCommandResult:
+        """Report the disk cache status of a model.
+
+        Args:
+            model_name: Name of the model to inspect.
+
+        Returns:
+            A CacheCommandResult carrying the model's disk cache status.
+        """
+        raise NotImplementedError("DiskModelCache.status is a contract stub")
+
+    def delete(self, model_name: str) -> CacheCommandResult:
+        """Remove a model's artifacts from the disk cache.
+
+        Args:
+            model_name: Name of the model to delete from disk.
+
+        Returns:
+            A CacheCommandResult describing the deletion outcome.
+        """
+        raise NotImplementedError("DiskModelCache.delete is a contract stub")
+
+    def list_models(self) -> CacheCommandResult:
+        """List all models currently tracked in the disk cache.
+
+        Returns:
+            A CacheCommandResult enumerating the cached models.
+        """
+        raise NotImplementedError("DiskModelCache.list_models is a contract stub")
+
+    def check_integrity(self, model_name: str) -> CacheCommandResult:
+        """Verify the on-disk integrity of a cached model.
+
+        Args:
+            model_name: Name of the model to integrity-check.
+
+        Returns:
+            A CacheCommandResult describing the integrity verification outcome.
+        """
+        raise NotImplementedError("DiskModelCache.check_integrity is a contract stub")
+
+    def update_metadata(
+        self, model_name: str, metadata: Mapping[str, object]
+    ) -> CacheCommandResult:
+        """Update stored metadata for a cached model.
+
+        Args:
+            model_name: Name of the model whose metadata is updated.
+            metadata: New metadata mapping to associate with the model.
+
+        Returns:
+            A CacheCommandResult describing the metadata update outcome.
+        """
+        raise NotImplementedError("DiskModelCache.update_metadata is a contract stub")
+
+
+@dataclass(frozen=True)
+class CacheCommandResult:
+    """Structured result of a disk cache public command.
+
+    Attributes:
+        command: Name of the disk cache command that produced this result.
+        model_name: Name of the model the command acted on.
+        status: Resulting disk cache status for the model.
+        success: Whether the command completed successfully.
+        reason_code: Stable machine-readable reason for the outcome.
+        record: Optional cache record describing the affected model.
+        metadata: Arbitrary metadata about the command execution.
+    """
+
+    command: str
+    model_name: str
+    status: str
+    success: bool
+    reason_code: str | None = None
+    record: CachedModelRecord | None = None
+    metadata: Mapping[str, object] = field(default_factory=dict)

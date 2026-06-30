@@ -19,6 +19,6 @@ prompt: 'Modify lmrs/adapter/registration.py after A-001. Append register_lmrs_c
 verification:
   type: static_analysis
   target: lmrs/adapter/registration.py::register_lmrs_commands
-  expected: register_lmrs_commands idempotently registers LMRS command classes 
-    as custom adapter commands, skipping any already registered.
-status: draft
+  expected: register_lmrs_commands idempotently registers LMRS command classes as
+    custom adapter commands, skipping any already registered.
+status: done

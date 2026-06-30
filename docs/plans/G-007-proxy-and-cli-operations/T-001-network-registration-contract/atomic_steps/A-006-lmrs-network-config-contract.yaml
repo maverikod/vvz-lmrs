@@ -13,18 +13,16 @@ concepts:
 - C-036
 objects:
 - lmrs_network_config_contract
-prompt: Modify lmrs/proxy/registration.py after A-001 through A-005. Append 
-  lmrs_network_config_contract(config) that reads the listen and registration 
-  configuration sections produced by the LMRS configuration generator and 
-  checked by the LMRS configuration validator, and constructs a 
-  ServerListenEndpoint and a ProxyRegistrationEndpoint from them. It keeps 
-  listener and registration settings separate and returns both contract objects.
-  Do not regenerate or revalidate the configuration here and do not perform any 
-  network call.
+prompt: Modify lmrs/proxy/registration.py after A-001 through A-005. Append lmrs_network_config_contract(config)
+  that reads the listen and registration configuration sections produced by the LMRS
+  configuration generator and checked by the LMRS configuration validator, and constructs
+  a ServerListenEndpoint and a ProxyRegistrationEndpoint from them. It keeps listener
+  and registration settings separate and returns both contract objects. Do not regenerate
+  or revalidate the configuration here and do not perform any network call.
 verification:
   type: static_analysis
   target: lmrs/proxy/registration.py::lmrs_network_config_contract
-  expected: lmrs_network_config_contract builds a ServerListenEndpoint and a 
-    ProxyRegistrationEndpoint from generated and validated listen and 
-    registration configuration sections, keeping them separate.
-status: draft
+  expected: lmrs_network_config_contract builds a ServerListenEndpoint and a ProxyRegistrationEndpoint
+    from generated and validated listen and registration configuration sections, keeping
+    them separate.
+status: done

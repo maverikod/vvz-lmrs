@@ -9,16 +9,15 @@ concepts:
 - C-017
 objects:
 - CommandName
-prompt: Create lmrs/commands.py and define CommandName string constants or enum 
-  values for healthcheck, model_status, capacity, token_count, estimate, chat, 
-  queue_status, cancel, local_model_cache_preload, local_model_cache_status, 
-  local_model_cache_delete, local_model_load, local_model_unload, and 
-  local_model_reload. It names the minimum stable public command surface. Do not
-  add result shapes or error codes in this step.
+prompt: Create lmrs/commands.py and define CommandName string constants or enum values
+  for healthcheck, model_status, capacity, token_count, estimate, chat, queue_status,
+  cancel, local_model_cache_preload, local_model_cache_status, local_model_cache_delete,
+  local_model_load, local_model_unload, and local_model_reload. It names the minimum
+  stable public command surface. Do not add result shapes or error codes in this step.
 verification:
   type: static_analysis
   target: lmrs/commands.py::CommandName
-  expected: CommandName exposes the stable public command surface including 
-    health, status, capacity, token count, estimate, chat, queue, cancel, and 
-    cache and model lifecycle commands.
-status: draft
+  expected: CommandName exposes the stable public command surface including health,
+    status, capacity, token count, estimate, chat, queue, cancel, and cache and model
+    lifecycle commands.
+status: done

@@ -129,7 +129,13 @@ def build_default_service_boundary() -> ServiceBoundary:
         A ServiceBoundary populated with default LMRS MVP values.
     """
     exposure = AdapterExposure(
-        command_surface=("load_model", "infer", "unload_model", "healthcheck", "get_metadata"),
+        command_surface=(
+            "load_model",
+            "infer",
+            "unload_model",
+            "healthcheck",
+            "get_metadata",
+        ),
         requires_schemas=True,
         requires_metadata=True,
         requires_structured_errors=True,
@@ -137,8 +143,16 @@ def build_default_service_boundary() -> ServiceBoundary:
         requires_proxy_registration=True,
     )
     scope = MVPScope(
-        included_capabilities=("local_model_runtime", "capacity_proof", "adapter_command_exposure"),
-        excluded_capabilities=("universal_provider_gateway", "multi_tenant_routing", "cloud_offload"),
+        included_capabilities=(
+            "local_model_runtime",
+            "capacity_proof",
+            "adapter_command_exposure",
+        ),
+        excluded_capabilities=(
+            "universal_provider_gateway",
+            "multi_tenant_routing",
+            "cloud_offload",
+        ),
     )
     return ServiceBoundary(
         service_name="lmrs",

@@ -10,16 +10,14 @@ concepts:
 - C-019
 objects:
 - build_telemetry_record
-prompt: Modify lmrs/telemetry.py after A-001. Append 
-  build_telemetry_record(observations, prediction_context) -> TelemetryRecord 
-  that consumes execution observations and the prediction snapshot and assembles
-  one TelemetryRecord comparing predicted versus actual tokens, VRAM, latency, 
-  queue wait, verdict, and reason code. It records observed facts only and must 
-  not alter admission, scheduling, or VRAM accounting.
+prompt: Modify lmrs/telemetry.py after A-001. Append build_telemetry_record(observations,
+  prediction_context) -> TelemetryRecord that consumes execution observations and
+  the prediction snapshot and assembles one TelemetryRecord comparing predicted versus
+  actual tokens, VRAM, latency, queue wait, verdict, and reason code. It records observed
+  facts only and must not alter admission, scheduling, or VRAM accounting.
 verification:
   type: static_analysis
   target: lmrs/telemetry.py::build_telemetry_record
-  expected: Function assembles a TelemetryRecord from execution observations and
-    a prediction snapshot without altering admission, scheduling, or VRAM 
-    accounting.
-status: draft
+  expected: Function assembles a TelemetryRecord from execution observations and a
+    prediction snapshot without altering admission, scheduling, or VRAM accounting.
+status: done

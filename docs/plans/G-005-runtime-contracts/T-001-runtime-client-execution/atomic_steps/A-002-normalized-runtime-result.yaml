@@ -10,15 +10,14 @@ concepts:
 - C-016
 objects:
 - NormalizedRuntimeResult
-prompt: Modify lmrs/runtime_client.py after A-001. Append frozen dataclass 
-  NormalizedRuntimeResult with assistant_message, usage, status, 
-  runtime_metadata, telemetry, and metadata. It is the normalized local model 
-  execution result, independent of backend-specific shape, and must be suitable 
-  for normalization back into a canonical provider response. Do not add backend 
-  call logic here.
+prompt: Modify lmrs/runtime_client.py after A-001. Append frozen dataclass NormalizedRuntimeResult
+  with assistant_message, usage, status, runtime_metadata, telemetry, and metadata.
+  It is the normalized local model execution result, independent of backend-specific
+  shape, and must be suitable for normalization back into a canonical provider response.
+  Do not add backend call logic here.
 verification:
   type: static_analysis
   target: lmrs/runtime_client.py::NormalizedRuntimeResult
-  expected: NormalizedRuntimeResult stores assistant message, usage, status, 
-    runtime metadata, and telemetry in a backend-independent shape.
-status: draft
+  expected: NormalizedRuntimeResult stores assistant message, usage, status, runtime
+    metadata, and telemetry in a backend-independent shape.
+status: done

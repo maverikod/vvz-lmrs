@@ -10,17 +10,17 @@ concepts:
 - C-021
 objects:
 - generate_lmrs_config
-prompt: Create lmrs/adapter/runtime.py and define generate_lmrs_config() that 
-  produces a runtime configuration mapping. It first creates the adapter server,
-  registration, and queue manager configuration, then adds LMRS-specific 
-  sections for hardware profile, resident services, model profiles, runtime 
-  backends, tokenizer profiles, admission policy, disk model cache, LMCache, 
-  telemetry, and lifecycle limits. The generated configuration is the starting 
-  point for validated LMRS runtime configuration and is owned by Runtime 
-  Configuration. Do not add validation or startup logic in this step.
+prompt: Create lmrs/adapter/runtime.py and define generate_lmrs_config() that produces
+  a runtime configuration mapping. It first creates the adapter server, registration,
+  and queue manager configuration, then adds LMRS-specific sections for hardware profile,
+  resident services, model profiles, runtime backends, tokenizer profiles, admission
+  policy, disk model cache, LMCache, telemetry, and lifecycle limits. The generated
+  configuration is the starting point for validated LMRS runtime configuration and
+  is owned by Runtime Configuration. Do not add validation or startup logic in this
+  step.
 verification:
   type: static_analysis
   target: lmrs/adapter/runtime.py::generate_lmrs_config
-  expected: generate_lmrs_config produces adapter base sections plus LMRS 
-    runtime and admission sections as the starting configuration for validation.
-status: draft
+  expected: generate_lmrs_config produces adapter base sections plus LMRS runtime
+    and admission sections as the starting configuration for validation.
+status: done

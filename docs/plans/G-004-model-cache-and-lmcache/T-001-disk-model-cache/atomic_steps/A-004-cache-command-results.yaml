@@ -11,14 +11,13 @@ concepts:
 - C-017
 objects:
 - CacheCommandResult
-prompt: Modify lmrs/model_cache.py after A-001 through A-003. Append frozen 
-  dataclass CacheCommandResult with command, model_name, status, success, 
-  reason_code, record optional CachedModelRecord, and metadata. It is the 
-  structured public-command result for disk cache operations. Do not add memory 
-  lifecycle result fields.
+prompt: Modify lmrs/model_cache.py after A-001 through A-003. Append frozen dataclass
+  CacheCommandResult with command, model_name, status, success, reason_code, record
+  optional CachedModelRecord, and metadata. It is the structured public-command result
+  for disk cache operations. Do not add memory lifecycle result fields.
 verification:
   type: static_analysis
   target: lmrs/model_cache.py::CacheCommandResult
-  expected: CacheCommandResult represents structured disk-cache command output 
-    with stable reason code, optional record, success flag, and metadata.
-status: draft
+  expected: CacheCommandResult represents structured disk-cache command output with
+    stable reason code, optional record, success flag, and metadata.
+status: done

@@ -12,7 +12,8 @@ from typing import Mapping
 
 @dataclass(frozen=True)
 class CalibrationKey:
-    """Identifies the model/runtime/quantization/hardware tuple owning calibration facts.
+    """Identifies the model/runtime/quantization/hardware tuple
+    owning calibration facts.
 
     Attributes:
         model_name: Name of the model being calibrated.
@@ -109,13 +110,19 @@ def build_calibration_profile(
         tokens = obs.prompt_tokens + obs.output_tokens
         total_tokens += tokens
         total_actual_vram += obs.actual_dynamic_vram_bytes
-        total_overhead += obs.per_request_overhead_bytes + obs.runtime_batch_overhead_bytes
+        total_overhead += (
+            obs.per_request_overhead_bytes
+            + obs.runtime_batch_overhead_bytes
+        )
         if obs.per_request_overhead_bytes > max_per_request_overhead:
             max_per_request_overhead = obs.per_request_overhead_bytes
         if obs.runtime_batch_overhead_bytes > max_batch_overhead:
             max_batch_overhead = obs.runtime_batch_overhead_bytes
     if total_tokens > 0:
-        kv_bytes_per_token = max(0, (total_actual_vram - total_overhead) // total_tokens)
+        kv_bytes_per_token = max(
+            0,
+            (total_actual_vram - total_overhead) // total_tokens,
+        )
     else:
         kv_bytes_per_token = 0
     return CalibrationProfile(

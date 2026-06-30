@@ -11,16 +11,15 @@ concepts:
 - C-012
 objects:
 - LMCacheEstimate
-prompt: Modify lmrs/lmcache.py after A-001. Append frozen dataclass 
-  LMCacheEstimate with cache_reuse_possible bool default False, 
-  estimated_cache_hit_tokens, effective_new_tokens, cache_estimate_quality, and 
-  metadata. It carries optional pre-execution cache reuse information for the 
-  estimate response. If a cache hit is not guaranteed before launch, the values 
-  must represent a full cache miss. Do not weaken admission or extend context 
+prompt: Modify lmrs/lmcache.py after A-001. Append frozen dataclass LMCacheEstimate
+  with cache_reuse_possible bool default False, estimated_cache_hit_tokens, effective_new_tokens,
+  cache_estimate_quality, and metadata. It carries optional pre-execution cache reuse
+  information for the estimate response. If a cache hit is not guaranteed before launch,
+  the values must represent a full cache miss. Do not weaken admission or extend context
   window or VRAM capacity here.
 verification:
   type: static_analysis
   target: lmrs/lmcache.py::LMCacheEstimate
-  expected: LMCacheEstimate stores optional pre-execution cache reuse fields and
-    defaults to full cache miss when a hit is not guaranteed.
-status: draft
+  expected: LMCacheEstimate stores optional pre-execution cache reuse fields and defaults
+    to full cache miss when a hit is not guaranteed.
+status: done

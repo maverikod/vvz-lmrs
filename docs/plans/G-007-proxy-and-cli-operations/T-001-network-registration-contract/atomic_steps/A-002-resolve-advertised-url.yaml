@@ -11,16 +11,15 @@ concepts:
 - C-034
 objects:
 - resolve_advertised_url
-prompt: Modify lmrs/proxy/registration.py after A-001. Append 
-  resolve_advertised_url(endpoint) that derives the proxy-visible URL from a 
-  ServerListenEndpoint and normalizes it for proxy reachability. Wildcard bind 
-  addresses are not advertised directly; an explicit advertised host is 
-  preferred when configured; for local deployments a wildcard bind address is 
-  normalized to a reachable host such as localhost. Return the normalized 
+prompt: Modify lmrs/proxy/registration.py after A-001. Append resolve_advertised_url(endpoint)
+  that derives the proxy-visible URL from a ServerListenEndpoint and normalizes it
+  for proxy reachability. Wildcard bind addresses are not advertised directly; an
+  explicit advertised host is preferred when configured; for local deployments a wildcard
+  bind address is normalized to a reachable host such as localhost. Return the normalized
   advertised URL string. Do not add registration endpoint logic here.
 verification:
   type: static_analysis
   target: lmrs/proxy/registration.py::resolve_advertised_url
-  expected: resolve_advertised_url returns a proxy-reachable URL, preferring an 
-    explicit advertised host and normalizing wildcard binds to a reachable host.
-status: draft
+  expected: resolve_advertised_url returns a proxy-reachable URL, preferring an explicit
+    advertised host and normalizing wildcard binds to a reachable host.
+status: done

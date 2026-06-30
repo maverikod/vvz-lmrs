@@ -9,15 +9,14 @@ concepts:
 - C-038
 objects:
 - RegistrationState
-prompt: Create lmrs/proxy/lifecycle.py and define frozen dataclass 
-  RegistrationState with registered bool default False, last_heartbeat_at, 
-  heartbeat_fresh bool, instance_uuid, server_name, proxy_recognized bool, and 
-  metadata. It is the structured status object for registered state, heartbeat 
-  freshness, instance identity, and proxy recognition. Do not add lifecycle 
-  policy or the run loop in this step.
+prompt: Create lmrs/proxy/lifecycle.py and define frozen dataclass RegistrationState
+  with registered bool default False, last_heartbeat_at, heartbeat_fresh bool, instance_uuid,
+  server_name, proxy_recognized bool, and metadata. It is the structured status object
+  for registered state, heartbeat freshness, instance identity, and proxy recognition.
+  Do not add lifecycle policy or the run loop in this step.
 verification:
   type: static_analysis
   target: lmrs/proxy/lifecycle.py::RegistrationState
-  expected: RegistrationState captures registered state, heartbeat freshness, 
-    instance identity, and proxy recognition.
-status: draft
+  expected: RegistrationState captures registered state, heartbeat freshness, instance
+    identity, and proxy recognition.
+status: done

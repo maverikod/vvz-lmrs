@@ -11,17 +11,15 @@ concepts:
 - C-028
 objects:
 - build_command_metadata
-prompt: Modify lmrs/adapter/schemas.py after A-001 and A-002. Append 
-  build_command_metadata(schema_contract, command_spec) that assembles a 
-  CommandMetadataContract from a CommandSchemaContract and the public command 
-  specification, populating description, parameter/result/error schemas, stable 
-  error codes, examples, and best practices. The result must be sufficient for 
-  MCP help, proxy discovery, and OpenAPI generation without reading executor 
-  internals and must not duplicate executor logic.
+prompt: Modify lmrs/adapter/schemas.py after A-001 and A-002. Append build_command_metadata(schema_contract,
+  command_spec) that assembles a CommandMetadataContract from a CommandSchemaContract
+  and the public command specification, populating description, parameter/result/error
+  schemas, stable error codes, examples, and best practices. The result must be sufficient
+  for MCP help, proxy discovery, and OpenAPI generation without reading executor internals
+  and must not duplicate executor logic.
 verification:
   type: static_analysis
   target: lmrs/adapter/schemas.py::build_command_metadata
-  expected: Function assembles a CommandMetadataContract from a schema contract 
-    and command spec sufficient for help, discovery, and OpenAPI without 
-    executor internals.
-status: draft
+  expected: Function assembles a CommandMetadataContract from a schema contract and
+    command spec sufficient for help, discovery, and OpenAPI without executor internals.
+status: done

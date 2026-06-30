@@ -9,17 +9,15 @@ concepts:
 - C-034
 objects:
 - ServerListenEndpoint
-prompt: Create lmrs/proxy/registration.py and define frozen dataclass 
-  ServerListenEndpoint with host, port, protocol where protocol is one of http, 
-  https, or mtls, server_name, ssl_certfile, ssl_keyfile, ca_cert, 
-  advertised_host optional, and metadata. It is the adapter server bind endpoint
-  and its protocol controls whether the listener is HTTP, HTTPS, or mTLS. Listen
-  settings are independent from proxy registration settings. Do not add 
-  advertised URL derivation or registration fields in this step.
+prompt: Create lmrs/proxy/registration.py and define frozen dataclass ServerListenEndpoint
+  with host, port, protocol where protocol is one of http, https, or mtls, server_name,
+  ssl_certfile, ssl_keyfile, ca_cert, advertised_host optional, and metadata. It is
+  the adapter server bind endpoint and its protocol controls whether the listener
+  is HTTP, HTTPS, or mTLS. Listen settings are independent from proxy registration
+  settings. Do not add advertised URL derivation or registration fields in this step.
 verification:
   type: static_analysis
   target: lmrs/proxy/registration.py::ServerListenEndpoint
-  expected: ServerListenEndpoint captures host, port, protocol, server name, SSL
-    or mTLS material, and optional advertised host, independent of registration 
-    settings.
-status: draft
+  expected: ServerListenEndpoint captures host, port, protocol, server name, SSL or
+    mTLS material, and optional advertised host, independent of registration settings.
+status: done

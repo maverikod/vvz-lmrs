@@ -19,6 +19,6 @@ prompt: 'Modify lmrs/model_lifecycle.py after A-001 and A-002. Append measure_mo
 verification:
   type: static_analysis
   target: lmrs/model_lifecycle.py::measure_model_static_vram
-  expected: Function computes measured model static VRAM as baseline-free minus 
-    model-loaded-free VRAM and rejects negative inputs and results.
-status: draft
+  expected: Function computes measured model static VRAM as baseline-free minus model-loaded-free
+    VRAM and rejects negative inputs and results.
+status: done

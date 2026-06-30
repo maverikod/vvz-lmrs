@@ -11,17 +11,16 @@ concepts:
 - C-021
 objects:
 - validate_lmrs_config
-prompt: Modify lmrs/adapter/runtime.py after A-001. Append 
-  validate_lmrs_config(config) that first checks base adapter configuration 
-  sections, then checks the LMRS model, runtime, tokenizer, hardware, resident 
-  service, queue, admission, disk cache, LMCache, error, and telemetry sections.
-  It rejects inconsistent or incomplete configuration before LMRS starts or 
-  accepts runtime work, returning or raising a structured validation result. The
-  validated configuration belongs to Runtime Configuration. Do not start the 
-  server here.
+prompt: Modify lmrs/adapter/runtime.py after A-001. Append validate_lmrs_config(config)
+  that first checks base adapter configuration sections, then checks the LMRS model,
+  runtime, tokenizer, hardware, resident service, queue, admission, disk cache, LMCache,
+  error, and telemetry sections. It rejects inconsistent or incomplete configuration
+  before LMRS starts or accepts runtime work, returning or raising a structured validation
+  result. The validated configuration belongs to Runtime Configuration. Do not start
+  the server here.
 verification:
   type: static_analysis
   target: lmrs/adapter/runtime.py::validate_lmrs_config
-  expected: validate_lmrs_config checks base adapter and LMRS sections and 
-    rejects inconsistent or incomplete configuration before startup.
-status: draft
+  expected: validate_lmrs_config checks base adapter and LMRS sections and rejects
+    inconsistent or incomplete configuration before startup.
+status: done
