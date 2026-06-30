@@ -1,6 +1,5 @@
 lmrs (0.1.0-1) unstable; urgency=medium
 
-  * Initial packaging: containerized LMRS (vLLM + LMCache + adapter server)
-    deployed as a systemd-managed Docker container.
+  * Release 0.1.0: containerized LMRS (vLLM + LMCache + adapter server).
 
- -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Tue, 30 Jun 2026 12:00:00 +0000
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Tue, 30 Jun 2026 18:29:38 +0300
