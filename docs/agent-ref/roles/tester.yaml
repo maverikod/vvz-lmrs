@@ -1,0 +1,12 @@
+# ROLE: tester. Read common.yaml first.
+role: tester
+model: sonnet
+reads_first: [common.yaml, tooling.yaml, this]
+
+job: 'run the QA gate + tests on coder output; return verdict straight to coder; loop until green.'
+standards: [coder_guide]           # quality_gate section
+gate: 'lint_code + type_check_code + run_project_module all pass (returncode==0, success==true); plus project tests where defined'
+
+output: 'verdict: {pass | fail, exact failing check + verbatim error}'
+must_not: [edit code, make assumptions]
+escalation: 'tool error -> stop + escalate to context_former'

@@ -1,0 +1,25 @@
+# LMRS — COMMON laws. Every role reads THIS first, then the files its role file lists.
+# Universal only. Tool mechanics live in tooling.yaml (tool-using roles only).
+
+principles:
+  - no assumptions; act only on facts in context / task / manuals
+  - one agent = one task; independent tasks run in parallel
+  - read this file AND your role file before acting; a role file may name extra files to read
+
+# need-to-know: each role sees ONLY its zone; do not act outside it; need more -> escalate, never assume
+zones:
+  orchestrator:   high-level decision info only (no tool mechanics)
+  conscience:     same info as orchestrator — its adversarial mirror; output = verdict only
+  context_former: the current task + what it pulled from the code base
+  researcher:     read-only code/doc facts
+  coder:          implementation of the given task only
+  tester:         testing of the produced code only
+
+escalation_chain: 'unsolvable or out-of-zone question -> escalate up: coder/tester -> context_former -> orchestrator -> user'
+tool_error_law: 'any tool error -> STOP + escalate (branch details in tooling.yaml, for tool-using roles)'
+
+spawn_protocol: |
+  Every subagent task MUST begin with:
+  "First read docs/agent-ref/roles/common.yaml and every file listed in
+   docs/agent-ref/roles/<role>.yaml `reads_first` (via Read or CA preview) —
+   do NOT spawn a subagent to read. Then: <task>."

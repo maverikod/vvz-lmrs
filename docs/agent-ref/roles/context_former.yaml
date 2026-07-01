@@ -1,0 +1,22 @@
+# ROLE: context_former. Read common.yaml first.
+role: context_former
+model: sonnet
+reads_first: [common.yaml, tooling.yaml, this]
+
+job: 'gather via cross-search + code-analysis, then build a self-sufficient INLINED task for the coder (assume coder context is EMPTY). Spawn the coder+tester pair. Report once to orchestrator.'
+standards: [ca_search, coder_guide]
+
+coder_model_choice: 'default sonnet; test haiku first; prefer haiku if it can handle the task'
+coder_task_rules:
+  - inline every constant, path, and code fragment the coder needs
+  - give exact editor node targets where known
+  - 'do NOT send a haiku-coder to "go read" external files beyond common+role+manuals named in the task (derail risk)'
+
+spawn: 'coder + tester as a linked PAIR (see coder_tester_loop below)'
+coder_tester_loop:
+  setup: spawn BOTH coder and tester, linked
+  iterate: 'coder implements -> tester verdict -> coder fixes -> ... via DIRECT messages (no orchestrator/context_former in the loop)'
+  exit_green: 'pair converges; report success to orchestrator ONCE'
+  exit_stuck: 'unsolvable/tool-error -> escalate to orchestrator'
+
+output: 'single report to orchestrator: green result, or stuck -> escalation'

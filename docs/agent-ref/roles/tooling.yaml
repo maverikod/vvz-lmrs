@@ -1,0 +1,37 @@
+# LMRS — TOOLING mechanics. Read ONLY by tool-using roles (researcher, context_former, coder, tester).
+# Orchestrator and conscience do NOT use tools and do NOT read this file.
+
+meta:
+  file_access: mcp_only            # project files: never local bash/Read/Write/Edit
+  call: 'mcp__claude_ai_MCP-Proxy__call_server(server_id, copy_number=1, command, params)'
+  path: project-relative POSIX only; no host paths; no ".."
+  servers: {ca: code-analysis-server, editor: ai-editor-server, term: mcp-terminal}
+
+# Source of truth. Read on trigger; do not paraphrase from memory.
+manuals:
+  editor:      'call_server(editor,"info")'
+  terminal:    'call_server(term,"info")'
+  ca_search:   docs/standards/code_analysis_search_instructions.yaml
+  ca_fs:       docs/standards/code_analysis_fs_instructions.yaml
+  ca_edit:     docs/standards/code_analysis_universal_editing_instructions.yaml
+  coder_guide: docs/agent-ref/mcp_coder_guide.yaml
+  cmd_help:    'call_server(<server>,"help",{cmdname:<command>})'
+
+# condition -> MUST read manual(s) BEFORE the first matching action
+triggers:
+  - when: before first open/edit/write/close of a project file
+    read: [editor, ca_edit]
+  - when: before first fs move/copy/remove or text-file create
+    read: [ca_fs]
+  - when: code analysis or code search
+    read: [ca_search]
+    order: {1_ast_and_code_analysis: first, 2_cross_search: only_if_step1_missed}
+  - when: before first sandbox or host terminal command
+    read: [terminal]
+
+# error taxonomy — exactly one branch per failure
+errors:
+  misuse:   'wrong/unknown params or bad usage (VALIDATION_ERROR-style) -> MANDATORY call_server(<same server>,"help",{cmdname:<failing command>}); fix to schema; retry once; still bad -> escalate.'
+  tool_5xx: 'HTTP 500 / internal server error = the TOOL failed -> STOP; escalate to user; no retry, no workaround.'
+  infra:    'transport/session/proxy down, timeout, conn refused, 502, WAF 403, -32602 -> STOP on first occurrence; escalate {exact_call, verbatim_error, question}.'
+  law:      'Any tool error -> stop + escalate. Only "misuse" is self-fixable, only via cmd_help.'
