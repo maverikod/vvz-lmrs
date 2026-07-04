@@ -107,6 +107,10 @@ docker/data//.terminals/
 
 old_code/*
 .trees/
+.tree/
+.cst/
+**/.tree/
+**/.cst/
 *.tree
 *.lock
 .terminals/

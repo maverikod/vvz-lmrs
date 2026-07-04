@@ -5,6 +5,13 @@ Project files are remote and MCP-only: never touch them with local bash/Read/Wri
 use the MCP proxy against code-analysis-server / ai-editor-server / mcp-terminal.
 For Codex, the proxy route is the installed MCP proxy tool (`mcp__codex_apps__mcp_proxy._call_server` in the current tool surface, or the equivalent call_server tool exposed by Codex).
 
+**SERVER PROJECT LAW (mandatory).** The real LMRS project is the registered
+project inside Code Analysis Server, not this local checkout. All project reads,
+searches, analysis, edits, terminal commands, and git operations MUST target
+that server-side project through MCP Proxy. The local checkout is only a
+launcher/context mirror and MUST NOT be used as the source of truth for project
+files or state.
+
 **Role contracts** live in `docs/agent-ref/roles/`:
 `common.yaml` (universal laws, everyone) + `tooling.yaml` (tool mechanics, tool-using roles only) +
 one per role: `orchestrator.yaml`, `researcher.yaml`, `context_former.yaml`, `conscience.yaml`, `coder.yaml`, `tester.yaml`.
