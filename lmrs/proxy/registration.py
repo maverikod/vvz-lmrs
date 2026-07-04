@@ -182,4 +182,51 @@ def lmrs_network_config_contract(
     Returns:
         A tuple of the listen endpoint and the proxy registration endpoint.
     """
-    raise NotImplementedError("lmrs_network_config_contract is a contract stub")
+
+    def _section(label: str, *names: str) -> Mapping[str, Any]:
+        for name in names:
+            if name in config:
+                value = config[name]
+                if value is None:
+                    break
+                return dict(value)
+        raise ValueError(f'{label} configuration section is required')
+
+    listen_config = _section('listen', 'listen', 'server_listen', 'server_listen_endpoint')
+    registration_config = _section(
+        'registration',
+        'registration',
+        'proxy_registration',
+        'registration_endpoint',
+    )
+
+    listen_endpoint = ServerListenEndpoint(
+        host=str(listen_config.get('host', '')),
+        port=int(listen_config.get('port', 0)),
+        protocol=str(listen_config.get('protocol', 'http')).lower(),
+        server_name=str(listen_config.get('server_name', '') or ''),
+        ssl_certfile=listen_config.get('ssl_certfile'),
+        ssl_keyfile=listen_config.get('ssl_keyfile'),
+        ca_cert=listen_config.get('ca_cert'),
+        advertised_host=listen_config.get('advertised_host'),
+        metadata=dict(listen_config.get('metadata') or {}),
+    )
+
+    registration_endpoint = ProxyRegistrationEndpoint(
+        enabled=bool(registration_config.get('enabled', False)),
+        register_on_startup=bool(registration_config.get('register_on_startup', False)),
+        unregister_on_shutdown=bool(registration_config.get('unregister_on_shutdown', False)),
+        register_url=registration_config.get('register_url'),
+        unregister_url=registration_config.get('unregister_url'),
+        heartbeat_url=registration_config.get('heartbeat_url'),
+        heartbeat_interval_seconds=registration_config.get('heartbeat_interval_seconds'),
+        server_id=registration_config.get('server_id'),
+        server_name=registration_config.get('server_name'),
+        instance_uuid=registration_config.get('instance_uuid'),
+        metadata=dict(registration_config.get('metadata') or {}),
+        client_cert=registration_config.get('client_cert'),
+        client_key=registration_config.get('client_key'),
+        ca_cert=registration_config.get('ca_cert'),
+    )
+
+    return listen_endpoint, registration_endpoint
