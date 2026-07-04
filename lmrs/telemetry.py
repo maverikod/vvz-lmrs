@@ -136,4 +136,62 @@ def collect_calibration_observations(
     Returns:
         A list of aggregated TelemetryCalibrationObservation items.
     """
-    raise NotImplementedError("collect_calibration_observations is a contract stub")
+    groups: dict[tuple[str, str, str, str], list[TelemetryRecord]] = {}
+    for record in records:
+        metadata = record.metadata
+        key = (
+            str(metadata.get("model_name", "")),
+            str(metadata.get("runtime_backend", "")),
+            str(metadata.get("quantization_profile", "")),
+            str(metadata.get("hardware_profile", "")),
+        )
+        groups.setdefault(key, []).append(record)
+
+    def average_int(values: list[int]) -> int | None:
+        if not values:
+            return None
+        return int(sum(values) / len(values))
+
+    observations: list[TelemetryCalibrationObservation] = []
+    for key, group_records in groups.items():
+        sample_count = len(group_records)
+        prompt_lengths = [
+            record.actual_prompt_tokens
+            for record in group_records
+            if record.actual_prompt_tokens is not None
+        ]
+        vram_growth = [
+            int(record.metadata["measured_vram_growth"])
+            for record in group_records
+            if "measured_vram_growth" in record.metadata
+        ]
+        kv_cache_costs = [
+            int(record.metadata["kv_cache_cost_sample"])
+            for record in group_records
+            if "kv_cache_cost_sample" in record.metadata
+        ]
+        overhead_samples = [
+            int(record.metadata["per_request_overhead_sample"])
+            for record in group_records
+            if "per_request_overhead_sample" in record.metadata
+        ]
+        metadata = {
+            "record_count": sample_count,
+            "request_ids": [record.request_id for record in group_records],
+        }
+        observations.append(
+            TelemetryCalibrationObservation(
+                model_name=key[0],
+                runtime_backend=key[1],
+                quantization_profile=key[2],
+                hardware_profile=key[3],
+                prompt_length=average_int(prompt_lengths),
+                measured_vram_growth=average_int(vram_growth),
+                kv_cache_cost_sample=average_int(kv_cache_costs),
+                per_request_overhead_sample=average_int(overhead_samples),
+                sample_count=sample_count,
+                metadata=metadata,
+            )
+        )
+
+    return observations

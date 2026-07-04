@@ -139,7 +139,7 @@ class CommandResult:
 
 @dataclass
 class PublicCommandContract:
-    """Declarative contract mapping each command to its category and result.
+    """Declarative contract mapping each command to category and result shape.
 
     For each CommandName it declares the accepted operation category and the
     CommandResult shape returned, as contract stubs. The estimate command
@@ -150,10 +150,46 @@ class PublicCommandContract:
     execution or admission logic itself.
 
     Attributes:
-        command_categories: Mapping of command name to its operation category.
+        command_categories: Mapping of command name to operation category.
+        result_shapes: Mapping of command name to CommandResult shape label.
     """
 
-    command_categories: Mapping[str, str] = field(default_factory=dict)
+    command_categories: Mapping[str, str] = field(
+        default_factory=lambda: {
+            CommandName.HEALTHCHECK: "health",
+            CommandName.MODEL_STATUS: "model_status",
+            CommandName.CAPACITY: "capacity",
+            CommandName.TOKEN_COUNT: "token_accounting",
+            CommandName.ESTIMATE: "token_accounting_admission_dry_run",
+            CommandName.CHAT: "token_accounting_admission_chat",
+            CommandName.QUEUE_STATUS: "request_queue_state",
+            CommandName.CANCEL: "request_cancellation",
+            CommandName.LOCAL_MODEL_CACHE_PRELOAD: "disk_cache",
+            CommandName.LOCAL_MODEL_CACHE_STATUS: "disk_cache",
+            CommandName.LOCAL_MODEL_CACHE_DELETE: "disk_cache",
+            CommandName.LOCAL_MODEL_LOAD: "model_lifecycle",
+            CommandName.LOCAL_MODEL_UNLOAD: "model_lifecycle",
+            CommandName.LOCAL_MODEL_RELOAD: "model_lifecycle",
+        }
+    )
+    result_shapes: Mapping[str, str] = field(
+        default_factory=lambda: {
+            CommandName.HEALTHCHECK: "payload",
+            CommandName.MODEL_STATUS: "payload",
+            CommandName.CAPACITY: "capacity_snapshot",
+            CommandName.TOKEN_COUNT: "token_breakdown",
+            CommandName.ESTIMATE: "would_outcome_with_reason",
+            CommandName.CHAT: "execution_queue_or_rejection",
+            CommandName.QUEUE_STATUS: "queue_state",
+            CommandName.CANCEL: "cancellation_result",
+            CommandName.LOCAL_MODEL_CACHE_PRELOAD: "cache_result",
+            CommandName.LOCAL_MODEL_CACHE_STATUS: "cache_result",
+            CommandName.LOCAL_MODEL_CACHE_DELETE: "cache_result",
+            CommandName.LOCAL_MODEL_LOAD: "lifecycle_result",
+            CommandName.LOCAL_MODEL_UNLOAD: "lifecycle_result",
+            CommandName.LOCAL_MODEL_RELOAD: "lifecycle_result",
+        }
+    )
 
     def operation_category(self, command: str) -> str:
         """Return the declared operation category for a command.
@@ -164,8 +200,7 @@ class PublicCommandContract:
         Returns:
             The declared operation category for the command.
         """
-        msg = "PublicCommandContract.operation_category is a contract stub"
-        raise NotImplementedError(msg)
+        return self.command_categories[command]
 
     def result_shape(self, command: str) -> str:
         """Return the declared CommandResult shape for a command.
@@ -176,5 +211,4 @@ class PublicCommandContract:
         Returns:
             A description of the CommandResult shape for the command.
         """
-        msg = "PublicCommandContract.result_shape is a contract stub"
-        raise NotImplementedError(msg)
+        return self.result_shapes[command]
