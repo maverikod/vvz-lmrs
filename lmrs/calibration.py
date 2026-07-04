@@ -107,6 +107,11 @@ def build_calibration_profile(
             raise ValueError("token counts must be non-negative")
         if obs.actual_dynamic_vram_bytes < 0 or obs.predicted_dynamic_vram_bytes < 0:
             raise ValueError("VRAM byte values must be non-negative")
+        if (
+            obs.per_request_overhead_bytes < 0
+            or obs.runtime_batch_overhead_bytes < 0
+        ):
+            raise ValueError("overhead byte values must be non-negative")
         tokens = obs.prompt_tokens + obs.output_tokens
         total_tokens += tokens
         total_actual_vram += obs.actual_dynamic_vram_bytes
