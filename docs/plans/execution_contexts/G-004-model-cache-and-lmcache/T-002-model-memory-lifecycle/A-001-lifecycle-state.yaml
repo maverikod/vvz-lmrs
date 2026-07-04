@@ -1,0 +1,63 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-lifecycle-state.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-002-model-memory-lifecycle
+  atomic_step: A-001
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-001-lifecycle-state.yaml
+  target_file: lmrs/model_lifecycle.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-002
+  name: Define LifecycleState
+  target_file: lmrs/model_lifecycle.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-024
+  objects:
+  - LifecycleState
+  prompt: Create lmrs/model_lifecycle.py and define LifecycleState string constants or enum values for not_loaded, loading, loaded, unloading, reloading, and failed, plus a keep_loaded policy marker. It represents in-memory model residency state only and must stay separate from disk cache state. Do not add load or unload operations in this step.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/model_lifecycle.py::LifecycleState
+    expected: LifecycleState exposes stable memory-residency state names and a keep_loaded marker, separate from disk cache state.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-024
+  name: Model Memory Lifecycle
+  definition: The lifecycle that explicitly loads, unloads, reloads, and reports model residency in memory independently from disk cache availability.
+  properties:
+  - Loading to memory is separate from disk cache preload.
+  - Lifecycle commands include load_model, unload_model, reload_model, model_status, and model_lifecycle_status.
+  - Before loading, the service verifies disk cache presence and runtime compatibility or returns MODEL_NOT_CACHED unless preload is explicitly allowed.
+  - After loading, the service measures model_loaded_free_vram and records measured_model_static_vram.
+  - Unloading frees VRAM residency without requiring disk cache deletion and updates free VRAM state.
+  - The MVP policy is keep_loaded for one resident LLM until explicit unload or replacement.
+  source_labels:
+  - '{mlife1}'
+  - '{mlife2}'
+  - '{mlife3}'
+  - '{mlife4}'
+  - '{mlife5}'
+  - '{mlife6}'
+  - '{inv4}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

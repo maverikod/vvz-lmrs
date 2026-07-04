@@ -1,0 +1,289 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: g_context
+context_bundle_order:
+- ../00-common/common_context.yaml
+- ../00-common/root_orchestrator_task.yaml
+- ./g_context.yaml
+role: g_orchestrator
+required_model: gpt-5.5
+scope:
+  global_step: G-006-adapter-integration
+  source_file: docs/plans/G-006-adapter-integration/README.yaml
+  allowed_plan_subtree: docs/plans/G-006-adapter-integration/
+global_step_spec:
+  step_id: G-006
+  name: Adapter Command Surface and Configuration Integration
+  description: 'Define how LMRS exposes its domain commands through the adapter pattern: command registration, thin command wrappers, schemas, metadata, configuration generation, configuration validation, runtime hook entrypoint, and adapter documentation baseline. The step keeps business decisions in LMRS domain concepts while adapter objects expose the public MCP surface.'
+  concepts:
+  - C-026
+  - C-027
+  - C-028
+  - C-029
+  - C-030
+  - C-031
+  - C-032
+  - C-033
+  relations:
+  - from_concept: C-001
+    to_concept: C-026
+    type: implements
+  - from_concept: C-026
+    to_concept: C-027
+    type: uses
+  - from_concept: C-027
+    to_concept: C-003
+    type: implements
+  - from_concept: C-027
+    to_concept: C-028
+    type: uses
+  - from_concept: C-027
+    to_concept: C-029
+    type: uses
+  - from_concept: C-029
+    to_concept: C-028
+    type: depends_on
+  - from_concept: C-030
+    to_concept: C-021
+    type: produces
+  - from_concept: C-031
+    to_concept: C-021
+    type: uses
+  - from_concept: C-021
+    to_concept: C-030
+    type: owns
+  - from_concept: C-021
+    to_concept: C-031
+    type: owns
+  - from_concept: C-032
+    to_concept: C-026
+    type: uses
+  - from_concept: C-032
+    to_concept: C-003
+    type: depends_on
+  - from_concept: C-032
+    to_concept: C-021
+    type: uses
+  - from_concept: C-033
+    to_concept: C-003
+    type: depends_on
+  source_labels:
+  - '{areg}'
+  - '{acmd}'
+  - '{asch}'
+  - '{amet}'
+  - '{acfg}'
+  - '{aval}'
+  - '{ahok}'
+  - '{aread}'
+  depends_on:
+  - G-005
+  tactical_steps:
+  - T-001
+  - T-002
+  - T-003
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+- concept_id: C-021
+  name: Runtime Configuration
+  definition: The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits.
+  properties:
+  - Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits.
+  - For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile.
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+- concept_id: C-026
+  name: Adapter Command Registration
+  definition: The hook-based mechanism that registers LMRS public command classes with the adapter command registry before the adapter server starts.
+  properties:
+  - Registration is centralized in a dedicated register_lmrs_commands(registry) module function.
+  - Registration is idempotent and checks whether a command is already registered before registering it.
+  - Commands are registered as custom adapter commands via registry.register(CommandClass, "custom").
+  - Registration is installed through register_custom_commands_hook before adapter server startup.
+  source_labels:
+  - '{areg}'
+- concept_id: C-027
+  name: Thin Adapter Command
+  definition: A public LMRS command class that translates adapter calls into domain service execution without owning LMRS business logic.
+  properties:
+  - Each command inherits the adapter Command base class.
+  - Each command exposes a stable name and uses use_queue for long-running work when required.
+  - Each command validates parameters, delegates to a domain executor or service, and returns adapter SuccessResult or ErrorResult.
+  - Adapter command classes do not embed admission, tokenizer, VRAM, or model lifecycle business logic.
+  source_labels:
+  - '{acmd}'
+- concept_id: C-028
+  name: Command Schema Contract
+  definition: The per-command request, result, and error schema contract used for validation and command discovery.
+  properties:
+  - Request schema is returned by get_schema.
+  - Result schema is returned by get_result_schema.
+  - Error schema is returned by get_error_schema.
+  - Schemas live separately from executor code and are used by adapter schema-based validation before domain checks.
+  source_labels:
+  - '{asch}'
+- concept_id: C-029
+  name: Command Metadata Contract
+  definition: The per-command discovery contract that publishes help, schema, error, and example information for MCP tooling.
+  properties:
+  - Metadata includes command name, description, parameter schema, result schema, error schema, stable error codes, and examples.
+  - Metadata must be sufficient for MCP help, proxy discovery, and OpenAPI generation without reading internal implementation.
+  - Metadata lives separately from executor code.
+  source_labels:
+  - '{amet}'
+- concept_id: C-030
+  name: Adapter Configuration Generator
+  definition: The LMRS configuration generator that extends the adapter generator with LMRS-specific runtime and admission configuration sections.
+  properties:
+  - The generator first creates adapter server, registration, and queue manager configuration.
+  - The generator adds LMRS sections for hardware profile, resident services, model profiles, runtime backends, tokenizer profiles, admission policy, disk model cache, LMCache, telemetry, and lifecycle limits.
+  - Generated configuration is the starting point for validated LMRS runtime configuration.
+  source_labels:
+  - '{acfg}'
+- concept_id: C-031
+  name: Adapter Configuration Validator
+  definition: The LMRS configuration validator that extends adapter validation with LMRS-specific consistency checks.
+  properties:
+  - The validator first checks base adapter configuration sections.
+  - The validator checks model, runtime, tokenizer, hardware, resident service, queue, admission, disk cache, LMCache, error, and telemetry sections.
+  - The validator rejects inconsistent or incomplete configuration before LMRS starts or accepts runtime work.
+  source_labels:
+  - '{aval}'
+- concept_id: C-032
+  name: Adapter Runtime Entrypoint
+  definition: The startup boundary that wires command hooks, configuration loading, domain lifecycle services, and adapter server execution.
+  properties:
+  - The entrypoint registers LMRS command hooks before adapter server startup.
+  - The entrypoint loads configuration and starts LMRS domain lifecycle services.
+  - The entrypoint hands control to the adapter startup mechanism (create_app to build the application, then run via the adapter application runner).
+  - Adapter factory code remains free of LMRS admission, tokenizer, VRAM, and model lifecycle logic.
+  source_labels:
+  - '{ahok}'
+- concept_id: C-033
+  name: Adapter Documentation Baseline
+  definition: The mcp_proxy_adapter documentation and project rules used as the reference for LMRS adapter integration conventions.
+  properties:
+  - The README and project rules are used as integration reference for server structure, hooks, commands, config generator and validator, and metadata discovery.
+  - The documentation baseline guides implementation conventions but does not replace LMRS HRS and MRS product requirements.
+  source_labels:
+  - '{aread}'
+tactical_steps:
+- tactical_step: T-001-command-registration-wrappers
+  source_file: docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/README.yaml
+  spec:
+    step_id: T-001
+    parent_global_step: G-006
+    name: Adapter Command Registration and Wrappers
+    description: 'Create the adapter command exposure contract: define Adapter Command Registration (C-026) and Thin Adapter Command (C-027) as the adapter-facing registration and wrapper layer that implements the Adapter-Based MCP Interface (C-003) while delegating business decisions to LMRS domain services.'
+    concepts:
+    - C-026
+    - C-027
+    - C-003
+    inputs:
+    - name: domain_command_contract
+      type: command_contract
+      description: Public command contract exposed through adapter command wrappers.
+    - name: adapter_interface_contract
+      type: interface_contract
+      description: Adapter-Based MCP Interface (C-003) requirements for registration, execution, validation, and structured results.
+    outputs:
+    - name: registration_hook_contract
+      type: registration_contract
+      description: A contract for idempotent command registration into the adapter command registry.
+    - name: thin_command_wrapper_contract
+      type: adapter_command_contract
+      description: A contract for adapter-facing command wrappers that validate, call domain executors, and return structured adapter results.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    status: draft
+  context_file: execution_contexts/G-006-adapter-integration/T-001-command-registration-wrappers/t_context.yaml
+  atomic_steps: 3
+- tactical_step: T-002-schema-metadata-contracts
+  source_file: docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/README.yaml
+  spec:
+    step_id: T-002
+    parent_global_step: G-006
+    name: Command Schema and Metadata Contracts
+    description: 'Create the command discovery contract: define Command Schema Contract (C-028) and Command Metadata Contract (C-029) as the schema, validation, result, error, example, and help metadata surface used by adapter help, proxy discovery, and operator-facing documentation.'
+    concepts:
+    - C-028
+    - C-029
+    inputs:
+    - name: public_command_contract
+      type: command_contract
+      description: Command names, parameters, result categories, and error codes consumed by schema and metadata contracts.
+    - name: metadata_standard
+      type: standard_reference
+      description: The command metadata standard governing schema, metadata, examples, error cases, and help output expectations.
+    outputs:
+    - name: schema_contract_set
+      type: schema_contract
+      description: Request, result, and error schema contracts for every public command category.
+    - name: metadata_contract_set
+      type: metadata_contract
+      description: Discovery metadata for commands, parameters, return values, examples, error cases, and best practices.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    status: draft
+  context_file: execution_contexts/G-006-adapter-integration/T-002-schema-metadata-contracts/t_context.yaml
+  atomic_steps: 3
+- tactical_step: T-003-config-runtime-hook
+  source_file: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/README.yaml
+  spec:
+    step_id: T-003
+    parent_global_step: G-006
+    name: Configuration Generator, Validator, and Runtime Hook
+    description: 'Create the adapter configuration and runtime hook contract: define Adapter Configuration Generator (C-030), Adapter Configuration Validator (C-031), Adapter Runtime Entrypoint (C-032), and Adapter Documentation Baseline (C-033) as the generated configuration, validation, startup hook, and reference baseline that integrate LMRS with the adapter runtime.'
+    concepts:
+    - C-030
+    - C-031
+    - C-032
+    - C-033
+    - C-021
+    inputs:
+    - name: runtime_configuration_needs
+      type: configuration_requirement_set
+      description: LMRS runtime configuration requirements for hardware, resident services, models, backends, tokenizer profiles, admission, disk cache, LMCache, telemetry, lifecycle, queue, and registration.
+    - name: adapter_reference_material
+      type: standard_reference
+      description: Adapter documentation and rules used as integration baseline for generator, validator, and runtime entrypoint behavior.
+    outputs:
+    - name: configuration_generation_contract
+      type: configuration_contract
+      description: A contract for generating adapter base sections and LMRS-specific runtime sections.
+    - name: configuration_validation_contract
+      type: validation_contract
+      description: A contract for validating adapter sections and LMRS-specific consistency before startup.
+    - name: runtime_hook_contract
+      type: startup_contract
+      description: A startup contract for registering hooks, loading configuration, starting lifecycle services, and handing control to the adapter runtime.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    status: draft
+  context_file: execution_contexts/G-006-adapter-integration/T-003-config-runtime-hook/t_context.yaml
+  atomic_steps: 4
+assignment: Spawn T orchestrators for tactical steps in this G scope using gpt-5.4-mini. Provide each T orchestrator the common context, root context, this G context, and its T context. Verify and accept T outputs before reporting to root.
+forbidden:
+- Reading or modifying plan scopes outside this G unless explicitly escalated and approved
+- Delegating directly to AS executors except through a T orchestrator
+- Guessing missing details
+acceptance:
+- All T results accepted
+- All changes verified through proxy against the server project
+- Escalations resolved or propagated to root

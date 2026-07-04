@@ -1,0 +1,68 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-dynamic-vram-state.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-002-vram-runtime-facts
+  atomic_step: A-002
+  source_file: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-002-dynamic-vram-state.yaml
+  target_file: lmrs/vram.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-002
+  name: Define DynamicVramState
+  target_file: lmrs/vram.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-009
+  - C-046
+  objects:
+  - DynamicVramState
+  prompt: "Target file: lmrs/vram.py\nOperation: modify_file\n\nCurrent file after lower-priority steps:\n```python\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import Mapping\n\n\n@dataclass(frozen=True)\nclass VramRuntimeFacts:\n    \"\"\"Measured VRAM facts for one model/runtime/hardware profile.\"\"\"\n\n    resident_services: tuple[str, ...]\n    service_baseline_free_vram_bytes: int\n    model_loaded_free_vram_bytes: int | None = None\n    model_name: str | None = None\n    runtime_backend: str | None = None\n    quantization_profile: str | None = None\n    hardware_profile_id: str | None = None\n    measurement_metadata: Mapping[str, str] = field(default_factory=dict)\n```\n\nMRS excerpt:\n- C-009 Dynamic VRAM Pool: remaining VRAM available for KV-cache, runtime buffers, batching overhead, and active request reservations after resident services and model static memory.\n- C-046 Usable Dynamic VRAM Formula: current usable dynamic memory\
+    \ after model load, safety margin, runtime reserve, and active reservations.\n\nAppend exactly this object:\n```python\n\n@dataclass(frozen=True)\nclass DynamicVramState:\n    \"\"\"Dynamic VRAM capacity state used by admission and scheduling.\"\"\"\n\n    model_loaded_free_vram_bytes: int\n    safety_margin_bytes: int\n    runtime_reserve_bytes: int\n    active_reservation_bytes: int = 0\n```\n\nConstraints:\n- Do not add calculation functions in this step.\n- Keep the dataclass frozen."
+  verification: &id001
+    type: static_analysis
+    target: lmrs/vram.py::DynamicVramState
+    expected: The file defines a frozen DynamicVramState dataclass with model-loaded free VRAM, safety margin, runtime reserve, and active reservations.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-009
+  name: Dynamic VRAM Pool
+  definition: The remaining VRAM capacity available for KV-cache, runtime buffers, batching overhead, and active request reservations after resident services and model static memory.
+  properties:
+  - Maximum dynamic pool is computed from free VRAM after model load minus safety margin and runtime reserve.
+  - Current dynamic pool additionally subtracts active request reservations.
+  - The dynamic pool bounds whether requests execute immediately, queue, or reject.
+  source_labels:
+  - '{dyn1}'
+  - '{dyn2}'
+  - '{lim3}'
+- concept_id: C-046
+  name: Usable Dynamic VRAM Formula
+  definition: Runtime formula for the currently usable GPU dynamic memory pool after model load, safety margin, runtime reserve, and active request reservations.
+  properties:
+    formula: usable_dynamic_vram_bytes = model_loaded_free_vram_bytes - safety_margin_bytes - runtime_reserve_bytes - active_reservation_bytes
+    active_reservation_bytes: Sum of reservations held by running requests.
+    admission_rule: Admission and scheduling use current usable dynamic VRAM, not total VRAM, total RAM, disk cache size, or LMCache capacity.
+  source_labels:
+  - '{vram1}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

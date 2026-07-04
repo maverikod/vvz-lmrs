@@ -1,0 +1,64 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-004-runtime-client.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-001-runtime-client-execution
+  atomic_step: A-004
+  source_file: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-004-runtime-client.yaml
+  target_file: lmrs/runtime_client.py
+atomic_step_spec:
+  step_id: A-004
+  parent_tactical_step: T-001
+  name: Define RuntimeClient
+  target_file: lmrs/runtime_client.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-015
+  - C-016
+  objects:
+  - RuntimeClient
+  prompt: Modify lmrs/runtime_client.py after A-001 through A-003. Append dataclass RuntimeClient with backend RuntimeBackend and an execute method or function that accepts an already-admitted request and a runtime profile, calls the selected backend, and returns NormalizedRuntimeResult on success or RuntimeFailureSignal on failure as contract stubs. It hides backend differences and must not make admission decisions or re-run admission. Do not generate public command metadata here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/runtime_client.py::RuntimeClient
+    expected: RuntimeClient executes admitted requests against a selected backend and returns a normalized result or a structured failure signal without making admission decisions.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-015
+  name: Runtime Backend
+  definition: An execution backend abstraction that runs only requests admitted by LMRS.
+  properties:
+  - Supported backend examples include vLLM, Ollama, llama.cpp, GPT-OSS runtime, or another local runtime.
+  - The runtime backend does not make admission decisions.
+  source_labels:
+  - '{run1}'
+- concept_id: C-016
+  name: Runtime Client
+  definition: The abstraction that hides backend differences and returns normalized local model execution results.
+  properties:
+  - The runtime client returns assistant message, usage, status, runtime metadata, and telemetry.
+  - The result must be suitable for normalization back into a canonical provider response.
+  source_labels:
+  - '{run2}'
+  - '{prov}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

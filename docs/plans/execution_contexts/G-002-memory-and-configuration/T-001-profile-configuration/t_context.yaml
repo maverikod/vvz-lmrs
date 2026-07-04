@@ -1,0 +1,242 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-001-profile-configuration
+  source_file: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/README.yaml
+  allowed_plan_subtree: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/
+tactical_step_spec:
+  step_id: T-001
+  parent_global_step: G-002
+  name: Profile and Configuration Facts
+  description: 'Create the profile and configuration fact model: define Model Profile (C-005), Hardware Profile (C-006), Runtime Configuration (C-021), Model KV Memory Profile (C-045), and KV Cache Byte Formula (C-044) as the configuration-owned facts that downstream capacity logic consumes.'
+  concepts:
+  - C-005
+  - C-006
+  - C-021
+  - C-044
+  - C-045
+  inputs:
+  - name: profile_claims
+    type: source_labels
+    description: Binding claims {mdl1}, {hw01}, {cfg1}, {kvf1}, and {ctxb} defining model parameters, hardware parameters, configuration ownership, and KV byte formulas.
+  - name: profile_relations
+    type: relation_set
+    description: Relations C-021 owns C-005, C-021 owns C-006, C-021 owns C-045, C-005 owns C-045, and C-045 uses C-044.
+  outputs:
+  - name: profile_fact_schema
+    type: data_schema
+    description: A domain schema for model, hardware, runtime configuration, KV profile parameters, and derived KV byte facts.
+  - name: configuration_ownership_rules
+    type: ownership_rule_set
+    description: Rules stating which profile facts are owned by runtime configuration and how they are made available to capacity calculations.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  - A-005
+  - A-006
+  - A-007
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-005
+  name: Model Profile
+  definition: A model-specific runtime description that makes LMRS independent from any one local model.
+  properties:
+  - It includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy.
+  - Qwen, Ollama models, GPT-OSS, and other local models are instances described by profiles.
+  source_labels:
+  - '{mdl1}'
+- concept_id: C-006
+  name: Hardware Profile
+  definition: The hardware capacity description used for admission and calibration decisions.
+  properties:
+  - The initial target profile is one GPU with 24 GB VRAM and 128 GB RAM.
+  - The architecture must allow future larger VRAM cards and multiple GPUs without changing the external provider contract.
+  source_labels:
+  - '{hw01}'
+- concept_id: C-021
+  name: Runtime Configuration
+  definition: The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits.
+  properties:
+  - Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits.
+  - For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile.
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+- concept_id: C-044
+  name: KV Cache Byte Formula
+  definition: Formula contract for computing worst-case KV-cache byte usage from request tokens and explicit model/runtime parameters.
+  properties:
+    formula: kv_bytes = tokens * layers * 2 * kv_heads * head_dim * kv_element_bytes
+    key_value_factor: 2
+    derived_facts:
+    - kv_bytes_per_token = layers * 2 * kv_heads * head_dim * kv_element_bytes
+    - kv_full_window_bytes = declared_context_window * kv_bytes_per_token
+    scope: Used for model profile facts, request estimates, and full-window capacity calculations.
+  source_labels:
+  - '{kvf1}'
+  - '{ctxb}'
+- concept_id: C-045
+  name: Model KV Memory Profile
+  definition: Derived memory profile that stores KV-cache parameters, runtime KV dtype, bytes per token, and full-window byte cost for a concrete model profile.
+  properties:
+    required_parameters:
+    - layers
+    - kv_heads
+    - head_dim
+    - kv_element_bytes
+    - declared_context_window
+    quantization_rule: Weight quantization such as Q8 or K8 does not reduce KV-cache bytes unless the runtime explicitly uses a reduced KV-cache element dtype.
+    example_qwen3_profile:
+      layers: 48
+      kv_heads: 4
+      head_dim: 128
+      kv_element_bytes: 2
+      context_40960_bytes: 4026531840
+      context_32768_bytes: 3221225472
+    one_byte_kv_rule: If runtime KV elements are one byte, KV-cache byte cost is halved.
+  source_labels:
+  - '{ctxb}'
+  - '{mdl1}'
+atomic_steps:
+- path: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-001-hardware-profile.yaml
+  step_id: A-001
+  name: Define HardwareProfile
+  target_file: lmrs/configuration.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-006
+  objects:
+  - HardwareProfile
+  verification:
+    type: static_analysis
+    target: lmrs/configuration.py::HardwareProfile
+    expected: The file defines a frozen HardwareProfile dataclass with GPU count, VRAM bytes, RAM bytes, optional GPU model, and metadata fields.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/A-001-hardware-profile.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-002-kv-cache-profile.yaml
+  step_id: A-002
+  name: Define KVCacheProfile fields
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-044
+  - C-045
+  objects:
+  - KVCacheProfile
+  verification:
+    type: static_analysis
+    target: lmrs/configuration.py::KVCacheProfile
+    expected: The file defines a frozen KVCacheProfile dataclass with explicit KV parameters, runtime KV dtype, and quantization profile.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/A-002-kv-cache-profile.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-003-kv-bytes-per-token.yaml
+  step_id: A-003
+  name: Add KV bytes per token formula
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-044
+  objects:
+  - KVCacheProfile.kv_bytes_per_token
+  verification:
+    type: static_analysis
+    target: lmrs/configuration.py::KVCacheProfile.kv_bytes_per_token
+    expected: KVCacheProfile exposes kv_bytes_per_token using layers * 2 * kv_heads * head_dim * kv_element_bytes.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/A-003-kv-bytes-per-token.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-004-kv-full-window-bytes.yaml
+  step_id: A-004
+  name: Add KV full window formula
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-045
+  objects:
+  - KVCacheProfile.kv_full_window_bytes
+  verification:
+    type: static_analysis
+    target: lmrs/configuration.py::KVCacheProfile.kv_full_window_bytes
+    expected: KVCacheProfile exposes kv_full_window_bytes using declared_context_window * kv_bytes_per_token().
+  context_file: execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/A-004-kv-full-window-bytes.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-005-model-profile.yaml
+  step_id: A-005
+  name: Define ModelProfile
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-005
+  - C-045
+  objects:
+  - ModelProfile
+  verification:
+    type: static_analysis
+    target: lmrs/configuration.py::ModelProfile
+    expected: The file defines a frozen ModelProfile dataclass with model identity, runtime, endpoint/path, context window, tokenizer, load policy, KV cache profile, concurrency policy, and options.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/A-005-model-profile.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-006-runtime-configuration.yaml
+  step_id: A-006
+  name: Define RuntimeConfiguration
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 6
+  depends_on:
+  - A-005
+  concepts:
+  - C-005
+  - C-006
+  - C-021
+  objects:
+  - RuntimeConfiguration
+  verification:
+    type: static_analysis
+    target: lmrs/configuration.py::RuntimeConfiguration
+    expected: The file defines a frozen RuntimeConfiguration dataclass owning hardware profile, model profiles, default model, resident services, safety/reserve bytes, queue policy, and queue limits.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/A-006-runtime-configuration.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-007-validate-runtime-configuration.yaml
+  step_id: A-007
+  name: Validate runtime configuration facts
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 7
+  depends_on:
+  - A-006
+  concepts:
+  - C-021
+  objects:
+  - validate_runtime_configuration
+  verification:
+    type: static_analysis
+    target: lmrs/configuration.py::validate_runtime_configuration
+    expected: The file defines validate_runtime_configuration that validates hardware, model mapping, default model, safety/reserve bytes, KV dimensions, and context-window consistency.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/A-007-validate-runtime-configuration.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

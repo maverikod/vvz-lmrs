@@ -1,0 +1,99 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-004-default-boundary-factory.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-001-service-boundary
+  tactical_step: T-001-service-boundary
+  atomic_step: A-004
+  source_file: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
+  target_file: lmrs/contracts.py
+atomic_step_spec:
+  step_id: A-004
+  parent_tactical_step: T-001
+  name: Add default ServiceBoundary factory
+  target_file: lmrs/contracts.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-022
+  objects:
+  - build_default_service_boundary
+  prompt: 'Target file: lmrs/contracts.py
+
+    Operation: modify_file
+
+    Current file content before this step: the file contains AdapterExposure, MVPScope, and ServiceBoundary exactly as produced by A-001 through A-003.
+
+
+    MRS excerpt: C-001 owns local runtime access and capacity proof; C-002 delegates universal provider gateway duties; C-003 requires adapter command exposure; C-022 limits MVP capabilities.
+
+
+    Add only function build_default_service_boundary() -> ServiceBoundary after ServiceBoundary. It must construct AdapterExposure, MVPScope, and ServiceBoundary with explicit tuples for command surface, included MVP capabilities, excluded MVP capabilities, owned responsibilities, delegated responsibilities, and invariants. Do not add boundary_snapshot or __all__.'
+  verification: &id001
+    type: import
+    target: lmrs.contracts.build_default_service_boundary
+    expected: Factory returns a ServiceBoundary with adapter exposure and MVP scope populated.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-001
+  name: Local Model Runtime Service
+  definition: A standalone adapter-based microservice that provides high-level access to locally executed language models while enforcing prompt admission before runtime execution.
+  properties:
+  - It is separate from model_access_core and ollama/model_workspace.
+  - It exposes local model access through an adapter-based MCP interface.
+  - It must prevent any prompt from reaching the local model runtime until context-window and dynamic VRAM capacity have been proven.
+  source_labels:
+  - '{lmrs}'
+  - '{goal}'
+  - '{inv1}'
+- concept_id: C-002
+  name: Provider Gateway Integration
+  definition: The integration boundary through which model_access_core routes local provider requests to the Local Model Runtime Service.
+  properties:
+  - model_access_core remains the universal provider gateway.
+  - model_access_core does not manage VRAM, load local models, or execute local prompts directly.
+  - LMRS appears to model_access_core as a local provider backend and returns responses normalizable into canonical provider responses.
+  source_labels:
+  - '{sep1}'
+  - '{prov}'
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+- concept_id: C-022
+  name: MVP Scope
+  definition: The explicit boundary of features included and excluded from the initial LMRS implementation.
+  properties:
+  - MVP includes one resident LLM on one GPU, persistent vectorizer/chunker services, service baseline measurement, model static measurement, tokenizer-aware counting, admission, largest-fit queue, one selected runtime backend, and adapter-based MCP commands.
+  - MVP excludes multi-GPU scheduling, multiple resident LLMs, streaming, speculative decoding, distributed inference, automatic model eviction, and advanced batching optimizer.
+  - MVP includes disk cache lifecycle, explicit memory load/unload, VRAM measurement after load, and basic vLLM LMCache configuration support.
+  source_labels:
+  - '{mvp1}'
+  - '{mvp2}'
+  - '{mvp3}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

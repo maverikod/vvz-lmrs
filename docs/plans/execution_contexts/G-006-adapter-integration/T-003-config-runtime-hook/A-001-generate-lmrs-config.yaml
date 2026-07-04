@@ -1,0 +1,64 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-generate-lmrs-config.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-006-adapter-integration
+  tactical_step: T-003-config-runtime-hook
+  atomic_step: A-001
+  source_file: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-001-generate-lmrs-config.yaml
+  target_file: lmrs/adapter/runtime.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-003
+  name: Implement generate_lmrs_config
+  target_file: lmrs/adapter/runtime.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-030
+  - C-021
+  objects:
+  - generate_lmrs_config
+  prompt: Create lmrs/adapter/runtime.py and define generate_lmrs_config() that produces a runtime configuration mapping. It first creates the adapter server, registration, and queue manager configuration, then adds LMRS-specific sections for hardware profile, resident services, model profiles, runtime backends, tokenizer profiles, admission policy, disk model cache, LMCache, telemetry, and lifecycle limits. The generated configuration is the starting point for validated LMRS runtime configuration and is owned by Runtime Configuration. Do not add validation or startup logic in this step.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/adapter/runtime.py::generate_lmrs_config
+    expected: generate_lmrs_config produces adapter base sections plus LMRS runtime and admission sections as the starting configuration for validation.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-021
+  name: Runtime Configuration
+  definition: The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits.
+  properties:
+  - Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits.
+  - For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile.
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+- concept_id: C-030
+  name: Adapter Configuration Generator
+  definition: The LMRS configuration generator that extends the adapter generator with LMRS-specific runtime and admission configuration sections.
+  properties:
+  - The generator first creates adapter server, registration, and queue manager configuration.
+  - The generator adds LMRS sections for hardware profile, resident services, model profiles, runtime backends, tokenizer profiles, admission policy, disk model cache, LMCache, telemetry, and lifecycle limits.
+  - Generated configuration is the starting point for validated LMRS runtime configuration.
+  source_labels:
+  - '{acfg}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

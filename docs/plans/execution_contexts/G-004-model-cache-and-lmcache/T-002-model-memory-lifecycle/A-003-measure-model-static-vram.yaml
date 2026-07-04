@@ -1,0 +1,77 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-measure-model-static-vram.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-002-model-memory-lifecycle
+  atomic_step: A-003
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-003-measure-model-static-vram.yaml
+  target_file: lmrs/model_lifecycle.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-002
+  name: Implement measure_model_static_vram
+  target_file: lmrs/model_lifecycle.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-008
+  - C-024
+  objects:
+  - measure_model_static_vram
+  prompt: 'Modify lmrs/model_lifecycle.py after A-001 and A-002. Append measure_model_static_vram(service_baseline_free_vram_bytes: int, model_loaded_free_vram_bytes: int) -> int. It must compute measured_model_static_vram_bytes = service_baseline_free_vram_bytes - model_loaded_free_vram_bytes, reject negative inputs, and reject a result below zero. It records a measured runtime fact and must not use theoretical assumptions.'
+  verification: &id001
+    type: static_analysis
+    target: lmrs/model_lifecycle.py::measure_model_static_vram
+    expected: Function computes measured model static VRAM as baseline-free minus model-loaded-free VRAM and rejects negative inputs and results.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-008
+  name: VRAM Runtime Facts
+  definition: Measured runtime facts describing baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity.
+  properties:
+  - model_loaded_free_vram is measured after loading the local model.
+  - measured_model_static_vram is the difference between service_baseline_free_vram and model_loaded_free_vram.
+  - Measured static VRAM is stored for model_name, runtime, quantization/profile, and hardware_profile.
+  - Runtime facts must not be replaced by purely theoretical assumptions.
+  source_labels:
+  - '{load}'
+  - '{stat}'
+  - '{inv3}'
+- concept_id: C-024
+  name: Model Memory Lifecycle
+  definition: The lifecycle that explicitly loads, unloads, reloads, and reports model residency in memory independently from disk cache availability.
+  properties:
+  - Loading to memory is separate from disk cache preload.
+  - Lifecycle commands include load_model, unload_model, reload_model, model_status, and model_lifecycle_status.
+  - Before loading, the service verifies disk cache presence and runtime compatibility or returns MODEL_NOT_CACHED unless preload is explicitly allowed.
+  - After loading, the service measures model_loaded_free_vram and records measured_model_static_vram.
+  - Unloading frees VRAM residency without requiring disk cache deletion and updates free VRAM state.
+  - The MVP policy is keep_loaded for one resident LLM until explicit unload or replacement.
+  source_labels:
+  - '{mlife1}'
+  - '{mlife2}'
+  - '{mlife3}'
+  - '{mlife4}'
+  - '{mlife5}'
+  - '{mlife6}'
+  - '{inv4}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

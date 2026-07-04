@@ -1,0 +1,83 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-kv-cache-profile.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-001-profile-configuration
+  atomic_step: A-002
+  source_file: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-002-kv-cache-profile.yaml
+  target_file: lmrs/configuration.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-001
+  name: Define KVCacheProfile fields
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-044
+  - C-045
+  objects:
+  - KVCacheProfile
+  prompt: "Target file: lmrs/configuration.py\nOperation: modify_file\n\nMRS excerpt:\n- C-044 KV Cache Byte Formula: worst-case KV-cache byte usage is computed from request tokens and explicit model/runtime parameters.\n- C-045 Model KV Memory Profile: derived memory profile stores KV-cache parameters, runtime KV dtype, bytes per token, and full-window byte cost. Required parameters are layers, kv_heads, head_dim, kv_element_bytes, and declared_context_window. Weight quantization does not reduce KV-cache bytes unless runtime KV element dtype is reduced.\n\nCurrent full content of lmrs/configuration.py before this modification:\n```python\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import Mapping\n\n\n@dataclass(frozen=True)\nclass HardwareProfile:\n    \"\"\"Hardware capacity profile used by LMRS admission and calibration logic.\"\"\"\n\n    gpu_count: int = 1\n    total_vram_bytes: int = 24 * 1024**3\n    total_ram_bytes: int = 128 * 1024**3\n\
+    \    gpu_model: str | None = None\n    metadata: Mapping[str, str] = field(default_factory=dict)\n```\n\nModify the file by adding this dataclass after HardwareProfile:\n```python\n\n@dataclass(frozen=True)\nclass KVCacheProfile:\n    \"\"\"Model KV-cache parameters used to derive memory facts.\"\"\"\n\n    layers: int\n    kv_heads: int\n    head_dim: int\n    kv_element_bytes: int\n    declared_context_window: int\n    runtime_kv_dtype: str = \"fp16\"\n    quantization_profile: str | None = None\n```\n\nConstraints:\n- Keep HardwareProfile unchanged.\n- Use existing imports only.\n- KVCacheProfile must be frozen.\n- Do not add methods in this step."
+  verification: &id001
+    type: static_analysis
+    target: lmrs/configuration.py::KVCacheProfile
+    expected: The file defines a frozen KVCacheProfile dataclass with explicit KV parameters, runtime KV dtype, and quantization profile.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-044
+  name: KV Cache Byte Formula
+  definition: Formula contract for computing worst-case KV-cache byte usage from request tokens and explicit model/runtime parameters.
+  properties:
+    formula: kv_bytes = tokens * layers * 2 * kv_heads * head_dim * kv_element_bytes
+    key_value_factor: 2
+    derived_facts:
+    - kv_bytes_per_token = layers * 2 * kv_heads * head_dim * kv_element_bytes
+    - kv_full_window_bytes = declared_context_window * kv_bytes_per_token
+    scope: Used for model profile facts, request estimates, and full-window capacity calculations.
+  source_labels:
+  - '{kvf1}'
+  - '{ctxb}'
+- concept_id: C-045
+  name: Model KV Memory Profile
+  definition: Derived memory profile that stores KV-cache parameters, runtime KV dtype, bytes per token, and full-window byte cost for a concrete model profile.
+  properties:
+    required_parameters:
+    - layers
+    - kv_heads
+    - head_dim
+    - kv_element_bytes
+    - declared_context_window
+    quantization_rule: Weight quantization such as Q8 or K8 does not reduce KV-cache bytes unless the runtime explicitly uses a reduced KV-cache element dtype.
+    example_qwen3_profile:
+      layers: 48
+      kv_heads: 4
+      head_dim: 128
+      kv_element_bytes: 2
+      context_40960_bytes: 4026531840
+      context_32768_bytes: 3221225472
+    one_byte_kv_rule: If runtime KV elements are one byte, KV-cache byte cost is halved.
+  source_labels:
+  - '{ctxb}'
+  - '{mdl1}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

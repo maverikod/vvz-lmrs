@@ -1,0 +1,57 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-004-build-calibration-profile.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-003-calibration-profile
+  atomic_step: A-004
+  source_file: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-004-build-calibration-profile.yaml
+  target_file: lmrs/calibration.py
+atomic_step_spec:
+  step_id: A-004
+  parent_tactical_step: T-003
+  name: Implement build_calibration_profile
+  target_file: lmrs/calibration.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-020
+  objects:
+  - build_calibration_profile
+  prompt: 'Modify lmrs/calibration.py after A-001 through A-003. Append function build_calibration_profile(key: CalibrationKey, observations: tuple[CalibrationObservation, ...]) -> CalibrationProfile. It must reject empty observations, reject negative token or byte observations, compute empirical kv_bytes_per_token from summed actual dynamic VRAM minus overhead divided by summed tokens, clamp at zero, and set overhead values to the max observed overheads. It must return a valid CalibrationProfile with observation_count. Do not perform admission or runtime execution.'
+  verification: &id001
+    type: static_analysis
+    target: lmrs/calibration.py::build_calibration_profile
+    expected: Function builds a CalibrationProfile from empirical observations, validates inputs, computes calibrated KV bytes per token, and captures max overheads.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-020
+  name: Calibration Profile
+  definition: The model, runtime, quantization, and hardware-specific calibration data for estimating KV-cache and overhead costs.
+  properties:
+  - KV-cache cost per token supports empirical calibration.
+  - The preferred calibration method measures VRAM growth across prompt lengths.
+  - Calibration profiles are bound to model, runtime backend, quantization/profile, and hardware profile.
+  - Changing model, runtime, or GPU invalidates or requires renewing the calibration profile.
+  source_labels:
+  - '{cal1}'
+  - '{cal2}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

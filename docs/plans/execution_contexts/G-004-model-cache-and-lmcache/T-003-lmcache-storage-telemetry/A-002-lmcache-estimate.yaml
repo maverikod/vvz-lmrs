@@ -1,0 +1,83 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-lmcache-estimate.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-003-lmcache-storage-telemetry
+  atomic_step: A-002
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-002-lmcache-estimate.yaml
+  target_file: lmrs/lmcache.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-003
+  name: Define LMCacheEstimate
+  target_file: lmrs/lmcache.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-025
+  - C-012
+  objects:
+  - LMCacheEstimate
+  prompt: Modify lmrs/lmcache.py after A-001. Append frozen dataclass LMCacheEstimate with cache_reuse_possible bool default False, estimated_cache_hit_tokens, effective_new_tokens, cache_estimate_quality, and metadata. It carries optional pre-execution cache reuse information for the estimate response. If a cache hit is not guaranteed before launch, the values must represent a full cache miss. Do not weaken admission or extend context window or VRAM capacity here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/lmcache.py::LMCacheEstimate
+    expected: LMCacheEstimate stores optional pre-execution cache reuse fields and defaults to full cache miss when a hit is not guaranteed.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-012
+  name: Admission Control
+  definition: The pre-queue decision process that classifies requests as executable, queueable, or rejected using context-window and VRAM capacity constraints.
+  properties:
+  - Admission runs before a request enters the queue.
+  - Requests over the model context window are rejected with CONTEXT_OVERFLOW.
+  - Requests too large for the maximum dynamic pool are rejected with REQUEST_TOO_LARGE or HARDWARE_VRAM_INSUFFICIENT.
+  - Requests that fit the maximum dynamic pool but not current capacity are queued, not permanently rejected.
+  - Requests fitting both model window and current dynamic pool may execute immediately or be queued according to scheduler policy.
+  - LMCache reuse does not permit unsafe admission.
+  source_labels:
+  - '{adm1}'
+  - '{adm2}'
+  - '{adm3}'
+  - '{inv1}'
+  - '{inv2}'
+  - '{lmcache2}'
+  - '{lmcache6}'
+  - '{inv5}'
+- concept_id: C-025
+  name: LMCache Integration
+  definition: The vLLM LMCache runtime caching integration used to accelerate reuse of repeated or long context while preserving conservative admission decisions.
+  properties:
+  - LMCache is a separate runtime/caching backend and does not replace admission control.
+  - Disk model cache and LMCache are distinct caches with different artifacts.
+  - Estimate responses may include cache_reuse_possible, estimated_cache_hit_tokens, effective_new_tokens, and cache_estimate_quality when pre-execution cache information is available.
+  - If a cache hit is not guaranteed before launch, admission estimates the request as a full cache miss.
+  source_labels:
+  - '{lmcache1}'
+  - '{lmcache2}'
+  - '{lmcache3}'
+  - '{lmcache4}'
+  - '{lmcache5}'
+  - '{lmcache6}'
+  - '{lmcache7}'
+  - '{inv5}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

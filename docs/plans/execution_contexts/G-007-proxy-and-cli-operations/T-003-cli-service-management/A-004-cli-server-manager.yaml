@@ -1,0 +1,77 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-004-cli-server-manager.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-003-cli-service-management
+  atomic_step: A-004
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-004-cli-server-manager.yaml
+  target_file: lmrs/cli/operations.py
+atomic_step_spec:
+  step_id: A-004
+  parent_tactical_step: T-003
+  name: Define CliServerManager
+  target_file: lmrs/cli/operations.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-042
+  - C-032
+  - C-043
+  objects:
+  - CliServerManager
+  prompt: Modify lmrs/cli/operations.py after A-001 through A-003. Append class CliServerManager that provides start, stop, and status operations for the LMRS service runtime. Start launches the configured service runtime through the adapter runtime entrypoint. Stop targets and stops the correct service instance. Status reports availability in a form useful for both humans and scripts by calling verify_service_health rather than relying on PID presence alone. Do not re-implement runtime entrypoint or health probe logic here; call the existing contracts.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/cli/operations.py::CliServerManager
+    expected: CliServerManager exposes start, stop, and status operations that launch via the adapter runtime entrypoint, stop the correct instance, and report status via active health verification.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-032
+  name: Adapter Runtime Entrypoint
+  definition: The startup boundary that wires command hooks, configuration loading, domain lifecycle services, and adapter server execution.
+  properties:
+  - The entrypoint registers LMRS command hooks before adapter server startup.
+  - The entrypoint loads configuration and starts LMRS domain lifecycle services.
+  - The entrypoint hands control to the adapter startup mechanism (create_app to build the application, then run via the adapter application runner).
+  - Adapter factory code remains free of LMRS admission, tokenizer, VRAM, and model lifecycle logic.
+  source_labels:
+  - '{ahok}'
+- concept_id: C-042
+  name: CLI Server Manager
+  definition: The CLI service-management surface that starts, stops, and reports status for the LMRS service runtime.
+  properties:
+  - The manager supports start, stop, and status operations.
+  - The manager launches the configured service runtime.
+  - The manager stops the correct service instance.
+  - The manager reports status in a form useful for both humans and scripts.
+  source_labels:
+  - '{svcm}'
+- concept_id: C-043
+  name: Service Health Verification
+  definition: A runtime status verification mechanism that proves service availability beyond PID or process-file presence.
+  properties:
+  - A running PID is not sufficient proof of service availability.
+  - Status combines process identity with active service verification.
+  - Valid probes include listener reachability, health endpoint response, command or help availability, registration state, heartbeat freshness, or another explicit protocol-appropriate runtime check.
+  source_labels:
+  - '{hlth}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

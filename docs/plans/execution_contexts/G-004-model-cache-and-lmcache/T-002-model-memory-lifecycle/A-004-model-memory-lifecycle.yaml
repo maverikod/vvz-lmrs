@@ -1,0 +1,96 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-004-model-memory-lifecycle.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-002-model-memory-lifecycle
+  atomic_step: A-004
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-004-model-memory-lifecycle.yaml
+  target_file: lmrs/model_lifecycle.py
+atomic_step_spec:
+  step_id: A-004
+  parent_tactical_step: T-002
+  name: Define ModelMemoryLifecycle
+  target_file: lmrs/model_lifecycle.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-024
+  - C-023
+  - C-017
+  objects:
+  - ModelMemoryLifecycle
+  prompt: Modify lmrs/model_lifecycle.py after A-001 through A-003. Append dataclass ModelMemoryLifecycle with current residency optional ModelResidency and command methods or functions load_model, unload_model, reload_model, model_status, and model_lifecycle_status as contract stubs. Before loading it must verify disk cache presence and runtime compatibility or return MODEL_NOT_CACHED unless preload is explicitly allowed. Unloading frees memory residency without deleting disk cache. The MVP policy keeps one resident model loaded until explicit unload or replacement. Do not implement VRAM measurement arithmetic here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/model_lifecycle.py::ModelMemoryLifecycle
+    expected: ModelMemoryLifecycle exposes load/unload/reload/status commands, verifies disk cache before load with MODEL_NOT_CACHED, and keeps one resident model under keep_loaded policy without deleting disk cache on unload.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-017
+  name: Public Command Contract
+  definition: The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations.
+  properties:
+  - The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation.
+  - The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot.
+  - The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code.
+  - Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload.
+  source_labels:
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{dcache3}'
+  - '{mlife2}'
+- concept_id: C-023
+  name: Disk Model Cache
+  definition: The disk-resident model cache that stores model weights, tokenizer files, runtime metadata, integrity information, readiness state, and cache profile independently from VRAM residency.
+  properties:
+  - Preload downloads, verifies integrity, prepares local layout, tokenizer files, runtime metadata, and readiness marker without requiring VRAM load.
+  - Disk cache and VRAM model residency are separate states.
+  - Model states include not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed.
+  - Cache management commands add, check, delete, list, verify integrity, and update metadata.
+  - Cache profile stores model_name, runtime, model_path, quantization/profile, declared_context_window, tokenizer profile, checksum or revision, disk size, load date, compatibility flags, and cache status.
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{inv4}'
+- concept_id: C-024
+  name: Model Memory Lifecycle
+  definition: The lifecycle that explicitly loads, unloads, reloads, and reports model residency in memory independently from disk cache availability.
+  properties:
+  - Loading to memory is separate from disk cache preload.
+  - Lifecycle commands include load_model, unload_model, reload_model, model_status, and model_lifecycle_status.
+  - Before loading, the service verifies disk cache presence and runtime compatibility or returns MODEL_NOT_CACHED unless preload is explicitly allowed.
+  - After loading, the service measures model_loaded_free_vram and records measured_model_static_vram.
+  - Unloading frees VRAM residency without requiring disk cache deletion and updates free VRAM state.
+  - The MVP policy is keep_loaded for one resident LLM until explicit unload or replacement.
+  source_labels:
+  - '{mlife1}'
+  - '{mlife2}'
+  - '{mlife3}'
+  - '{mlife4}'
+  - '{mlife5}'
+  - '{mlife6}'
+  - '{inv4}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

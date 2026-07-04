@@ -1,0 +1,57 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-005-calibration-snapshot.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-003-calibration-profile
+  atomic_step: A-005
+  source_file: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-005-calibration-snapshot.yaml
+  target_file: lmrs/calibration.py
+atomic_step_spec:
+  step_id: A-005
+  parent_tactical_step: T-003
+  name: Implement calibration_snapshot
+  target_file: lmrs/calibration.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-020
+  objects:
+  - calibration_snapshot
+  prompt: 'Modify lmrs/calibration.py after A-001 through A-004. Append function calibration_snapshot(profile: CalibrationProfile) -> dict[str, object]. It must return a structured dictionary with key fields, kv_bytes_per_token, per_request_overhead_bytes, runtime_batch_overhead_bytes, observation_count, source, valid, invalidation_reason, and metadata. Keep measured/calibrated facts explicit and do not include admission decisions.'
+  verification: &id001
+    type: static_analysis
+    target: lmrs/calibration.py::calibration_snapshot
+    expected: Function returns a structured snapshot of calibration identity, calibrated costs, observation count, validity, invalidation reason, and metadata.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-020
+  name: Calibration Profile
+  definition: The model, runtime, quantization, and hardware-specific calibration data for estimating KV-cache and overhead costs.
+  properties:
+  - KV-cache cost per token supports empirical calibration.
+  - The preferred calibration method measures VRAM growth across prompt lengths.
+  - Calibration profiles are bound to model, runtime backend, quantization/profile, and hardware profile.
+  - Changing model, runtime, or GPU invalidates or requires renewing the calibration profile.
+  source_labels:
+  - '{cal1}'
+  - '{cal2}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

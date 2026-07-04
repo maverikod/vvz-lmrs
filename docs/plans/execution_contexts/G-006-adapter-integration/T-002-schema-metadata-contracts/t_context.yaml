@@ -1,0 +1,124 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-006-adapter-integration
+  tactical_step: T-002-schema-metadata-contracts
+  source_file: docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/README.yaml
+  allowed_plan_subtree: docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/
+tactical_step_spec:
+  step_id: T-002
+  parent_global_step: G-006
+  name: Command Schema and Metadata Contracts
+  description: 'Create the command discovery contract: define Command Schema Contract (C-028) and Command Metadata Contract (C-029) as the schema, validation, result, error, example, and help metadata surface used by adapter help, proxy discovery, and operator-facing documentation.'
+  concepts:
+  - C-028
+  - C-029
+  inputs:
+  - name: public_command_contract
+    type: command_contract
+    description: Command names, parameters, result categories, and error codes consumed by schema and metadata contracts.
+  - name: metadata_standard
+    type: standard_reference
+    description: The command metadata standard governing schema, metadata, examples, error cases, and help output expectations.
+  outputs:
+  - name: schema_contract_set
+    type: schema_contract
+    description: Request, result, and error schema contracts for every public command category.
+  - name: metadata_contract_set
+    type: metadata_contract
+    description: Discovery metadata for commands, parameters, return values, examples, error cases, and best practices.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-028
+  name: Command Schema Contract
+  definition: The per-command request, result, and error schema contract used for validation and command discovery.
+  properties:
+  - Request schema is returned by get_schema.
+  - Result schema is returned by get_result_schema.
+  - Error schema is returned by get_error_schema.
+  - Schemas live separately from executor code and are used by adapter schema-based validation before domain checks.
+  source_labels:
+  - '{asch}'
+- concept_id: C-029
+  name: Command Metadata Contract
+  definition: The per-command discovery contract that publishes help, schema, error, and example information for MCP tooling.
+  properties:
+  - Metadata includes command name, description, parameter schema, result schema, error schema, stable error codes, and examples.
+  - Metadata must be sufficient for MCP help, proxy discovery, and OpenAPI generation without reading internal implementation.
+  - Metadata lives separately from executor code.
+  source_labels:
+  - '{amet}'
+atomic_steps:
+- path: docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-001-command-schema-contract.yaml
+  step_id: A-001
+  name: Define CommandSchemaContract
+  target_file: lmrs/adapter/schemas.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-028
+  objects:
+  - CommandSchemaContract
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/schemas.py::CommandSchemaContract
+    expected: CommandSchemaContract declares request, result, and error schema providers separate from executor code for adapter validation before domain checks.
+  context_file: execution_contexts/G-006-adapter-integration/T-002-schema-metadata-contracts/A-001-command-schema-contract.yaml
+- path: docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-002-command-metadata-contract.yaml
+  step_id: A-002
+  name: Define CommandMetadataContract
+  target_file: lmrs/adapter/schemas.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-029
+  - C-028
+  objects:
+  - CommandMetadataContract
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/schemas.py::CommandMetadataContract
+    expected: CommandMetadataContract publishes name, description, parameter/result/error schemas, stable error codes, and examples sufficient for help, discovery, and OpenAPI, separate from executor code.
+  context_file: execution_contexts/G-006-adapter-integration/T-002-schema-metadata-contracts/A-002-command-metadata-contract.yaml
+- path: docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-003-build-command-metadata.yaml
+  step_id: A-003
+  name: Implement build_command_metadata
+  target_file: lmrs/adapter/schemas.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-029
+  - C-028
+  objects:
+  - build_command_metadata
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/schemas.py::build_command_metadata
+    expected: Function assembles a CommandMetadataContract from a schema contract and command spec sufficient for help, discovery, and OpenAPI without executor internals.
+  context_file: execution_contexts/G-006-adapter-integration/T-002-schema-metadata-contracts/A-003-build-command-metadata.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

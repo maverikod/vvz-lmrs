@@ -1,0 +1,55 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-error-code.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-002-command-error-contract
+  atomic_step: A-002
+  source_file: docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-002-error-code.yaml
+  target_file: lmrs/commands.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-002
+  name: Define ErrorCode
+  target_file: lmrs/commands.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-018
+  objects:
+  - ErrorCode
+  prompt: Modify lmrs/commands.py after A-001. Append ErrorCode string constants or enum values for CONTEXT_OVERFLOW, REQUEST_TOO_LARGE, HARDWARE_VRAM_INSUFFICIENT, HARDWARE_CAPACITY_UNKNOWN, TOKENIZER_UNAVAILABLE, MODEL_BUSY_AND_QUEUE_FULL, MODEL_NOT_LOADED, MODEL_LOAD_FAILED, RUNTIME_CALL_FAILED, REQUEST_CANCELLED, MODEL_NOT_CACHED, MODEL_CACHE_PRELOAD_FAILED, MODEL_CACHE_CORRUPTED, MODEL_ALREADY_LOADED, MODEL_UNLOAD_FAILED, LMCACHE_UNAVAILABLE, LMCACHE_LOOKUP_FAILED, and LMCACHE_WRITE_FAILED. It is the stable machine-readable error catalog. Do not add command routing here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/commands.py::ErrorCode
+    expected: ErrorCode exposes the full stable error catalog for admission, tokenizer, hardware, model lifecycle, runtime, cache, LMCache, and cancellation failures.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-018
+  name: Structured Error Contract
+  definition: The stable machine-readable error code set returned by LMRS for admission, tokenizer, hardware, model lifecycle, runtime, cache, and cancellation failures.
+  properties:
+  - Minimum errors include CONTEXT_OVERFLOW, REQUEST_TOO_LARGE, HARDWARE_VRAM_INSUFFICIENT, HARDWARE_CAPACITY_UNKNOWN, TOKENIZER_UNAVAILABLE, MODEL_BUSY_AND_QUEUE_FULL, MODEL_NOT_LOADED, MODEL_LOAD_FAILED, RUNTIME_CALL_FAILED, and REQUEST_CANCELLED.
+  - Additional errors include MODEL_NOT_CACHED, MODEL_CACHE_PRELOAD_FAILED, MODEL_CACHE_CORRUPTED, MODEL_ALREADY_LOADED, MODEL_UNLOAD_FAILED, LMCACHE_UNAVAILABLE, LMCACHE_LOOKUP_FAILED, and LMCACHE_WRITE_FAILED.
+  source_labels:
+  - '{err1}'
+  - '{err2}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

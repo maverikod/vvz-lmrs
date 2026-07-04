@@ -1,0 +1,86 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-verify-service-health.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-003-cli-service-management
+  atomic_step: A-003
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-003-verify-service-health.yaml
+  target_file: lmrs/cli/operations.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-003
+  name: Implement verify_service_health
+  target_file: lmrs/cli/operations.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-043
+  - C-034
+  - C-035
+  - C-038
+  objects:
+  - verify_service_health
+  prompt: Modify lmrs/cli/operations.py after A-001 and A-002. Append verify_service_health(listen_endpoint, advertised_url, registration_state) that proves service availability beyond a running PID. A running PID alone is not sufficient proof. Status combines process identity with active service verification, where valid probes include listener reachability against the server listen endpoint, health endpoint response, command or help availability, registration state, heartbeat freshness, or another explicit protocol-appropriate runtime check. Return a structured health result combining these signals.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/cli/operations.py::verify_service_health
+    expected: verify_service_health combines process identity with active probes (listener reachability, health response, command/help availability, registration state, heartbeat freshness) instead of PID-only evidence.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-034
+  name: Server Listen Endpoint
+  definition: The adapter server endpoint that binds the LMRS runtime to a configured local host, port, and protocol.
+  properties:
+  - Listen settings are independent from proxy registration settings.
+  - The server protocol controls whether the bound listener is HTTP, HTTPS, or mTLS.
+  - The endpoint may include server name, SSL or mTLS material, and optional advertised host.
+  source_labels:
+  - '{lstn}'
+- concept_id: C-035
+  name: Advertised Server URL
+  definition: The proxy-visible URL derived from the server listen endpoint and normalized for reachability by the proxy.
+  properties:
+  - Wildcard bind addresses are not advertised directly.
+  - An explicit advertised host is preferred when configured.
+  - For local deployments, wildcard bind addresses are normalized to a reachable host such as localhost.
+  source_labels:
+  - '{radv}'
+- concept_id: C-038
+  name: Proxy Registration Lifecycle
+  definition: The startup, heartbeat, retry, re-registration, and shutdown behavior used to keep the LMRS adapter visible through the proxy.
+  properties:
+  - Startup waits until the advertised server URL is listening before proxy registration.
+  - Heartbeat sends registration payloads on the configured interval.
+  - Failed or unrecognized registrations are retried and may trigger re-registration.
+  - Shutdown unregisters the adapter when configured.
+  source_labels:
+  - '{rhbt}'
+- concept_id: C-043
+  name: Service Health Verification
+  definition: A runtime status verification mechanism that proves service availability beyond PID or process-file presence.
+  properties:
+  - A running PID is not sufficient proof of service availability.
+  - Status combines process identity with active service verification.
+  - Valid probes include listener reachability, health endpoint response, command or help availability, registration state, heartbeat freshness, or another explicit protocol-appropriate runtime check.
+  source_labels:
+  - '{hlth}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

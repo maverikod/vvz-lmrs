@@ -1,0 +1,71 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-004-command-result.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-002-command-error-contract
+  atomic_step: A-004
+  source_file: docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-004-command-result.yaml
+  target_file: lmrs/commands.py
+atomic_step_spec:
+  step_id: A-004
+  parent_tactical_step: T-002
+  name: Define CommandResult
+  target_file: lmrs/commands.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-017
+  - C-018
+  objects:
+  - CommandResult
+  prompt: Modify lmrs/commands.py after A-001 through A-003. Append frozen dataclass CommandResult with command CommandName, outcome CommandOutcome, success bool, reason_code optional ErrorCode, token_breakdown optional, capacity_snapshot optional, queue_state optional, payload optional, and metadata. It is the unified public-command result covering success, queue, and rejection result shapes with a stable error code on rejection. Do not implement command routing here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/commands.py::CommandResult
+    expected: CommandResult represents success, queue, and rejection result shapes with command, outcome, optional token breakdown, capacity snapshot, queue state, and stable reason code.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-017
+  name: Public Command Contract
+  definition: The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations.
+  properties:
+  - The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation.
+  - The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot.
+  - The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code.
+  - Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload.
+  source_labels:
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{dcache3}'
+  - '{mlife2}'
+- concept_id: C-018
+  name: Structured Error Contract
+  definition: The stable machine-readable error code set returned by LMRS for admission, tokenizer, hardware, model lifecycle, runtime, cache, and cancellation failures.
+  properties:
+  - Minimum errors include CONTEXT_OVERFLOW, REQUEST_TOO_LARGE, HARDWARE_VRAM_INSUFFICIENT, HARDWARE_CAPACITY_UNKNOWN, TOKENIZER_UNAVAILABLE, MODEL_BUSY_AND_QUEUE_FULL, MODEL_NOT_LOADED, MODEL_LOAD_FAILED, RUNTIME_CALL_FAILED, and REQUEST_CANCELLED.
+  - Additional errors include MODEL_NOT_CACHED, MODEL_CACHE_PRELOAD_FAILED, MODEL_CACHE_CORRUPTED, MODEL_ALREADY_LOADED, MODEL_UNLOAD_FAILED, LMCACHE_UNAVAILABLE, LMCACHE_LOOKUP_FAILED, and LMCACHE_WRITE_FAILED.
+  source_labels:
+  - '{err1}'
+  - '{err2}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

@@ -1,0 +1,144 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-002-registration-lifecycle
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/README.yaml
+  allowed_plan_subtree: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/
+tactical_step_spec:
+  step_id: T-002
+  parent_global_step: G-007
+  name: Proxy Registration Lifecycle
+  description: 'Create the proxy registration lifecycle contract: define Proxy Registration Lifecycle (C-038) as the startup, heartbeat, re-registration, retry, and shutdown behavior that uses Proxy Registration Endpoint (C-036), Advertised Server URL (C-035), and Registration Payload (C-039).'
+  concepts:
+  - C-038
+  - C-036
+  - C-035
+  - C-039
+  inputs:
+  - name: registration_endpoint_contract
+    type: registration_contract
+    description: Registration endpoint and payload contracts consumed by registration lifecycle policy.
+  - name: adapter_runtime_state
+    type: runtime_state
+    description: Runtime listener readiness and shutdown state emitted by the adapter runtime entrypoint.
+  outputs:
+  - name: registration_lifecycle_policy
+    type: lifecycle_contract
+    description: A policy for waiting until listener readiness, registering, heartbeating, retrying, re-registering, and unregistering during shutdown.
+  - name: registration_state_snapshot
+    type: status_contract
+    description: A structured status object for registered state, heartbeat freshness, instance identity, and proxy recognition.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-035
+  name: Advertised Server URL
+  definition: The proxy-visible URL derived from the server listen endpoint and normalized for reachability by the proxy.
+  properties:
+  - Wildcard bind addresses are not advertised directly.
+  - An explicit advertised host is preferred when configured.
+  - For local deployments, wildcard bind addresses are normalized to a reachable host such as localhost.
+  source_labels:
+  - '{radv}'
+- concept_id: C-036
+  name: Proxy Registration Endpoint
+  definition: The registration-side contract that tells LMRS how to register, unregister, and send heartbeat data to the MCP proxy.
+  properties:
+  - Registration settings are separate from listener settings.
+  - The contract includes enablement, startup and shutdown behavior, full registration URLs, heartbeat URL and interval, server identity, instance UUID, metadata, and client credentials.
+  source_labels:
+  - '{rprx}'
+- concept_id: C-038
+  name: Proxy Registration Lifecycle
+  definition: The startup, heartbeat, retry, re-registration, and shutdown behavior used to keep the LMRS adapter visible through the proxy.
+  properties:
+  - Startup waits until the advertised server URL is listening before proxy registration.
+  - Heartbeat sends registration payloads on the configured interval.
+  - Failed or unrecognized registrations are retried and may trigger re-registration.
+  - Shutdown unregisters the adapter when configured.
+  source_labels:
+  - '{rhbt}'
+- concept_id: C-039
+  name: Registration Payload
+  definition: The server identity, reachable URL, capabilities, and metadata sent to the MCP proxy during registration and heartbeat.
+  properties:
+  - Server name resolution prefers explicit server identifier, then explicit server name, then a deterministic default from normalized host and port.
+  - Metadata includes server protocol, host, port, stable instance UUID when available, and adapter-specific discovery or routing metadata.
+  source_labels:
+  - '{rpay}'
+atomic_steps:
+- path: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-001-registration-state.yaml
+  step_id: A-001
+  name: Define RegistrationState
+  target_file: lmrs/proxy/lifecycle.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-038
+  objects:
+  - RegistrationState
+  verification:
+    type: static_analysis
+    target: lmrs/proxy/lifecycle.py::RegistrationState
+    expected: RegistrationState captures registered state, heartbeat freshness, instance identity, and proxy recognition.
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/A-001-registration-state.yaml
+- path: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-002-registration-lifecycle-policy.yaml
+  step_id: A-002
+  name: Define RegistrationLifecyclePolicy
+  target_file: lmrs/proxy/lifecycle.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-038
+  - C-036
+  objects:
+  - RegistrationLifecyclePolicy
+  verification:
+    type: static_analysis
+    target: lmrs/proxy/lifecycle.py::RegistrationLifecyclePolicy
+    expected: RegistrationLifecyclePolicy captures listener-wait, startup registration, heartbeat interval, retry, re-registration, and shutdown unregistration policy.
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/A-002-registration-lifecycle-policy.yaml
+- path: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-003-run-registration-lifecycle.yaml
+  step_id: A-003
+  name: Implement run_registration_lifecycle
+  target_file: lmrs/proxy/lifecycle.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-038
+  - C-035
+  - C-039
+  - C-036
+  objects:
+  - run_registration_lifecycle
+  verification:
+    type: static_analysis
+    target: lmrs/proxy/lifecycle.py::run_registration_lifecycle
+    expected: run_registration_lifecycle waits for listener readiness, registers, heartbeats on interval, retries and re-registers on failure, unregisters on shutdown, and returns RegistrationState.
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/A-003-run-registration-lifecycle.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

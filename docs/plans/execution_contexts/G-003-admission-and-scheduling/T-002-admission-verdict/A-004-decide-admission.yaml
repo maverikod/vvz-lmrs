@@ -1,0 +1,105 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-004-decide-admission.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-003-admission-and-scheduling
+  tactical_step: T-002-admission-verdict
+  atomic_step: A-004
+  source_file: docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-004-decide-admission.yaml
+  target_file: lmrs/admission.py
+atomic_step_spec:
+  step_id: A-004
+  parent_tactical_step: T-002
+  name: Implement decide_admission
+  target_file: lmrs/admission.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-011
+  - C-012
+  - C-047
+  - C-048
+  objects:
+  - decide_admission
+  prompt: Modify lmrs/admission.py after A-001 through A-003. Append decide_admission(estimate, capacity, cache_hit_confirmed=False, cache_adjusted_dynamic_vram_bytes=None) -> AdmissionVerdict. It must reject context overflow with CONTEXT_OVERFLOW, reject requests larger than max dynamic pool with REQUEST_TOO_LARGE, queue when it fits max pool but not current usable pool, execute when it fits current pool, and use evaluate_lmcache_admission conservatively.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/admission.py::decide_admission
+    expected: Function returns stable execute, queue, or reject AdmissionVerdict based on context window, max pool, current pool, and conservative LMCache adjustment.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-011
+  name: Request Capacity Estimate
+  definition: The computed token and dynamic VRAM requirement for an individual request.
+  properties:
+  - required_tokens includes input tokens, tool tokens, service tokens, and reserved output tokens.
+  - Requests exceeding the declared model context window are rejected.
+  - Dynamic VRAM estimate is based on required_tokens, calibrated KV-cache cost per token, and per-request overhead.
+  - Allowed request size is the minimum of declared context window and dynamic-pool token capacity.
+  source_labels:
+  - '{lim1}'
+  - '{lim2}'
+  - '{lim3}'
+- concept_id: C-012
+  name: Admission Control
+  definition: The pre-queue decision process that classifies requests as executable, queueable, or rejected using context-window and VRAM capacity constraints.
+  properties:
+  - Admission runs before a request enters the queue.
+  - Requests over the model context window are rejected with CONTEXT_OVERFLOW.
+  - Requests too large for the maximum dynamic pool are rejected with REQUEST_TOO_LARGE or HARDWARE_VRAM_INSUFFICIENT.
+  - Requests that fit the maximum dynamic pool but not current capacity are queued, not permanently rejected.
+  - Requests fitting both model window and current dynamic pool may execute immediately or be queued according to scheduler policy.
+  - LMCache reuse does not permit unsafe admission.
+  source_labels:
+  - '{adm1}'
+  - '{adm2}'
+  - '{adm3}'
+  - '{inv1}'
+  - '{inv2}'
+  - '{lmcache2}'
+  - '{lmcache6}'
+  - '{inv5}'
+- concept_id: C-047
+  name: Request Dynamic VRAM Requirement
+  definition: Per-request formula for dynamic VRAM required to execute a request safely at runtime.
+  properties:
+    formula: required_dynamic_vram_bytes = input_kv_bytes + reserved_output_kv_bytes + per_request_overhead_bytes + runtime_batch_overhead_bytes
+    input_kv_bytes: Computed from the final tokenized prompt.
+    reserved_output_kv_bytes: Computed from reserved output tokens.
+    execution_predicate: required_tokens <= declared_context_window and required_dynamic_vram_bytes <= usable_dynamic_vram_bytes
+  source_labels:
+  - '{resv1}'
+  - '{lim1}'
+  - '{lim2}'
+- concept_id: C-048
+  name: LMCache Admission Constraint
+  definition: Conservative admission rule for treating LMCache reuse as optional reduction of new-token KV work only when a pre-admission exact hit is available.
+  properties:
+    not_capacity: LMCache is not additional VRAM capacity and does not extend the model context window.
+    full_prompt_rule: The full prompt is always validated against the declared context window.
+    hit_rule: Request KV estimate may be reduced only for an exact pre-admission cache hit matching token chunks, model profile, runtime profile, and namespace.
+    miss_rule: If the hit is not guaranteed before execution, the request is admitted as a cache miss.
+  source_labels:
+  - '{lmc1}'
+  - '{lmcache2}'
+  - '{lmcache6}'
+  - '{inv5}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

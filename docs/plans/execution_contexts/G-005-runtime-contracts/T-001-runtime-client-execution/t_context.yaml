@@ -1,0 +1,139 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-001-runtime-client-execution
+  source_file: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/README.yaml
+  allowed_plan_subtree: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/
+tactical_step_spec:
+  step_id: T-001
+  parent_global_step: G-005
+  name: Runtime Client Execution Contract
+  description: 'Create the runtime execution contract: define Runtime Backend (C-015) and Runtime Client (C-016) as the execution abstraction that accepts admitted requests, hides backend differences, and produces normalized model results without owning public command metadata or admission decisions.'
+  concepts:
+  - C-015
+  - C-016
+  inputs:
+  - name: admitted_request
+    type: execution_candidate
+    description: A request already accepted by admission or scheduling and ready for runtime execution.
+  - name: runtime_profile
+    type: runtime_profile
+    description: Runtime backend selection and model profile facts needed to call the selected backend.
+  outputs:
+  - name: normalized_runtime_result
+    type: runtime_result
+    description: A normalized assistant message, usage data, runtime metadata, and execution status independent of backend-specific shape.
+  - name: runtime_failure_signal
+    type: error_input
+    description: A structured failure signal consumed by the command and error contract when runtime execution fails.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-015
+  name: Runtime Backend
+  definition: An execution backend abstraction that runs only requests admitted by LMRS.
+  properties:
+  - Supported backend examples include vLLM, Ollama, llama.cpp, GPT-OSS runtime, or another local runtime.
+  - The runtime backend does not make admission decisions.
+  source_labels:
+  - '{run1}'
+- concept_id: C-016
+  name: Runtime Client
+  definition: The abstraction that hides backend differences and returns normalized local model execution results.
+  properties:
+  - The runtime client returns assistant message, usage, status, runtime metadata, and telemetry.
+  - The result must be suitable for normalization back into a canonical provider response.
+  source_labels:
+  - '{run2}'
+  - '{prov}'
+atomic_steps:
+- path: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-001-runtime-backend.yaml
+  step_id: A-001
+  name: Define RuntimeBackend
+  target_file: lmrs/runtime_client.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-015
+  objects:
+  - RuntimeBackend
+  verification:
+    type: static_analysis
+    target: lmrs/runtime_client.py::RuntimeBackend
+    expected: RuntimeBackend exposes stable local backend identifiers and carries no admission-decision logic.
+  context_file: execution_contexts/G-005-runtime-contracts/T-001-runtime-client-execution/A-001-runtime-backend.yaml
+- path: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-002-normalized-runtime-result.yaml
+  step_id: A-002
+  name: Define NormalizedRuntimeResult
+  target_file: lmrs/runtime_client.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-016
+  objects:
+  - NormalizedRuntimeResult
+  verification:
+    type: static_analysis
+    target: lmrs/runtime_client.py::NormalizedRuntimeResult
+    expected: NormalizedRuntimeResult stores assistant message, usage, status, runtime metadata, and telemetry in a backend-independent shape.
+  context_file: execution_contexts/G-005-runtime-contracts/T-001-runtime-client-execution/A-002-normalized-runtime-result.yaml
+- path: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-003-runtime-failure-signal.yaml
+  step_id: A-003
+  name: Define RuntimeFailureSignal
+  target_file: lmrs/runtime_client.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-016
+  objects:
+  - RuntimeFailureSignal
+  verification:
+    type: static_analysis
+    target: lmrs/runtime_client.py::RuntimeFailureSignal
+    expected: RuntimeFailureSignal carries request identity, backend, stable reason code, message, and retriability for downstream error mapping.
+  context_file: execution_contexts/G-005-runtime-contracts/T-001-runtime-client-execution/A-003-runtime-failure-signal.yaml
+- path: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-004-runtime-client.yaml
+  step_id: A-004
+  name: Define RuntimeClient
+  target_file: lmrs/runtime_client.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-015
+  - C-016
+  objects:
+  - RuntimeClient
+  verification:
+    type: static_analysis
+    target: lmrs/runtime_client.py::RuntimeClient
+    expected: RuntimeClient executes admitted requests against a selected backend and returns a normalized result or a structured failure signal without making admission decisions.
+  context_file: execution_contexts/G-005-runtime-contracts/T-001-runtime-client-execution/A-004-runtime-client.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

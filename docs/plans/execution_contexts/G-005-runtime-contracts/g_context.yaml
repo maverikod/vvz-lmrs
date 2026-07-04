@@ -1,0 +1,278 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: g_context
+context_bundle_order:
+- ../00-common/common_context.yaml
+- ../00-common/root_orchestrator_task.yaml
+- ./g_context.yaml
+role: g_orchestrator
+required_model: gpt-5.5
+scope:
+  global_step: G-005-runtime-contracts
+  source_file: docs/plans/G-005-runtime-contracts/README.yaml
+  allowed_plan_subtree: docs/plans/G-005-runtime-contracts/
+global_step_spec:
+  step_id: G-005
+  name: Runtime Execution, Public Commands, Errors, and Telemetry
+  description: Define runtime backend abstraction, normalized runtime client behavior, public command semantics, structured error outcomes, and telemetry feedback loops. This step turns admitted requests and lifecycle operations into observable command results without owning adapter registration or command metadata generation.
+  concepts:
+  - C-015
+  - C-016
+  - C-017
+  - C-018
+  - C-019
+  relations:
+  - from_concept: C-016
+    to_concept: C-015
+    type: uses
+  - from_concept: C-016
+    to_concept: C-019
+    type: produces
+  - from_concept: C-017
+    to_concept: C-012
+    type: uses
+  - from_concept: C-017
+    to_concept: C-010
+    type: uses
+  - from_concept: C-017
+    to_concept: C-013
+    type: uses
+  - from_concept: C-018
+    to_concept: C-012
+    type: depends_on
+  - from_concept: C-019
+    to_concept: C-020
+    type: produces
+  source_labels:
+  - '{run1}'
+  - '{run2}'
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{err1}'
+  - '{err2}'
+  - '{obs1}'
+  - '{obs2}'
+  depends_on:
+  - G-003
+  - G-004
+  tactical_steps:
+  - T-001
+  - T-002
+  - T-003
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-010
+  name: Token Accounting
+  definition: The tokenizer-aware accounting process that computes request token requirements before queuing and before runtime execution.
+  properties:
+  - Token counting covers final prompt/chat-template content, system messages, role markers, assistant/user messages, tool schemas, service headers, and reserved output tokens.
+  - The preferred mode uses the tokenizer matching the executing model and runtime.
+  - Rough chars/4 estimates are allowed only as explicitly marked fallback.
+  - If exact tokenizer is unavailable, the service either uses explicitly allowed approximate mode or rejects with TOKENIZER_UNAVAILABLE.
+  source_labels:
+  - '{tok1}'
+  - '{tok2}'
+  - '{tok3}'
+- concept_id: C-012
+  name: Admission Control
+  definition: The pre-queue decision process that classifies requests as executable, queueable, or rejected using context-window and VRAM capacity constraints.
+  properties:
+  - Admission runs before a request enters the queue.
+  - Requests over the model context window are rejected with CONTEXT_OVERFLOW.
+  - Requests too large for the maximum dynamic pool are rejected with REQUEST_TOO_LARGE or HARDWARE_VRAM_INSUFFICIENT.
+  - Requests that fit the maximum dynamic pool but not current capacity are queued, not permanently rejected.
+  - Requests fitting both model window and current dynamic pool may execute immediately or be queued according to scheduler policy.
+  - LMCache reuse does not permit unsafe admission.
+  source_labels:
+  - '{adm1}'
+  - '{adm2}'
+  - '{adm3}'
+  - '{inv1}'
+  - '{inv2}'
+  - '{lmcache2}'
+  - '{lmcache6}'
+  - '{inv5}'
+- concept_id: C-013
+  name: Request Queue
+  definition: The queue of admitted requests waiting for dynamic VRAM capacity or scheduler selection.
+  properties:
+  - Queued records store request_id, session_id, model_name, token counts, required dynamic VRAM, admission timestamp, expiration timestamp, priority, and status.
+  - Queued requests must pass capacity recheck before actual launch.
+  source_labels:
+  - '{que1}'
+  - '{rech}'
+- concept_id: C-015
+  name: Runtime Backend
+  definition: An execution backend abstraction that runs only requests admitted by LMRS.
+  properties:
+  - Supported backend examples include vLLM, Ollama, llama.cpp, GPT-OSS runtime, or another local runtime.
+  - The runtime backend does not make admission decisions.
+  source_labels:
+  - '{run1}'
+- concept_id: C-016
+  name: Runtime Client
+  definition: The abstraction that hides backend differences and returns normalized local model execution results.
+  properties:
+  - The runtime client returns assistant message, usage, status, runtime metadata, and telemetry.
+  - The result must be suitable for normalization back into a canonical provider response.
+  source_labels:
+  - '{run2}'
+  - '{prov}'
+- concept_id: C-017
+  name: Public Command Contract
+  definition: The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations.
+  properties:
+  - The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation.
+  - The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot.
+  - The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code.
+  - Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload.
+  source_labels:
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{dcache3}'
+  - '{mlife2}'
+- concept_id: C-018
+  name: Structured Error Contract
+  definition: The stable machine-readable error code set returned by LMRS for admission, tokenizer, hardware, model lifecycle, runtime, cache, and cancellation failures.
+  properties:
+  - Minimum errors include CONTEXT_OVERFLOW, REQUEST_TOO_LARGE, HARDWARE_VRAM_INSUFFICIENT, HARDWARE_CAPACITY_UNKNOWN, TOKENIZER_UNAVAILABLE, MODEL_BUSY_AND_QUEUE_FULL, MODEL_NOT_LOADED, MODEL_LOAD_FAILED, RUNTIME_CALL_FAILED, and REQUEST_CANCELLED.
+  - Additional errors include MODEL_NOT_CACHED, MODEL_CACHE_PRELOAD_FAILED, MODEL_CACHE_CORRUPTED, MODEL_ALREADY_LOADED, MODEL_UNLOAD_FAILED, LMCACHE_UNAVAILABLE, LMCACHE_LOOKUP_FAILED, and LMCACHE_WRITE_FAILED.
+  source_labels:
+  - '{err1}'
+  - '{err2}'
+- concept_id: C-019
+  name: Telemetry
+  definition: The observable data emitted and returned by LMRS for debugging, admission traceability, and calibration feedback.
+  properties:
+  - Telemetry includes predicted tokens, predicted VRAM, actual prompt tokens, actual output tokens, latency, queue wait, VRAM snapshots, admission verdict, and reason code.
+  - Telemetry supports calibration of KV-cache cost, per-request overhead, safety margin, and scheduler policy.
+  - LMCache telemetry includes hit/miss, reused tokens, new tokens, lookup latency, write latency, eviction events, and impact on actual VRAM and latency.
+  source_labels:
+  - '{obs1}'
+  - '{obs2}'
+  - '{lmcache7}'
+- concept_id: C-020
+  name: Calibration Profile
+  definition: The model, runtime, quantization, and hardware-specific calibration data for estimating KV-cache and overhead costs.
+  properties:
+  - KV-cache cost per token supports empirical calibration.
+  - The preferred calibration method measures VRAM growth across prompt lengths.
+  - Calibration profiles are bound to model, runtime backend, quantization/profile, and hardware profile.
+  - Changing model, runtime, or GPU invalidates or requires renewing the calibration profile.
+  source_labels:
+  - '{cal1}'
+  - '{cal2}'
+tactical_steps:
+- tactical_step: T-001-runtime-client-execution
+  source_file: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/README.yaml
+  spec:
+    step_id: T-001
+    parent_global_step: G-005
+    name: Runtime Client Execution Contract
+    description: 'Create the runtime execution contract: define Runtime Backend (C-015) and Runtime Client (C-016) as the execution abstraction that accepts admitted requests, hides backend differences, and produces normalized model results without owning public command metadata or admission decisions.'
+    concepts:
+    - C-015
+    - C-016
+    inputs:
+    - name: admitted_request
+      type: execution_candidate
+      description: A request already accepted by admission or scheduling and ready for runtime execution.
+    - name: runtime_profile
+      type: runtime_profile
+      description: Runtime backend selection and model profile facts needed to call the selected backend.
+    outputs:
+    - name: normalized_runtime_result
+      type: runtime_result
+      description: A normalized assistant message, usage data, runtime metadata, and execution status independent of backend-specific shape.
+    - name: runtime_failure_signal
+      type: error_input
+      description: A structured failure signal consumed by the command and error contract when runtime execution fails.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    status: draft
+  context_file: execution_contexts/G-005-runtime-contracts/T-001-runtime-client-execution/t_context.yaml
+  atomic_steps: 4
+- tactical_step: T-002-command-error-contract
+  source_file: docs/plans/G-005-runtime-contracts/T-002-command-error-contract/README.yaml
+  spec:
+    step_id: T-002
+    parent_global_step: G-005
+    name: Public Command and Error Contract
+    description: 'Create the public command and error contract: define Public Command Contract (C-017) and Structured Error Contract (C-018) as the domain command surface for health, model status, capacity, token count, estimate, chat, queue, cancellation, disk cache, and memory lifecycle operations with stable machine-readable outcomes.'
+    concepts:
+    - C-017
+    - C-018
+    - C-012
+    - C-010
+    - C-013
+    inputs:
+    - name: domain_operation_requests
+      type: command_request_set
+      description: Requests for admission, token accounting, queue state, model cache, model lifecycle, and runtime-backed chat operations.
+    - name: domain_failure_signals
+      type: error_input_set
+      description: Failure signals from tokenization, admission, queueing, model cache, lifecycle, LMCache, and runtime execution.
+    outputs:
+    - name: public_command_contract
+      type: command_contract
+      description: A domain-level contract for command names, accepted operation categories, success result shapes, queue result shapes, and rejection result shapes.
+    - name: structured_error_catalog
+      type: error_contract
+      description: A stable catalog of machine-readable error codes and their triggering conditions.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    status: draft
+  context_file: execution_contexts/G-005-runtime-contracts/T-002-command-error-contract/t_context.yaml
+  atomic_steps: 5
+- tactical_step: T-003-telemetry-feedback
+  source_file: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/README.yaml
+  spec:
+    step_id: T-003
+    parent_global_step: G-005
+    name: Telemetry Feedback Contract
+    description: 'Create the telemetry feedback contract: define Telemetry (C-019) as the runtime and admission observation stream that records predicted and actual tokens, predicted and actual VRAM, latency, queue wait, verdicts, reason codes, and produces Calibration Profile (C-020) inputs.'
+    concepts:
+    - C-019
+    - C-020
+    inputs:
+    - name: execution_observations
+      type: observation_stream
+      description: Observed request, queue, runtime, cache, and capacity facts emitted by the execution path.
+    - name: prediction_context
+      type: estimate_snapshot
+      description: The predicted token, VRAM, queue, and admission facts that telemetry compares against actual results.
+    outputs:
+    - name: telemetry_record_contract
+      type: telemetry_contract
+      description: A structured telemetry record for request estimates, actual usage, latency, queue wait, VRAM snapshots, verdicts, and reason codes.
+    - name: calibration_observation_set
+      type: calibration_input
+      description: Aggregated observations made available to Calibration Profile (C-020) without changing calibration ownership.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    status: draft
+  context_file: execution_contexts/G-005-runtime-contracts/T-003-telemetry-feedback/t_context.yaml
+  atomic_steps: 4
+assignment: Spawn T orchestrators for tactical steps in this G scope using gpt-5.4-mini. Provide each T orchestrator the common context, root context, this G context, and its T context. Verify and accept T outputs before reporting to root.
+forbidden:
+- Reading or modifying plan scopes outside this G unless explicitly escalated and approved
+- Delegating directly to AS executors except through a T orchestrator
+- Guessing missing details
+acceptance:
+- All T results accepted
+- All changes verified through proxy against the server project
+- Escalations resolved or propagated to root

@@ -1,0 +1,208 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-003-admission-and-scheduling
+  tactical_step: T-001-token-capacity-estimate
+  source_file: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/README.yaml
+  allowed_plan_subtree: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/
+tactical_step_spec:
+  step_id: T-001
+  parent_global_step: G-003
+  name: Token and Capacity Estimate
+  description: 'Create the preflight estimate object: apply Token Accounting (C-010), produce Request Capacity Estimate (C-011), compute Request Dynamic VRAM Requirement (C-047), and consume the relevant KV and usable VRAM facts without making an admission decision.'
+  concepts:
+  - C-010
+  - C-011
+  - C-047
+  - C-044
+  - C-046
+  inputs:
+  - name: canonical_request
+    type: request_contract
+    description: The canonical request structure consumed by token accounting, including final prompt material and reserved output tokens.
+  - name: memory_facts
+    type: capacity_fact_set
+    description: KV byte facts and usable dynamic VRAM facts consumed by token capacity estimation.
+  outputs:
+  - name: token_breakdown
+    type: estimate_component
+    description: Input, tool, service, and reserved output token counts with tokenizer accuracy status.
+  - name: dynamic_vram_requirement
+    type: estimate_component
+    description: Required dynamic VRAM bytes computed before admission using request tokens and overhead fields.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  - A-005
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-010
+  name: Token Accounting
+  definition: The tokenizer-aware accounting process that computes request token requirements before queuing and before runtime execution.
+  properties:
+  - Token counting covers final prompt/chat-template content, system messages, role markers, assistant/user messages, tool schemas, service headers, and reserved output tokens.
+  - The preferred mode uses the tokenizer matching the executing model and runtime.
+  - Rough chars/4 estimates are allowed only as explicitly marked fallback.
+  - If exact tokenizer is unavailable, the service either uses explicitly allowed approximate mode or rejects with TOKENIZER_UNAVAILABLE.
+  source_labels:
+  - '{tok1}'
+  - '{tok2}'
+  - '{tok3}'
+- concept_id: C-011
+  name: Request Capacity Estimate
+  definition: The computed token and dynamic VRAM requirement for an individual request.
+  properties:
+  - required_tokens includes input tokens, tool tokens, service tokens, and reserved output tokens.
+  - Requests exceeding the declared model context window are rejected.
+  - Dynamic VRAM estimate is based on required_tokens, calibrated KV-cache cost per token, and per-request overhead.
+  - Allowed request size is the minimum of declared context window and dynamic-pool token capacity.
+  source_labels:
+  - '{lim1}'
+  - '{lim2}'
+  - '{lim3}'
+- concept_id: C-044
+  name: KV Cache Byte Formula
+  definition: Formula contract for computing worst-case KV-cache byte usage from request tokens and explicit model/runtime parameters.
+  properties:
+    formula: kv_bytes = tokens * layers * 2 * kv_heads * head_dim * kv_element_bytes
+    key_value_factor: 2
+    derived_facts:
+    - kv_bytes_per_token = layers * 2 * kv_heads * head_dim * kv_element_bytes
+    - kv_full_window_bytes = declared_context_window * kv_bytes_per_token
+    scope: Used for model profile facts, request estimates, and full-window capacity calculations.
+  source_labels:
+  - '{kvf1}'
+  - '{ctxb}'
+- concept_id: C-046
+  name: Usable Dynamic VRAM Formula
+  definition: Runtime formula for the currently usable GPU dynamic memory pool after model load, safety margin, runtime reserve, and active request reservations.
+  properties:
+    formula: usable_dynamic_vram_bytes = model_loaded_free_vram_bytes - safety_margin_bytes - runtime_reserve_bytes - active_reservation_bytes
+    active_reservation_bytes: Sum of reservations held by running requests.
+    admission_rule: Admission and scheduling use current usable dynamic VRAM, not total VRAM, total RAM, disk cache size, or LMCache capacity.
+  source_labels:
+  - '{vram1}'
+- concept_id: C-047
+  name: Request Dynamic VRAM Requirement
+  definition: Per-request formula for dynamic VRAM required to execute a request safely at runtime.
+  properties:
+    formula: required_dynamic_vram_bytes = input_kv_bytes + reserved_output_kv_bytes + per_request_overhead_bytes + runtime_batch_overhead_bytes
+    input_kv_bytes: Computed from the final tokenized prompt.
+    reserved_output_kv_bytes: Computed from reserved output tokens.
+    execution_predicate: required_tokens <= declared_context_window and required_dynamic_vram_bytes <= usable_dynamic_vram_bytes
+  source_labels:
+  - '{resv1}'
+  - '{lim1}'
+  - '{lim2}'
+atomic_steps:
+- path: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-001-token-breakdown.yaml
+  step_id: A-001
+  name: Define TokenBreakdown
+  target_file: lmrs/estimation.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-010
+  objects:
+  - TokenBreakdown
+  verification:
+    type: static_analysis
+    target: lmrs/estimation.py::TokenBreakdown
+    expected: TokenBreakdown stores all token components and tokenizer accuracy state.
+  context_file: execution_contexts/G-003-admission-and-scheduling/T-001-token-capacity-estimate/A-001-token-breakdown.yaml
+- path: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-002-request-capacity-estimate.yaml
+  step_id: A-002
+  name: Define RequestCapacityEstimate
+  target_file: lmrs/estimation.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-011
+  - C-047
+  - C-046
+  objects:
+  - RequestCapacityEstimate
+  verification:
+    type: static_analysis
+    target: lmrs/estimation.py::RequestCapacityEstimate
+    expected: RequestCapacityEstimate carries token totals, dynamic VRAM requirement, usable VRAM, context window, KV cost, and overheads.
+  context_file: execution_contexts/G-003-admission-and-scheduling/T-001-token-capacity-estimate/A-002-request-capacity-estimate.yaml
+- path: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-003-calculate-required-tokens.yaml
+  step_id: A-003
+  name: Implement calculate_required_tokens
+  target_file: lmrs/estimation.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-010
+  - C-011
+  objects:
+  - calculate_required_tokens
+  verification:
+    type: static_analysis
+    target: lmrs/estimation.py::calculate_required_tokens
+    expected: Function sums all token components and rejects negative token counts.
+  context_file: execution_contexts/G-003-admission-and-scheduling/T-001-token-capacity-estimate/A-003-calculate-required-tokens.yaml
+- path: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-004-calculate-dynamic-vram-requirement.yaml
+  step_id: A-004
+  name: Implement calculate_dynamic_vram_requirement
+  target_file: lmrs/estimation.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-047
+  - C-044
+  objects:
+  - calculate_dynamic_vram_requirement
+  verification:
+    type: static_analysis
+    target: lmrs/estimation.py::calculate_dynamic_vram_requirement
+    expected: Function computes request dynamic VRAM using required tokens, KV bytes per token, and overhead fields.
+  context_file: execution_contexts/G-003-admission-and-scheduling/T-001-token-capacity-estimate/A-004-calculate-dynamic-vram-requirement.yaml
+- path: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-005-estimate-request-capacity.yaml
+  step_id: A-005
+  name: Implement estimate_request_capacity
+  target_file: lmrs/estimation.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-010
+  - C-011
+  - C-047
+  - C-044
+  - C-046
+  objects:
+  - estimate_request_capacity
+  verification:
+    type: static_analysis
+    target: lmrs/estimation.py::estimate_request_capacity
+    expected: Function builds a RequestCapacityEstimate from token breakdown and memory facts without producing an admission verdict.
+  context_file: execution_contexts/G-003-admission-and-scheduling/T-001-token-capacity-estimate/A-005-estimate-request-capacity.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

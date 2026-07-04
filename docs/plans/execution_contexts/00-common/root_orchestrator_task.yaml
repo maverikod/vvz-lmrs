@@ -1,0 +1,34 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: root_orchestrator_task
+role: root_orchestrator
+assignment: Run the implementation plan one G step at a time by spawning exactly one G orchestrator for the active G step. Provide that G orchestrator the common context and its G context file. Accept or reject the completed G work using evidence from its T orchestrators.
+concurrency:
+  max_active_g_steps: 1
+  parallelism_below_g: Controlled by the active G orchestrator within its own scope only
+plan_inventory:
+  global_steps: 7
+  tactical_steps: 20
+  atomic_steps: 92
+g_execution_order:
+- G-001-service-boundary
+- G-002-memory-and-configuration
+- G-003-admission-and-scheduling
+- G-004-model-cache-and-lmcache
+- G-005-runtime-contracts
+- G-006-adapter-integration
+- G-007-proxy-and-cli-operations
+g_context_files:
+- execution_contexts/G-001-service-boundary/g_context.yaml
+- execution_contexts/G-002-memory-and-configuration/g_context.yaml
+- execution_contexts/G-003-admission-and-scheduling/g_context.yaml
+- execution_contexts/G-004-model-cache-and-lmcache/g_context.yaml
+- execution_contexts/G-005-runtime-contracts/g_context.yaml
+- execution_contexts/G-006-adapter-integration/g_context.yaml
+- execution_contexts/G-007-proxy-and-cli-operations/g_context.yaml
+root_acceptance_checklist:
+- G orchestrator stayed inside its G scope
+- All T orchestrators reported verification for their AS work
+- No unresolved escalation remains
+- Server-side git/status and code analysis evidence is attached
+- No local checkout was used as source of truth

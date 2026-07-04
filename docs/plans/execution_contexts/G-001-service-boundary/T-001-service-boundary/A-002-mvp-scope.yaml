@@ -1,0 +1,58 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-mvp-scope.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-001-service-boundary
+  tactical_step: T-001-service-boundary
+  atomic_step: A-002
+  source_file: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-002-mvp-scope.yaml
+  target_file: lmrs/contracts.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-001
+  name: Add MVPScope contract object
+  target_file: lmrs/contracts.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-022
+  objects:
+  - MVPScope
+  prompt: "Target file: lmrs/contracts.py\nOperation: modify_file\nCurrent file content before this step:\n```python\n\"\"\"Core LMRS service boundary contracts.\"\"\"\n\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass\nfrom typing import Sequence\n\n\n@dataclass(frozen=True)\nclass AdapterExposure:\n    \"\"\"Adapter-facing exposure requirements for the LMRS public surface.\"\"\"\n\n    command_surface: tuple[str, ...]\n    requires_schemas: bool\n    requires_metadata: bool\n    requires_structured_errors: bool\n    requires_healthcheck: bool\n    requires_proxy_registration: bool\n```\n\nMRS excerpt: C-022 MVP Scope defines explicit included and excluded capabilities for the initial LMRS implementation.\n\nAdd only frozen dataclass MVPScope after AdapterExposure. Fields: included_capabilities: tuple[str, ...], excluded_capabilities: tuple[str, ...]. Add methods includes(self, capability: str) -> bool and excludes(self, capability: str) -> bool. Add docstrings.\
+    \ Do not modify AdapterExposure and do not add ServiceBoundary or factory logic."
+  verification: &id001
+    type: import
+    target: lmrs.contracts.MVPScope
+    expected: Module imports and MVPScope includes includes/excludes methods.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-022
+  name: MVP Scope
+  definition: The explicit boundary of features included and excluded from the initial LMRS implementation.
+  properties:
+  - MVP includes one resident LLM on one GPU, persistent vectorizer/chunker services, service baseline measurement, model static measurement, tokenizer-aware counting, admission, largest-fit queue, one selected runtime backend, and adapter-based MCP commands.
+  - MVP excludes multi-GPU scheduling, multiple resident LLMs, streaming, speculative decoding, distributed inference, automatic model eviction, and advanced batching optimizer.
+  - MVP includes disk cache lifecycle, explicit memory load/unload, VRAM measurement after load, and basic vLLM LMCache configuration support.
+  source_labels:
+  - '{mvp1}'
+  - '{mvp2}'
+  - '{mvp3}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

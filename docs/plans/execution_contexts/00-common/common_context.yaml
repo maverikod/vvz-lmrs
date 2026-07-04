@@ -1,0 +1,85 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: common_context
+generated_at_utc: '2026-07-04T15:34:04.144397+00:00'
+project_identity:
+  name: lmrs
+  code_analysis_project_id: 03d7a632-fae5-4290-bcee-ba84d19dc1c9
+  server_project_root: /var/casmgr/watch_catalog/550e8400-e29b-41d4-a716-446655440001/lmrs
+  source_of_truth: The registered LMRS project inside Code Analysis Server. Local checkouts are mirrors only.
+context_concatenation_order:
+- 00-common/common_context.yaml
+- 00-common/root_orchestrator_task.yaml
+- G-*/g_context.yaml
+- G-*/T-*/t_context.yaml
+- G-*/T-*/AS-*.yaml
+server_project_law:
+  mandatory: true
+  rule: All project reads, searches, analysis, edits, terminal commands, and git operations must target the server-side Code Analysis project through MCP Proxy.
+  forbidden:
+  - Using the local checkout as source of truth
+  - Local bash/Read/Write/Edit on project files
+  - Guessing command names or schemas
+  allowed_local_use:
+  - Reading these context files after they are supplied as task input by an orchestrator
+proxy_tooling_prompt:
+  proxy_discovery:
+  - list_servers
+  - downstream help
+  - command-specific help with cmdname before unknown commands
+  servers:
+    code_analysis: code-analysis-server-vvz
+    editor: ai-editor-server-vvz
+    terminal: mcp-terminal-vvz
+  code_analysis_usage:
+  - Use project_id and project-relative file_path
+  - Do not pass host root_dir
+  - Use git_* commands for git state when git is needed
+  editor_usage:
+  - Create CA session first
+  - Open file with AI editor
+  - Preview before commit
+  - Commit write
+  - Always close file/session
+  terminal_usage:
+  - Use mcp-terminal through proxy for terminal work
+  - Prefer project-scoped/server-side execution
+  - Report command, status, and output in summaries
+agent_hierarchy:
+  root_orchestrator:
+    model: current root model
+    runs_one_g_step_at_a_time: true
+    accepts: G orchestrator results
+  g_orchestrator:
+    model: gpt-5.5
+    spawns: T orchestrators only
+    accepts: T results for its own G only
+  t_orchestrator:
+    model: gpt-5.4-mini
+    spawns: AS executors only
+    accepts: AS results for its own T only
+  as_executor:
+    model: gpt-5.3-codex-spark
+    scope: single atomic step only
+scope_law:
+  rule: An agent may use only the concatenated context files supplied to it and the server-side project files explicitly needed for its assigned scope.
+  no_vertical_drift: Do not climb to parent/sibling/lower plan scopes unless the supplied context explicitly includes them.
+  empty_context_assumption: Every task file must be sufficient when concatenated with inherited context files; assume the recipient starts with no other project knowledge.
+escalation_resolution_policy:
+  no_guessing: true
+  on_ambiguity_or_conflict: Escalate to the direct parent with exact facts, paths, command outputs, and the decision needed.
+  parent_decision_gate: A parent must solve exactly if the issue is within its scope and facts are sufficient; otherwise escalate upward.
+  chain:
+  - AS -> T
+  - T -> G
+  - G -> root
+  - root -> user when external decision is required
+acceptance_policy:
+  as_checked_by: own T orchestrator
+  t_checked_by: own G orchestrator
+  g_checked_by: root orchestrator
+  evidence_required:
+  - changed files
+  - proxy commands used
+  - verification status
+  - unresolved escalations

@@ -1,0 +1,77 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-disk-model-cache.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-001-disk-model-cache
+  atomic_step: A-003
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-003-disk-model-cache.yaml
+  target_file: lmrs/model_cache.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-001
+  name: Define DiskModelCache
+  target_file: lmrs/model_cache.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-023
+  - C-017
+  objects:
+  - DiskModelCache
+  prompt: Modify lmrs/model_cache.py after A-001 and A-002. Append dataclass DiskModelCache with cache_root, records tuple[CachedModelRecord, ...], and command-wrapper methods or functions for preload, status, delete, list, integrity check, and metadata update as contract stubs. These commands operate on disk cache metadata and readiness, not VRAM load.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/model_cache.py::DiskModelCache
+    expected: DiskModelCache owns cached records and exposes preload/status/delete/list/integrity/metadata-update command surface without VRAM load semantics.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-017
+  name: Public Command Contract
+  definition: The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations.
+  properties:
+  - The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation.
+  - The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot.
+  - The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code.
+  - Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload.
+  source_labels:
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{dcache3}'
+  - '{mlife2}'
+- concept_id: C-023
+  name: Disk Model Cache
+  definition: The disk-resident model cache that stores model weights, tokenizer files, runtime metadata, integrity information, readiness state, and cache profile independently from VRAM residency.
+  properties:
+  - Preload downloads, verifies integrity, prepares local layout, tokenizer files, runtime metadata, and readiness marker without requiring VRAM load.
+  - Disk cache and VRAM model residency are separate states.
+  - Model states include not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed.
+  - Cache management commands add, check, delete, list, verify integrity, and update metadata.
+  - Cache profile stores model_name, runtime, model_path, quantization/profile, declared_context_window, tokenizer profile, checksum or revision, disk size, load date, compatibility flags, and cache status.
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{inv4}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

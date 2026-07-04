@@ -1,0 +1,104 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-005-public-command-contract.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-002-command-error-contract
+  atomic_step: A-005
+  source_file: docs/plans/G-005-runtime-contracts/T-002-command-error-contract/atomic_steps/A-005-public-command-contract.yaml
+  target_file: lmrs/commands.py
+atomic_step_spec:
+  step_id: A-005
+  parent_tactical_step: T-002
+  name: Define PublicCommandContract
+  target_file: lmrs/commands.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-017
+  - C-012
+  - C-010
+  - C-013
+  objects:
+  - PublicCommandContract
+  prompt: Modify lmrs/commands.py after A-001 through A-004. Append dataclass PublicCommandContract that declares, for each CommandName, its accepted operation category and the CommandResult shape it returns, as contract stubs. The estimate command performs dry-run token accounting and admission and returns a would_* outcome; the chat command performs token accounting and admission and returns executed, queued, or rejected; queue_status reports request queue state. It must not perform runtime execution or admission logic itself, only declare the contract.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/commands.py::PublicCommandContract
+    expected: PublicCommandContract maps each command to its operation category and result shape and ties estimate/chat to token accounting and admission and queue_status to request queue state without executing them.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-010
+  name: Token Accounting
+  definition: The tokenizer-aware accounting process that computes request token requirements before queuing and before runtime execution.
+  properties:
+  - Token counting covers final prompt/chat-template content, system messages, role markers, assistant/user messages, tool schemas, service headers, and reserved output tokens.
+  - The preferred mode uses the tokenizer matching the executing model and runtime.
+  - Rough chars/4 estimates are allowed only as explicitly marked fallback.
+  - If exact tokenizer is unavailable, the service either uses explicitly allowed approximate mode or rejects with TOKENIZER_UNAVAILABLE.
+  source_labels:
+  - '{tok1}'
+  - '{tok2}'
+  - '{tok3}'
+- concept_id: C-012
+  name: Admission Control
+  definition: The pre-queue decision process that classifies requests as executable, queueable, or rejected using context-window and VRAM capacity constraints.
+  properties:
+  - Admission runs before a request enters the queue.
+  - Requests over the model context window are rejected with CONTEXT_OVERFLOW.
+  - Requests too large for the maximum dynamic pool are rejected with REQUEST_TOO_LARGE or HARDWARE_VRAM_INSUFFICIENT.
+  - Requests that fit the maximum dynamic pool but not current capacity are queued, not permanently rejected.
+  - Requests fitting both model window and current dynamic pool may execute immediately or be queued according to scheduler policy.
+  - LMCache reuse does not permit unsafe admission.
+  source_labels:
+  - '{adm1}'
+  - '{adm2}'
+  - '{adm3}'
+  - '{inv1}'
+  - '{inv2}'
+  - '{lmcache2}'
+  - '{lmcache6}'
+  - '{inv5}'
+- concept_id: C-013
+  name: Request Queue
+  definition: The queue of admitted requests waiting for dynamic VRAM capacity or scheduler selection.
+  properties:
+  - Queued records store request_id, session_id, model_name, token counts, required dynamic VRAM, admission timestamp, expiration timestamp, priority, and status.
+  - Queued requests must pass capacity recheck before actual launch.
+  source_labels:
+  - '{que1}'
+  - '{rech}'
+- concept_id: C-017
+  name: Public Command Contract
+  definition: The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations.
+  properties:
+  - The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation.
+  - The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot.
+  - The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code.
+  - Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload.
+  source_labels:
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{dcache3}'
+  - '{mlife2}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

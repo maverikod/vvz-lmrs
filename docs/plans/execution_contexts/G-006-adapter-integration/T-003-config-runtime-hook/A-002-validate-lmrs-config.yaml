@@ -1,0 +1,65 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-validate-lmrs-config.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-006-adapter-integration
+  tactical_step: T-003-config-runtime-hook
+  atomic_step: A-002
+  source_file: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-002-validate-lmrs-config.yaml
+  target_file: lmrs/adapter/runtime.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-003
+  name: Implement validate_lmrs_config
+  target_file: lmrs/adapter/runtime.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-031
+  - C-021
+  objects:
+  - validate_lmrs_config
+  prompt: Modify lmrs/adapter/runtime.py after A-001. Append validate_lmrs_config(config) that first checks base adapter configuration sections, then checks the LMRS model, runtime, tokenizer, hardware, resident service, queue, admission, disk cache, LMCache, error, and telemetry sections. It rejects inconsistent or incomplete configuration before LMRS starts or accepts runtime work, returning or raising a structured validation result. The validated configuration belongs to Runtime Configuration. Do not start the server here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/adapter/runtime.py::validate_lmrs_config
+    expected: validate_lmrs_config checks base adapter and LMRS sections and rejects inconsistent or incomplete configuration before startup.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-021
+  name: Runtime Configuration
+  definition: The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits.
+  properties:
+  - Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits.
+  - For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile.
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+- concept_id: C-031
+  name: Adapter Configuration Validator
+  definition: The LMRS configuration validator that extends adapter validation with LMRS-specific consistency checks.
+  properties:
+  - The validator first checks base adapter configuration sections.
+  - The validator checks model, runtime, tokenizer, hardware, resident service, queue, admission, disk cache, LMCache, error, and telemetry sections.
+  - The validator rejects inconsistent or incomplete configuration before LMRS starts or accepts runtime work.
+  source_labels:
+  - '{aval}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

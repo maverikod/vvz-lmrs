@@ -1,0 +1,59 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-evaluate-lmcache-admission.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-003-admission-and-scheduling
+  tactical_step: T-002-admission-verdict
+  atomic_step: A-003
+  source_file: docs/plans/G-003-admission-and-scheduling/T-002-admission-verdict/atomic_steps/A-003-evaluate-lmcache-admission.yaml
+  target_file: lmrs/admission.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-002
+  name: Implement evaluate_lmcache_admission
+  target_file: lmrs/admission.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-048
+  objects:
+  - evaluate_lmcache_admission
+  prompt: 'Modify lmrs/admission.py after A-001 and A-002. Append evaluate_lmcache_admission(cache_hit_confirmed: bool, full_required_dynamic_vram_bytes: int, cache_adjusted_dynamic_vram_bytes: int | None) -> int. It must return adjusted bytes only when cache_hit_confirmed is true and adjusted value is provided; otherwise return full miss estimate. This enforces conservative LMCache admission. Do not extend context window or VRAM capacity.'
+  verification: &id001
+    type: static_analysis
+    target: lmrs/admission.py::evaluate_lmcache_admission
+    expected: Function treats LMCache as optional confirmed reduction only and otherwise returns cache-miss dynamic VRAM requirement.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-048
+  name: LMCache Admission Constraint
+  definition: Conservative admission rule for treating LMCache reuse as optional reduction of new-token KV work only when a pre-admission exact hit is available.
+  properties:
+    not_capacity: LMCache is not additional VRAM capacity and does not extend the model context window.
+    full_prompt_rule: The full prompt is always validated against the declared context window.
+    hit_rule: Request KV estimate may be reduced only for an exact pre-admission cache hit matching token chunks, model profile, runtime profile, and namespace.
+    miss_rule: If the hit is not guaranteed before execution, the request is admitted as a cache miss.
+  source_labels:
+  - '{lmc1}'
+  - '{lmcache2}'
+  - '{lmcache6}'
+  - '{inv5}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

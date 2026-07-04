@@ -1,0 +1,78 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-canonical-chat-request.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-001-service-boundary
+  tactical_step: T-002-canonical-gateway-request
+  atomic_step: A-002
+  source_file: docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/atomic_steps/A-002-canonical-chat-request.yaml
+  target_file: lmrs/gateway.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-002
+  name: Define CanonicalChatRequest contract
+  target_file: lmrs/gateway.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-001
+  - C-002
+  - C-004
+  objects:
+  - CanonicalChatRequest
+  prompt: "Target file: lmrs/gateway.py\nOperation: modify_file\n\nMRS excerpt:\n- C-001 Local Model Runtime Service: standalone adapter-based microservice that consumes local-model requests and prevents prompts from reaching runtime until admission is proven.\n- C-002 Provider Gateway Integration: model_access_core remains the gateway and routes local provider requests to LMRS without managing VRAM, loading models, or executing prompts directly.\n- C-004 Canonical Chat Request: contains session_id, request_id, model_name, messages, tools, reserved_output_tokens, and options.\n\nCurrent full content of lmrs/gateway.py before this modification:\n```python\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import Any, Mapping\n\n\n@dataclass(frozen=True)\nclass ChatMessage:\n    \"\"\"One role-tagged message from a canonical gateway chat request.\"\"\"\n\n    role: str\n    content: str | list[Mapping[str, Any]]\n    name: str | None = None\n    metadata:\
+    \ Mapping[str, Any] = field(default_factory=dict)\n```\n\nModify the file by adding the following dataclass after ChatMessage:\n\n```python\n\n@dataclass(frozen=True)\nclass CanonicalChatRequest:\n    \"\"\"Gateway-owned request accepted by LMRS for local model routing.\"\"\"\n\n    session_id: str\n    request_id: str\n    model_name: str\n    messages: tuple[ChatMessage, ...]\n    tools: tuple[Mapping[str, Any], ...] = ()\n    reserved_output_tokens: int = 0\n    options: Mapping[str, Any] = field(default_factory=dict)\n```\n\nConstraints:\n- Keep the existing ChatMessage definition unchanged.\n- Use the existing imports; do not add new imports.\n- The dataclass must be frozen.\n- The field order must match the code block exactly.\n- Do not add normalization, validation, or response objects in this step."
+  verification: &id001
+    type: static_analysis
+    target: lmrs/gateway.py::CanonicalChatRequest
+    expected: The file defines a frozen CanonicalChatRequest dataclass with gateway request identity, model, message, tool, output reservation, and options fields.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-001
+  name: Local Model Runtime Service
+  definition: A standalone adapter-based microservice that provides high-level access to locally executed language models while enforcing prompt admission before runtime execution.
+  properties:
+  - It is separate from model_access_core and ollama/model_workspace.
+  - It exposes local model access through an adapter-based MCP interface.
+  - It must prevent any prompt from reaching the local model runtime until context-window and dynamic VRAM capacity have been proven.
+  source_labels:
+  - '{lmrs}'
+  - '{goal}'
+  - '{inv1}'
+- concept_id: C-002
+  name: Provider Gateway Integration
+  definition: The integration boundary through which model_access_core routes local provider requests to the Local Model Runtime Service.
+  properties:
+  - model_access_core remains the universal provider gateway.
+  - model_access_core does not manage VRAM, load local models, or execute local prompts directly.
+  - LMRS appears to model_access_core as a local provider backend and returns responses normalizable into canonical provider responses.
+  source_labels:
+  - '{sep1}'
+  - '{prov}'
+- concept_id: C-004
+  name: Canonical Chat Request
+  definition: The request structure accepted from the provider gateway for local model execution or admission decisions.
+  properties:
+  - It contains session_id, request_id, model_name, messages, tools, reserved_output_tokens, and options.
+  - It is close to the canonical chat request used by the provider gateway.
+  source_labels:
+  - '{prov}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

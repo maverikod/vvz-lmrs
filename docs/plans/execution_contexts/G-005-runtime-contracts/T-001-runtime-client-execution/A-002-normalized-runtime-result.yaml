@@ -1,0 +1,55 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-normalized-runtime-result.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-001-runtime-client-execution
+  atomic_step: A-002
+  source_file: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-002-normalized-runtime-result.yaml
+  target_file: lmrs/runtime_client.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-001
+  name: Define NormalizedRuntimeResult
+  target_file: lmrs/runtime_client.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-016
+  objects:
+  - NormalizedRuntimeResult
+  prompt: Modify lmrs/runtime_client.py after A-001. Append frozen dataclass NormalizedRuntimeResult with assistant_message, usage, status, runtime_metadata, telemetry, and metadata. It is the normalized local model execution result, independent of backend-specific shape, and must be suitable for normalization back into a canonical provider response. Do not add backend call logic here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/runtime_client.py::NormalizedRuntimeResult
+    expected: NormalizedRuntimeResult stores assistant message, usage, status, runtime metadata, and telemetry in a backend-independent shape.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-016
+  name: Runtime Client
+  definition: The abstraction that hides backend differences and returns normalized local model execution results.
+  properties:
+  - The runtime client returns assistant message, usage, status, runtime metadata, and telemetry.
+  - The result must be suitable for normalization back into a canonical provider response.
+  source_labels:
+  - '{run2}'
+  - '{prov}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

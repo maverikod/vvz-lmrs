@@ -1,0 +1,134 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-006-adapter-integration
+  tactical_step: T-001-command-registration-wrappers
+  source_file: docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/README.yaml
+  allowed_plan_subtree: docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/
+tactical_step_spec:
+  step_id: T-001
+  parent_global_step: G-006
+  name: Adapter Command Registration and Wrappers
+  description: 'Create the adapter command exposure contract: define Adapter Command Registration (C-026) and Thin Adapter Command (C-027) as the adapter-facing registration and wrapper layer that implements the Adapter-Based MCP Interface (C-003) while delegating business decisions to LMRS domain services.'
+  concepts:
+  - C-026
+  - C-027
+  - C-003
+  inputs:
+  - name: domain_command_contract
+    type: command_contract
+    description: Public command contract exposed through adapter command wrappers.
+  - name: adapter_interface_contract
+    type: interface_contract
+    description: Adapter-Based MCP Interface (C-003) requirements for registration, execution, validation, and structured results.
+  outputs:
+  - name: registration_hook_contract
+    type: registration_contract
+    description: A contract for idempotent command registration into the adapter command registry.
+  - name: thin_command_wrapper_contract
+    type: adapter_command_contract
+    description: A contract for adapter-facing command wrappers that validate, call domain executors, and return structured adapter results.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+- concept_id: C-026
+  name: Adapter Command Registration
+  definition: The hook-based mechanism that registers LMRS public command classes with the adapter command registry before the adapter server starts.
+  properties:
+  - Registration is centralized in a dedicated register_lmrs_commands(registry) module function.
+  - Registration is idempotent and checks whether a command is already registered before registering it.
+  - Commands are registered as custom adapter commands via registry.register(CommandClass, "custom").
+  - Registration is installed through register_custom_commands_hook before adapter server startup.
+  source_labels:
+  - '{areg}'
+- concept_id: C-027
+  name: Thin Adapter Command
+  definition: A public LMRS command class that translates adapter calls into domain service execution without owning LMRS business logic.
+  properties:
+  - Each command inherits the adapter Command base class.
+  - Each command exposes a stable name and uses use_queue for long-running work when required.
+  - Each command validates parameters, delegates to a domain executor or service, and returns adapter SuccessResult or ErrorResult.
+  - Adapter command classes do not embed admission, tokenizer, VRAM, or model lifecycle business logic.
+  source_labels:
+  - '{acmd}'
+atomic_steps:
+- path: docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-001-thin-adapter-command.yaml
+  step_id: A-001
+  name: Define ThinAdapterCommand base
+  target_file: lmrs/adapter/registration.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-027
+  - C-003
+  objects:
+  - ThinAdapterCommand
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/registration.py::ThinAdapterCommand
+    expected: ThinAdapterCommand defines a stable-name validate-delegate-return wrapper contract that returns adapter success or error results and embeds no LMRS business logic.
+  context_file: execution_contexts/G-006-adapter-integration/T-001-command-registration-wrappers/A-001-thin-adapter-command.yaml
+- path: docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-002-register-lmrs-commands.yaml
+  step_id: A-002
+  name: Implement register_lmrs_commands
+  target_file: lmrs/adapter/registration.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-026
+  objects:
+  - register_lmrs_commands
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/registration.py::register_lmrs_commands
+    expected: register_lmrs_commands idempotently registers LMRS command classes as custom adapter commands, skipping any already registered.
+  context_file: execution_contexts/G-006-adapter-integration/T-001-command-registration-wrappers/A-002-register-lmrs-commands.yaml
+- path: docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-003-register-custom-commands-hook.yaml
+  step_id: A-003
+  name: Implement register_custom_commands_hook
+  target_file: lmrs/adapter/registration.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-026
+  - C-003
+  objects:
+  - register_custom_commands_hook
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/registration.py::register_custom_commands_hook
+    expected: register_custom_commands_hook installs LMRS command registration into the adapter startup sequence before server start, idempotently.
+  context_file: execution_contexts/G-006-adapter-integration/T-001-command-registration-wrappers/A-003-register-custom-commands-hook.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

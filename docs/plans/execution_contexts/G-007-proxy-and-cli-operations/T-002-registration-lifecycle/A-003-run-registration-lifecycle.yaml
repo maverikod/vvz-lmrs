@@ -1,0 +1,84 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-run-registration-lifecycle.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-002-registration-lifecycle
+  atomic_step: A-003
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-003-run-registration-lifecycle.yaml
+  target_file: lmrs/proxy/lifecycle.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-002
+  name: Implement run_registration_lifecycle
+  target_file: lmrs/proxy/lifecycle.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-038
+  - C-035
+  - C-039
+  - C-036
+  objects:
+  - run_registration_lifecycle
+  prompt: Modify lmrs/proxy/lifecycle.py after A-001 and A-002. Append run_registration_lifecycle(policy, endpoint, advertised_url, payload, runtime_state) as a contract stub describing the lifecycle. Startup waits until the advertised server URL is listening before proxy registration. Heartbeat sends the registration payload on the configured interval. Failed or unrecognized registrations are retried and may trigger re-registration. Shutdown unregisters the adapter when configured. It updates and returns a RegistrationState reflecting registered state and heartbeat freshness. Do not build the payload or resolve the protocol here; consume the provided contracts.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/proxy/lifecycle.py::run_registration_lifecycle
+    expected: run_registration_lifecycle waits for listener readiness, registers, heartbeats on interval, retries and re-registers on failure, unregisters on shutdown, and returns RegistrationState.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-035
+  name: Advertised Server URL
+  definition: The proxy-visible URL derived from the server listen endpoint and normalized for reachability by the proxy.
+  properties:
+  - Wildcard bind addresses are not advertised directly.
+  - An explicit advertised host is preferred when configured.
+  - For local deployments, wildcard bind addresses are normalized to a reachable host such as localhost.
+  source_labels:
+  - '{radv}'
+- concept_id: C-036
+  name: Proxy Registration Endpoint
+  definition: The registration-side contract that tells LMRS how to register, unregister, and send heartbeat data to the MCP proxy.
+  properties:
+  - Registration settings are separate from listener settings.
+  - The contract includes enablement, startup and shutdown behavior, full registration URLs, heartbeat URL and interval, server identity, instance UUID, metadata, and client credentials.
+  source_labels:
+  - '{rprx}'
+- concept_id: C-038
+  name: Proxy Registration Lifecycle
+  definition: The startup, heartbeat, retry, re-registration, and shutdown behavior used to keep the LMRS adapter visible through the proxy.
+  properties:
+  - Startup waits until the advertised server URL is listening before proxy registration.
+  - Heartbeat sends registration payloads on the configured interval.
+  - Failed or unrecognized registrations are retried and may trigger re-registration.
+  - Shutdown unregisters the adapter when configured.
+  source_labels:
+  - '{rhbt}'
+- concept_id: C-039
+  name: Registration Payload
+  definition: The server identity, reachable URL, capabilities, and metadata sent to the MCP proxy during registration and heartbeat.
+  properties:
+  - Server name resolution prefers explicit server identifier, then explicit server name, then a deterministic default from normalized host and port.
+  - Metadata includes server protocol, host, port, stable instance UUID when available, and adapter-specific discovery or routing metadata.
+  source_labels:
+  - '{rpay}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

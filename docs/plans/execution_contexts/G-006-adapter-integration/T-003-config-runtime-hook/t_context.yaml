@@ -1,0 +1,184 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-006-adapter-integration
+  tactical_step: T-003-config-runtime-hook
+  source_file: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/README.yaml
+  allowed_plan_subtree: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/
+tactical_step_spec:
+  step_id: T-003
+  parent_global_step: G-006
+  name: Configuration Generator, Validator, and Runtime Hook
+  description: 'Create the adapter configuration and runtime hook contract: define Adapter Configuration Generator (C-030), Adapter Configuration Validator (C-031), Adapter Runtime Entrypoint (C-032), and Adapter Documentation Baseline (C-033) as the generated configuration, validation, startup hook, and reference baseline that integrate LMRS with the adapter runtime.'
+  concepts:
+  - C-030
+  - C-031
+  - C-032
+  - C-033
+  - C-021
+  inputs:
+  - name: runtime_configuration_needs
+    type: configuration_requirement_set
+    description: LMRS runtime configuration requirements for hardware, resident services, models, backends, tokenizer profiles, admission, disk cache, LMCache, telemetry, lifecycle, queue, and registration.
+  - name: adapter_reference_material
+    type: standard_reference
+    description: Adapter documentation and rules used as integration baseline for generator, validator, and runtime entrypoint behavior.
+  outputs:
+  - name: configuration_generation_contract
+    type: configuration_contract
+    description: A contract for generating adapter base sections and LMRS-specific runtime sections.
+  - name: configuration_validation_contract
+    type: validation_contract
+    description: A contract for validating adapter sections and LMRS-specific consistency before startup.
+  - name: runtime_hook_contract
+    type: startup_contract
+    description: A startup contract for registering hooks, loading configuration, starting lifecycle services, and handing control to the adapter runtime.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+- concept_id: C-021
+  name: Runtime Configuration
+  definition: The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits.
+  properties:
+  - Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits.
+  - For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile.
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+- concept_id: C-030
+  name: Adapter Configuration Generator
+  definition: The LMRS configuration generator that extends the adapter generator with LMRS-specific runtime and admission configuration sections.
+  properties:
+  - The generator first creates adapter server, registration, and queue manager configuration.
+  - The generator adds LMRS sections for hardware profile, resident services, model profiles, runtime backends, tokenizer profiles, admission policy, disk model cache, LMCache, telemetry, and lifecycle limits.
+  - Generated configuration is the starting point for validated LMRS runtime configuration.
+  source_labels:
+  - '{acfg}'
+- concept_id: C-031
+  name: Adapter Configuration Validator
+  definition: The LMRS configuration validator that extends adapter validation with LMRS-specific consistency checks.
+  properties:
+  - The validator first checks base adapter configuration sections.
+  - The validator checks model, runtime, tokenizer, hardware, resident service, queue, admission, disk cache, LMCache, error, and telemetry sections.
+  - The validator rejects inconsistent or incomplete configuration before LMRS starts or accepts runtime work.
+  source_labels:
+  - '{aval}'
+- concept_id: C-032
+  name: Adapter Runtime Entrypoint
+  definition: The startup boundary that wires command hooks, configuration loading, domain lifecycle services, and adapter server execution.
+  properties:
+  - The entrypoint registers LMRS command hooks before adapter server startup.
+  - The entrypoint loads configuration and starts LMRS domain lifecycle services.
+  - The entrypoint hands control to the adapter startup mechanism (create_app to build the application, then run via the adapter application runner).
+  - Adapter factory code remains free of LMRS admission, tokenizer, VRAM, and model lifecycle logic.
+  source_labels:
+  - '{ahok}'
+- concept_id: C-033
+  name: Adapter Documentation Baseline
+  definition: The mcp_proxy_adapter documentation and project rules used as the reference for LMRS adapter integration conventions.
+  properties:
+  - The README and project rules are used as integration reference for server structure, hooks, commands, config generator and validator, and metadata discovery.
+  - The documentation baseline guides implementation conventions but does not replace LMRS HRS and MRS product requirements.
+  source_labels:
+  - '{aread}'
+atomic_steps:
+- path: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-001-generate-lmrs-config.yaml
+  step_id: A-001
+  name: Implement generate_lmrs_config
+  target_file: lmrs/adapter/runtime.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-030
+  - C-021
+  objects:
+  - generate_lmrs_config
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/runtime.py::generate_lmrs_config
+    expected: generate_lmrs_config produces adapter base sections plus LMRS runtime and admission sections as the starting configuration for validation.
+  context_file: execution_contexts/G-006-adapter-integration/T-003-config-runtime-hook/A-001-generate-lmrs-config.yaml
+- path: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-002-validate-lmrs-config.yaml
+  step_id: A-002
+  name: Implement validate_lmrs_config
+  target_file: lmrs/adapter/runtime.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-031
+  - C-021
+  objects:
+  - validate_lmrs_config
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/runtime.py::validate_lmrs_config
+    expected: validate_lmrs_config checks base adapter and LMRS sections and rejects inconsistent or incomplete configuration before startup.
+  context_file: execution_contexts/G-006-adapter-integration/T-003-config-runtime-hook/A-002-validate-lmrs-config.yaml
+- path: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-003-run-lmrs-adapter.yaml
+  step_id: A-003
+  name: Implement run_lmrs_adapter
+  target_file: lmrs/adapter/runtime.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-032
+  - C-003
+  objects:
+  - run_lmrs_adapter
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/runtime.py::run_lmrs_adapter
+    expected: run_lmrs_adapter registers hooks, loads and validates configuration, starts lifecycle services, and hands control to adapter create_and_run_server without embedding domain logic.
+  context_file: execution_contexts/G-006-adapter-integration/T-003-config-runtime-hook/A-003-run-lmrs-adapter.yaml
+- path: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-004-adapter-documentation-baseline.yaml
+  step_id: A-004
+  name: Define ADAPTER_DOCUMENTATION_BASELINE
+  target_file: lmrs/adapter/runtime.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-033
+  - C-003
+  objects:
+  - ADAPTER_DOCUMENTATION_BASELINE
+  verification:
+    type: static_analysis
+    target: lmrs/adapter/runtime.py::ADAPTER_DOCUMENTATION_BASELINE
+    expected: ADAPTER_DOCUMENTATION_BASELINE records the adapter documentation and project rules as an integration reference that does not replace LMRS HRS and MRS requirements.
+  context_file: execution_contexts/G-006-adapter-integration/T-003-config-runtime-hook/A-004-adapter-documentation-baseline.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

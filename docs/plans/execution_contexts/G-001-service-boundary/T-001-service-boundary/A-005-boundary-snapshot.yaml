@@ -1,0 +1,89 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-005-boundary-snapshot.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-001-service-boundary
+  tactical_step: T-001-service-boundary
+  atomic_step: A-005
+  source_file: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-005-boundary-snapshot.yaml
+  target_file: lmrs/contracts.py
+atomic_step_spec:
+  step_id: A-005
+  parent_tactical_step: T-001
+  name: Add service boundary snapshot export
+  target_file: lmrs/contracts.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-001
+  - C-003
+  - C-022
+  objects:
+  - boundary_snapshot
+  - __all__
+  prompt: 'Target file: lmrs/contracts.py
+
+    Operation: modify_file
+
+    Current file content before this step: the file contains AdapterExposure, MVPScope, ServiceBoundary, and build_default_service_boundary exactly as produced by A-001 through A-004.
+
+
+    MRS excerpt: C-001 service boundary must be observable; C-003 adapter-facing commands need serializable contract data; C-022 MVP scope must be externally visible without exposing implementation internals.
+
+
+    Modify imports to include Mapping if needed. Add only function boundary_snapshot(boundary: ServiceBoundary) -> Mapping[str, object] and __all__: Sequence[str]. boundary_snapshot must return serializable lists for service_name, owned_responsibilities, delegated_responsibilities, command_surface, included_capabilities, excluded_capabilities, and invariants. __all__ must export AdapterExposure, MVPScope, ServiceBoundary, build_default_service_boundary, and boundary_snapshot.'
+  verification: &id001
+    type: import
+    target: lmrs.contracts.boundary_snapshot
+    expected: boundary_snapshot returns a serializable mapping and __all__ exports the public contract objects.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-001
+  name: Local Model Runtime Service
+  definition: A standalone adapter-based microservice that provides high-level access to locally executed language models while enforcing prompt admission before runtime execution.
+  properties:
+  - It is separate from model_access_core and ollama/model_workspace.
+  - It exposes local model access through an adapter-based MCP interface.
+  - It must prevent any prompt from reaching the local model runtime until context-window and dynamic VRAM capacity have been proven.
+  source_labels:
+  - '{lmrs}'
+  - '{goal}'
+  - '{inv1}'
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+- concept_id: C-022
+  name: MVP Scope
+  definition: The explicit boundary of features included and excluded from the initial LMRS implementation.
+  properties:
+  - MVP includes one resident LLM on one GPU, persistent vectorizer/chunker services, service baseline measurement, model static measurement, tokenizer-aware counting, admission, largest-fit queue, one selected runtime backend, and adapter-based MCP commands.
+  - MVP excludes multi-GPU scheduling, multiple resident LLMs, streaming, speculative decoding, distributed inference, automatic model eviction, and advanced batching optimizer.
+  - MVP includes disk cache lifecycle, explicit memory load/unload, VRAM measurement after load, and basic vLLM LMCache configuration support.
+  source_labels:
+  - '{mvp1}'
+  - '{mvp2}'
+  - '{mvp3}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

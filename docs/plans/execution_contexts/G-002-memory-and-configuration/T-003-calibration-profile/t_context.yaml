@@ -1,0 +1,163 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-003-calibration-profile
+  source_file: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/README.yaml
+  allowed_plan_subtree: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/
+tactical_step_spec:
+  step_id: T-003
+  parent_global_step: G-002
+  name: Calibration Feedback Contract
+  description: 'Create the calibration feedback contract: define Calibration Profile (C-020) as the domain object that stores empirical KV-cache and overhead observations and supplies corrected facts to Request Capacity Estimate (C-011) without owning request admission or runtime execution.'
+  concepts:
+  - C-020
+  - C-011
+  inputs:
+  - name: calibration_claims
+    type: source_labels
+    description: Binding claims {cal1} and {cal2} defining empirical calibration and profile invalidation conditions.
+  - name: telemetry_observations
+    type: telemetry_fact_set
+    description: Observed runtime token, VRAM, and overhead facts consumed by calibration without redefining Telemetry (C-019).
+  outputs:
+  - name: calibration_profile_contract
+    type: domain_contract
+    description: A contract for storing calibrated KV and overhead costs by model, runtime, quantization/profile, and hardware profile.
+  - name: capacity_estimate_adjustment
+    type: calibration_output
+    description: Corrected estimate inputs made available to Request Capacity Estimate (C-011).
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  - A-005
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-011
+  name: Request Capacity Estimate
+  definition: The computed token and dynamic VRAM requirement for an individual request.
+  properties:
+  - required_tokens includes input tokens, tool tokens, service tokens, and reserved output tokens.
+  - Requests exceeding the declared model context window are rejected.
+  - Dynamic VRAM estimate is based on required_tokens, calibrated KV-cache cost per token, and per-request overhead.
+  - Allowed request size is the minimum of declared context window and dynamic-pool token capacity.
+  source_labels:
+  - '{lim1}'
+  - '{lim2}'
+  - '{lim3}'
+- concept_id: C-020
+  name: Calibration Profile
+  definition: The model, runtime, quantization, and hardware-specific calibration data for estimating KV-cache and overhead costs.
+  properties:
+  - KV-cache cost per token supports empirical calibration.
+  - The preferred calibration method measures VRAM growth across prompt lengths.
+  - Calibration profiles are bound to model, runtime backend, quantization/profile, and hardware profile.
+  - Changing model, runtime, or GPU invalidates or requires renewing the calibration profile.
+  source_labels:
+  - '{cal1}'
+  - '{cal2}'
+atomic_steps:
+- path: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-001-calibration-key.yaml
+  step_id: A-001
+  name: Define CalibrationKey
+  target_file: lmrs/calibration.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-020
+  objects:
+  - CalibrationKey
+  verification:
+    type: static_analysis
+    target: lmrs/calibration.py::CalibrationKey
+    expected: Frozen CalibrationKey dataclass uniquely binds calibration data to model, runtime, quantization/profile, and hardware profile.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-003-calibration-profile/A-001-calibration-key.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-002-calibration-observation.yaml
+  step_id: A-002
+  name: Define CalibrationObservation
+  target_file: lmrs/calibration.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-020
+  - C-011
+  objects:
+  - CalibrationObservation
+  verification:
+    type: static_analysis
+    target: lmrs/calibration.py::CalibrationObservation
+    expected: Frozen CalibrationObservation dataclass stores empirical token, predicted VRAM, actual VRAM, and overhead facts for calibration.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-003-calibration-profile/A-002-calibration-observation.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-003-calibration-profile.yaml
+  step_id: A-003
+  name: Define CalibrationProfile
+  target_file: lmrs/calibration.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-020
+  objects:
+  - CalibrationProfile
+  verification:
+    type: static_analysis
+    target: lmrs/calibration.py::CalibrationProfile
+    expected: Frozen CalibrationProfile dataclass stores calibrated KV cost, overhead costs, observation count, validity, invalidation reason, and metadata.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-003-calibration-profile/A-003-calibration-profile.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-004-build-calibration-profile.yaml
+  step_id: A-004
+  name: Implement build_calibration_profile
+  target_file: lmrs/calibration.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-020
+  objects:
+  - build_calibration_profile
+  verification:
+    type: static_analysis
+    target: lmrs/calibration.py::build_calibration_profile
+    expected: Function builds a CalibrationProfile from empirical observations, validates inputs, computes calibrated KV bytes per token, and captures max overheads.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-003-calibration-profile/A-004-build-calibration-profile.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-005-calibration-snapshot.yaml
+  step_id: A-005
+  name: Implement calibration_snapshot
+  target_file: lmrs/calibration.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-020
+  objects:
+  - calibration_snapshot
+  verification:
+    type: static_analysis
+    target: lmrs/calibration.py::calibration_snapshot
+    expected: Function returns a structured snapshot of calibration identity, calibrated costs, observation count, validity, invalidation reason, and metadata.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-003-calibration-profile/A-005-calibration-snapshot.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

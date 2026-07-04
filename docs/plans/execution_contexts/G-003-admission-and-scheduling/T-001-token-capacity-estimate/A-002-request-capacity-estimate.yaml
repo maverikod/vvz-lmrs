@@ -1,0 +1,81 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-request-capacity-estimate.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-003-admission-and-scheduling
+  tactical_step: T-001-token-capacity-estimate
+  atomic_step: A-002
+  source_file: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-002-request-capacity-estimate.yaml
+  target_file: lmrs/estimation.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-001
+  name: Define RequestCapacityEstimate
+  target_file: lmrs/estimation.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-011
+  - C-047
+  - C-046
+  objects:
+  - RequestCapacityEstimate
+  prompt: Modify lmrs/estimation.py after A-001. Append frozen dataclass RequestCapacityEstimate with request_id, model_name, token_breakdown, required_tokens, required_dynamic_vram_bytes, usable_dynamic_vram_bytes, declared_context_window, kv_bytes_per_token, per_request_overhead_bytes, runtime_batch_overhead_bytes, and metadata. It is an estimate object only, not an admission verdict.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/estimation.py::RequestCapacityEstimate
+    expected: RequestCapacityEstimate carries token totals, dynamic VRAM requirement, usable VRAM, context window, KV cost, and overheads.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-011
+  name: Request Capacity Estimate
+  definition: The computed token and dynamic VRAM requirement for an individual request.
+  properties:
+  - required_tokens includes input tokens, tool tokens, service tokens, and reserved output tokens.
+  - Requests exceeding the declared model context window are rejected.
+  - Dynamic VRAM estimate is based on required_tokens, calibrated KV-cache cost per token, and per-request overhead.
+  - Allowed request size is the minimum of declared context window and dynamic-pool token capacity.
+  source_labels:
+  - '{lim1}'
+  - '{lim2}'
+  - '{lim3}'
+- concept_id: C-046
+  name: Usable Dynamic VRAM Formula
+  definition: Runtime formula for the currently usable GPU dynamic memory pool after model load, safety margin, runtime reserve, and active request reservations.
+  properties:
+    formula: usable_dynamic_vram_bytes = model_loaded_free_vram_bytes - safety_margin_bytes - runtime_reserve_bytes - active_reservation_bytes
+    active_reservation_bytes: Sum of reservations held by running requests.
+    admission_rule: Admission and scheduling use current usable dynamic VRAM, not total VRAM, total RAM, disk cache size, or LMCache capacity.
+  source_labels:
+  - '{vram1}'
+- concept_id: C-047
+  name: Request Dynamic VRAM Requirement
+  definition: Per-request formula for dynamic VRAM required to execute a request safely at runtime.
+  properties:
+    formula: required_dynamic_vram_bytes = input_kv_bytes + reserved_output_kv_bytes + per_request_overhead_bytes + runtime_batch_overhead_bytes
+    input_kv_bytes: Computed from the final tokenized prompt.
+    reserved_output_kv_bytes: Computed from reserved output tokens.
+    execution_predicate: required_tokens <= declared_context_window and required_dynamic_vram_bytes <= usable_dynamic_vram_bytes
+  source_labels:
+  - '{resv1}'
+  - '{lim1}'
+  - '{lim2}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

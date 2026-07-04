@@ -1,0 +1,82 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-lmcache-telemetry.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-003-lmcache-storage-telemetry
+  atomic_step: A-003
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/atomic_steps/A-003-lmcache-telemetry.yaml
+  target_file: lmrs/lmcache.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-003
+  name: Define LMCacheTelemetry
+  target_file: lmrs/lmcache.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-049
+  - C-019
+  objects:
+  - LMCacheTelemetry
+  prompt: Modify lmrs/lmcache.py after A-001 and A-002. Append frozen dataclass LMCacheTelemetry with hit_tokens, miss_tokens, hit_quality, restore_latency, write_latency, cpu_cache_usage, cpu_cache_limit, disk_cache_usage, disk_cache_limit, evictions, memory_pressure, swap_indicators, and metadata. It is the telemetry accounting contract for LMCache CPU and disk tiers. Do not add GPU VRAM capacity fields here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/lmcache.py::LMCacheTelemetry
+    expected: LMCacheTelemetry exposes hit/miss tokens, hit quality, restore and write latency, CPU and disk usage and limits, evictions, memory pressure, and swap indicators.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-019
+  name: Telemetry
+  definition: The observable data emitted and returned by LMRS for debugging, admission traceability, and calibration feedback.
+  properties:
+  - Telemetry includes predicted tokens, predicted VRAM, actual prompt tokens, actual output tokens, latency, queue wait, VRAM snapshots, admission verdict, and reason code.
+  - Telemetry supports calibration of KV-cache cost, per-request overhead, safety margin, and scheduler policy.
+  - LMCache telemetry includes hit/miss, reused tokens, new tokens, lookup latency, write latency, eviction events, and impact on actual VRAM and latency.
+  source_labels:
+  - '{obs1}'
+  - '{obs2}'
+  - '{lmcache7}'
+- concept_id: C-049
+  name: LMCache Storage Telemetry
+  definition: Telemetry and storage accounting contract that separates LMCache CPU/disk tiers from GPU dynamic VRAM.
+  properties:
+    storage_tiers:
+      ram: Hot KV storage tier.
+      disk: Warm or cold KV storage tier.
+    separation_rule: CPU and disk LMCache capacity do not count as free VRAM.
+    telemetry_fields:
+    - hit_tokens
+    - miss_tokens
+    - hit_quality
+    - restore_latency
+    - cpu_cache_usage
+    - cpu_cache_limit
+    - disk_cache_usage
+    - disk_cache_limit
+    - evictions
+    - memory_pressure
+    - swap_indicators
+    purpose: Tune cache limits without weakening admission safety.
+  source_labels:
+  - '{lmc2}'
+  - '{lmcache7}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

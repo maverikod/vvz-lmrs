@@ -1,0 +1,182 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: g_context
+context_bundle_order:
+- ../00-common/common_context.yaml
+- ../00-common/root_orchestrator_task.yaml
+- ./g_context.yaml
+role: g_orchestrator
+required_model: gpt-5.5
+scope:
+  global_step: G-001-service-boundary
+  source_file: docs/plans/G-001-service-boundary/README.yaml
+  allowed_plan_subtree: docs/plans/G-001-service-boundary/
+global_step_spec:
+  step_id: G-001
+  name: Service Boundary and Gateway Contract
+  description: Define LMRS as a separate local-model runtime service, establish its provider-gateway boundary, and describe the canonical request flow between the gateway and the adapter-facing service. This step also fixes the MVP envelope and the top-level invariant that oversized prompts are blocked before runtime execution.
+  concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-004
+  - C-022
+  relations:
+  - from_concept: C-001
+    to_concept: C-003
+    type: implements
+  - from_concept: C-002
+    to_concept: C-001
+    type: uses
+  - from_concept: C-002
+    to_concept: C-004
+    type: produces
+  - from_concept: C-001
+    to_concept: C-004
+    type: consumes
+  - from_concept: C-022
+    to_concept: C-001
+    type: depends_on
+  source_labels:
+  - '{lmrs}'
+  - '{sep1}'
+  - '{goal}'
+  - '{adpt}'
+  - '{prov}'
+  - '{mvp1}'
+  - '{mvp2}'
+  - '{mvp3}'
+  depends_on: []
+  tactical_steps:
+  - T-001
+  - T-002
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-001
+  name: Local Model Runtime Service
+  definition: A standalone adapter-based microservice that provides high-level access to locally executed language models while enforcing prompt admission before runtime execution.
+  properties:
+  - It is separate from model_access_core and ollama/model_workspace.
+  - It exposes local model access through an adapter-based MCP interface.
+  - It must prevent any prompt from reaching the local model runtime until context-window and dynamic VRAM capacity have been proven.
+  source_labels:
+  - '{lmrs}'
+  - '{goal}'
+  - '{inv1}'
+- concept_id: C-002
+  name: Provider Gateway Integration
+  definition: The integration boundary through which model_access_core routes local provider requests to the Local Model Runtime Service.
+  properties:
+  - model_access_core remains the universal provider gateway.
+  - model_access_core does not manage VRAM, load local models, or execute local prompts directly.
+  - LMRS appears to model_access_core as a local provider backend and returns responses normalizable into canonical provider responses.
+  source_labels:
+  - '{sep1}'
+  - '{prov}'
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+- concept_id: C-004
+  name: Canonical Chat Request
+  definition: The request structure accepted from the provider gateway for local model execution or admission decisions.
+  properties:
+  - It contains session_id, request_id, model_name, messages, tools, reserved_output_tokens, and options.
+  - It is close to the canonical chat request used by the provider gateway.
+  source_labels:
+  - '{prov}'
+- concept_id: C-022
+  name: MVP Scope
+  definition: The explicit boundary of features included and excluded from the initial LMRS implementation.
+  properties:
+  - MVP includes one resident LLM on one GPU, persistent vectorizer/chunker services, service baseline measurement, model static measurement, tokenizer-aware counting, admission, largest-fit queue, one selected runtime backend, and adapter-based MCP commands.
+  - MVP excludes multi-GPU scheduling, multiple resident LLMs, streaming, speculative decoding, distributed inference, automatic model eviction, and advanced batching optimizer.
+  - MVP includes disk cache lifecycle, explicit memory load/unload, VRAM measurement after load, and basic vLLM LMCache configuration support.
+  source_labels:
+  - '{mvp1}'
+  - '{mvp2}'
+  - '{mvp3}'
+tactical_steps:
+- tactical_step: T-001-service-boundary
+  source_file: docs/plans/G-001-service-boundary/T-001-service-boundary/README.yaml
+  spec:
+    step_id: T-001
+    parent_global_step: G-001
+    name: Service Boundary Contract
+    description: 'Create the LMRS service boundary contract: define the Local Model Runtime Service (C-001) as an independent runtime authority, bind its provider-gateway role through Provider Gateway Integration (C-002), expose it through the Adapter-Based MCP Interface (C-003), and encode the MVP Scope (C-022) as execution limits and invariants for the rest of the plan.'
+    concepts:
+    - C-001
+    - C-002
+    - C-003
+    - C-022
+    inputs:
+    - name: service_boundary_claims
+      type: source_labels
+      description: Binding claims {lmrs}, {sep1}, {goal}, {adpt}, {mvp1}, {mvp2}, and {mvp3} defining service identity, separation, adapter exposure, and MVP limits.
+    - name: service_boundary_concepts
+      type: concept_set
+      description: MRS concepts C-001, C-002, C-003, and C-022 with their service boundary relations.
+    outputs:
+    - name: service_boundary_contract
+      type: domain_contract
+      description: A precise contract that states what LMRS owns, what remains outside it, how it is exposed, and which MVP capabilities are in or out of scope.
+    - name: top_level_invariants
+      type: invariant_set
+      description: Executor-facing invariants that oversized prompts are blocked before runtime and that LMRS remains separate from the provider gateway.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    status: draft
+  context_file: execution_contexts/G-001-service-boundary/T-001-service-boundary/t_context.yaml
+  atomic_steps: 5
+- tactical_step: T-002-canonical-gateway-request
+  source_file: docs/plans/G-001-service-boundary/T-002-canonical-gateway-request/README.yaml
+  spec:
+    step_id: T-002
+    parent_global_step: G-001
+    name: Canonical Gateway Request Contract
+    description: 'Create the canonical gateway request contract: define how Provider Gateway Integration (C-002) produces a Canonical Chat Request (C-004), how LMRS (C-001) consumes it, and how the Adapter-Based MCP Interface (C-003) receives enough structured data to route local model execution without taking ownership of provider-gateway responsibilities.'
+    concepts:
+    - C-001
+    - C-002
+    - C-003
+    - C-004
+    inputs:
+    - name: gateway_request_claims
+      type: source_labels
+      description: Binding claims {prov} and {sep1} defining gateway-to-LMRS responsibilities and canonical request fields.
+    - name: gateway_request_relations
+      type: relation_set
+      description: MRS relations C-002 produces C-004 and C-001 consumes C-004, plus the adapter interface relation.
+    outputs:
+    - name: canonical_request_contract
+      type: api_contract
+      description: A structured contract for accepted request fields, ownership boundaries, and normalized response expectations for local provider routing.
+    - name: gateway_boundary_rules
+      type: routing_rule_set
+      description: Rules that prevent LMRS from assuming provider-gateway duties while still accepting canonical local-model requests.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    status: draft
+  context_file: execution_contexts/G-001-service-boundary/T-002-canonical-gateway-request/t_context.yaml
+  atomic_steps: 5
+assignment: Spawn T orchestrators for tactical steps in this G scope using gpt-5.4-mini. Provide each T orchestrator the common context, root context, this G context, and its T context. Verify and accept T outputs before reporting to root.
+forbidden:
+- Reading or modifying plan scopes outside this G unless explicitly escalated and approved
+- Delegating directly to AS executors except through a T orchestrator
+- Guessing missing details
+acceptance:
+- All T results accepted
+- All changes verified through proxy against the server project
+- Escalations resolved or propagated to root

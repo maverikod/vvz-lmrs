@@ -1,0 +1,56 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-register-lmrs-commands.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-006-adapter-integration
+  tactical_step: T-001-command-registration-wrappers
+  atomic_step: A-002
+  source_file: docs/plans/G-006-adapter-integration/T-001-command-registration-wrappers/atomic_steps/A-002-register-lmrs-commands.yaml
+  target_file: lmrs/adapter/registration.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-001
+  name: Implement register_lmrs_commands
+  target_file: lmrs/adapter/registration.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-026
+  objects:
+  - register_lmrs_commands
+  prompt: 'Modify lmrs/adapter/registration.py after A-001. Append register_lmrs_commands(registry) that registers each LMRS public command class with the adapter command registry. Registration is idempotent: before registering a command it checks whether that command is already registered and skips it if so. Each command is registered as a custom adapter command via registry.register(CommandClass, "custom"). Do not start the adapter server or install hooks here.'
+  verification: &id001
+    type: static_analysis
+    target: lmrs/adapter/registration.py::register_lmrs_commands
+    expected: register_lmrs_commands idempotently registers LMRS command classes as custom adapter commands, skipping any already registered.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-026
+  name: Adapter Command Registration
+  definition: The hook-based mechanism that registers LMRS public command classes with the adapter command registry before the adapter server starts.
+  properties:
+  - Registration is centralized in a dedicated register_lmrs_commands(registry) module function.
+  - Registration is idempotent and checks whether a command is already registered before registering it.
+  - Commands are registered as custom adapter commands via registry.register(CommandClass, "custom").
+  - Registration is installed through register_custom_commands_hook before adapter server startup.
+  source_labels:
+  - '{areg}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

@@ -1,0 +1,394 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: g_context
+context_bundle_order:
+- ../00-common/common_context.yaml
+- ../00-common/root_orchestrator_task.yaml
+- ./g_context.yaml
+role: g_orchestrator
+required_model: gpt-5.5
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  source_file: docs/plans/G-007-proxy-and-cli-operations/README.yaml
+  allowed_plan_subtree: docs/plans/G-007-proxy-and-cli-operations/
+global_step_spec:
+  step_id: G-007
+  name: Proxy Registration and CLI Operations
+  description: 'Define the operational surfaces around the adapter runtime: local listen endpoint, advertised URL, proxy registration endpoint and protocol resolution, registration lifecycle and payload, CLI command wrappers, metadata-driven CLI help, server manager, and service health verification based on active probes rather than PID-only checks.'
+  concepts:
+  - C-034
+  - C-035
+  - C-036
+  - C-037
+  - C-038
+  - C-039
+  - C-040
+  - C-041
+  - C-042
+  - C-043
+  relations:
+  - from_concept: C-032
+    to_concept: C-034
+    type: uses
+  - from_concept: C-034
+    to_concept: C-035
+    type: produces
+  - from_concept: C-036
+    to_concept: C-035
+    type: depends_on
+  - from_concept: C-036
+    to_concept: C-037
+    type: uses
+  - from_concept: C-038
+    to_concept: C-036
+    type: uses
+  - from_concept: C-038
+    to_concept: C-035
+    type: uses
+  - from_concept: C-038
+    to_concept: C-039
+    type: produces
+  - from_concept: C-039
+    to_concept: C-035
+    type: depends_on
+  - from_concept: C-039
+    to_concept: C-036
+    type: depends_on
+  - from_concept: C-030
+    to_concept: C-034
+    type: produces
+  - from_concept: C-030
+    to_concept: C-036
+    type: produces
+  - from_concept: C-031
+    to_concept: C-034
+    type: uses
+  - from_concept: C-031
+    to_concept: C-036
+    type: uses
+  - from_concept: C-032
+    to_concept: C-038
+    type: uses
+  - from_concept: C-040
+    to_concept: C-027
+    type: uses
+  - from_concept: C-040
+    to_concept: C-041
+    type: uses
+  - from_concept: C-041
+    to_concept: C-029
+    type: depends_on
+  - from_concept: C-041
+    to_concept: C-028
+    type: depends_on
+  - from_concept: C-040
+    to_concept: C-042
+    type: owns
+  - from_concept: C-042
+    to_concept: C-032
+    type: uses
+  - from_concept: C-042
+    to_concept: C-043
+    type: uses
+  - from_concept: C-043
+    to_concept: C-034
+    type: uses
+  - from_concept: C-043
+    to_concept: C-035
+    type: uses
+  - from_concept: C-043
+    to_concept: C-038
+    type: uses
+  source_labels:
+  - '{lstn}'
+  - '{radv}'
+  - '{rprx}'
+  - '{rpro}'
+  - '{rhbt}'
+  - '{rpay}'
+  - '{cliw}'
+  - '{clih}'
+  - '{svcm}'
+  - '{hlth}'
+  depends_on:
+  - G-006
+  tactical_steps:
+  - T-001
+  - T-002
+  - T-003
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-027
+  name: Thin Adapter Command
+  definition: A public LMRS command class that translates adapter calls into domain service execution without owning LMRS business logic.
+  properties:
+  - Each command inherits the adapter Command base class.
+  - Each command exposes a stable name and uses use_queue for long-running work when required.
+  - Each command validates parameters, delegates to a domain executor or service, and returns adapter SuccessResult or ErrorResult.
+  - Adapter command classes do not embed admission, tokenizer, VRAM, or model lifecycle business logic.
+  source_labels:
+  - '{acmd}'
+- concept_id: C-028
+  name: Command Schema Contract
+  definition: The per-command request, result, and error schema contract used for validation and command discovery.
+  properties:
+  - Request schema is returned by get_schema.
+  - Result schema is returned by get_result_schema.
+  - Error schema is returned by get_error_schema.
+  - Schemas live separately from executor code and are used by adapter schema-based validation before domain checks.
+  source_labels:
+  - '{asch}'
+- concept_id: C-029
+  name: Command Metadata Contract
+  definition: The per-command discovery contract that publishes help, schema, error, and example information for MCP tooling.
+  properties:
+  - Metadata includes command name, description, parameter schema, result schema, error schema, stable error codes, and examples.
+  - Metadata must be sufficient for MCP help, proxy discovery, and OpenAPI generation without reading internal implementation.
+  - Metadata lives separately from executor code.
+  source_labels:
+  - '{amet}'
+- concept_id: C-030
+  name: Adapter Configuration Generator
+  definition: The LMRS configuration generator that extends the adapter generator with LMRS-specific runtime and admission configuration sections.
+  properties:
+  - The generator first creates adapter server, registration, and queue manager configuration.
+  - The generator adds LMRS sections for hardware profile, resident services, model profiles, runtime backends, tokenizer profiles, admission policy, disk model cache, LMCache, telemetry, and lifecycle limits.
+  - Generated configuration is the starting point for validated LMRS runtime configuration.
+  source_labels:
+  - '{acfg}'
+- concept_id: C-031
+  name: Adapter Configuration Validator
+  definition: The LMRS configuration validator that extends adapter validation with LMRS-specific consistency checks.
+  properties:
+  - The validator first checks base adapter configuration sections.
+  - The validator checks model, runtime, tokenizer, hardware, resident service, queue, admission, disk cache, LMCache, error, and telemetry sections.
+  - The validator rejects inconsistent or incomplete configuration before LMRS starts or accepts runtime work.
+  source_labels:
+  - '{aval}'
+- concept_id: C-032
+  name: Adapter Runtime Entrypoint
+  definition: The startup boundary that wires command hooks, configuration loading, domain lifecycle services, and adapter server execution.
+  properties:
+  - The entrypoint registers LMRS command hooks before adapter server startup.
+  - The entrypoint loads configuration and starts LMRS domain lifecycle services.
+  - The entrypoint hands control to the adapter startup mechanism (create_app to build the application, then run via the adapter application runner).
+  - Adapter factory code remains free of LMRS admission, tokenizer, VRAM, and model lifecycle logic.
+  source_labels:
+  - '{ahok}'
+- concept_id: C-034
+  name: Server Listen Endpoint
+  definition: The adapter server endpoint that binds the LMRS runtime to a configured local host, port, and protocol.
+  properties:
+  - Listen settings are independent from proxy registration settings.
+  - The server protocol controls whether the bound listener is HTTP, HTTPS, or mTLS.
+  - The endpoint may include server name, SSL or mTLS material, and optional advertised host.
+  source_labels:
+  - '{lstn}'
+- concept_id: C-035
+  name: Advertised Server URL
+  definition: The proxy-visible URL derived from the server listen endpoint and normalized for reachability by the proxy.
+  properties:
+  - Wildcard bind addresses are not advertised directly.
+  - An explicit advertised host is preferred when configured.
+  - For local deployments, wildcard bind addresses are normalized to a reachable host such as localhost.
+  source_labels:
+  - '{radv}'
+- concept_id: C-036
+  name: Proxy Registration Endpoint
+  definition: The registration-side contract that tells LMRS how to register, unregister, and send heartbeat data to the MCP proxy.
+  properties:
+  - Registration settings are separate from listener settings.
+  - The contract includes enablement, startup and shutdown behavior, full registration URLs, heartbeat URL and interval, server identity, instance UUID, metadata, and client credentials.
+  source_labels:
+  - '{rprx}'
+- concept_id: C-037
+  name: Registration Protocol Resolution
+  definition: The rule set that resolves the proxy client protocol from registration URL scheme and credential material.
+  properties:
+  - HTTP registration URLs select HTTP.
+  - HTTPS registration URLs select HTTPS unless client certificate, client key, and CA material are present.
+  - HTTPS registration with full client credential material selects mTLS.
+  - Missing or unsupported URL schemes are configuration errors.
+  source_labels:
+  - '{rpro}'
+- concept_id: C-038
+  name: Proxy Registration Lifecycle
+  definition: The startup, heartbeat, retry, re-registration, and shutdown behavior used to keep the LMRS adapter visible through the proxy.
+  properties:
+  - Startup waits until the advertised server URL is listening before proxy registration.
+  - Heartbeat sends registration payloads on the configured interval.
+  - Failed or unrecognized registrations are retried and may trigger re-registration.
+  - Shutdown unregisters the adapter when configured.
+  source_labels:
+  - '{rhbt}'
+- concept_id: C-039
+  name: Registration Payload
+  definition: The server identity, reachable URL, capabilities, and metadata sent to the MCP proxy during registration and heartbeat.
+  properties:
+  - Server name resolution prefers explicit server identifier, then explicit server name, then a deterministic default from normalized host and port.
+  - Metadata includes server protocol, host, port, stable instance UUID when available, and adapter-specific discovery or routing metadata.
+  source_labels:
+  - '{rpay}'
+- concept_id: C-040
+  name: CLI Command Wrapper Module
+  definition: A dedicated CLI module that exposes local wrappers for the main LMRS user-facing and operator-facing commands.
+  properties:
+  - CLI wrappers call the canonical command contracts used by the adapter-facing command layer.
+  - The CLI is a local operator surface over existing command implementation, not a separate command implementation.
+  - The module groups main commands behind a scriptable command-line interface.
+  source_labels:
+  - '{cliw}'
+- concept_id: C-041
+  name: Metadata-Driven CLI Help
+  definition: The CLI help system that derives command documentation from command metadata and schemas.
+  properties:
+  - CLI help uses command metadata and schemas as its source of truth.
+  - The CLI does not maintain a separate hand-written help catalog that can drift from command code.
+  - Command names, parameter descriptions, examples, return shape, error cases, and best practices are exposed from metadata.
+  source_labels:
+  - '{clih}'
+- concept_id: C-042
+  name: CLI Server Manager
+  definition: The CLI service-management surface that starts, stops, and reports status for the LMRS service runtime.
+  properties:
+  - The manager supports start, stop, and status operations.
+  - The manager launches the configured service runtime.
+  - The manager stops the correct service instance.
+  - The manager reports status in a form useful for both humans and scripts.
+  source_labels:
+  - '{svcm}'
+- concept_id: C-043
+  name: Service Health Verification
+  definition: A runtime status verification mechanism that proves service availability beyond PID or process-file presence.
+  properties:
+  - A running PID is not sufficient proof of service availability.
+  - Status combines process identity with active service verification.
+  - Valid probes include listener reachability, health endpoint response, command or help availability, registration state, heartbeat freshness, or another explicit protocol-appropriate runtime check.
+  source_labels:
+  - '{hlth}'
+tactical_steps:
+- tactical_step: T-001-network-registration-contract
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/README.yaml
+  spec:
+    step_id: T-001
+    parent_global_step: G-007
+    name: Network and Registration Endpoint Contract
+    description: 'Create the network registration contract: define Server Listen Endpoint (C-034), Advertised Server URL (C-035), Proxy Registration Endpoint (C-036), Registration Protocol Resolution (C-037), and Registration Payload (C-039) as the protocol-aware address and payload model used by adapter startup and proxy discovery.'
+    concepts:
+    - C-034
+    - C-035
+    - C-036
+    - C-037
+    - C-039
+    - C-030
+    - C-031
+    inputs:
+    - name: network_registration_claims
+      type: source_labels
+      description: Binding claims {lstn}, {radv}, {rprx}, {rpro}, and {rpay} defining listener settings, advertised address rules, registration endpoints, protocol selection, and payload fields.
+    - name: adapter_configuration_contract
+      type: configuration_contract
+      description: Generated and validated configuration sections for listen and registration settings.
+    outputs:
+    - name: listen_endpoint_contract
+      type: network_contract
+      description: A contract for host, port, protocol, server name, advertised host, and SSL or mTLS listener settings.
+    - name: proxy_registration_payload_contract
+      type: registration_contract
+      description: A contract for registration URL, protocol, credentials, server identity, advertised URL, capabilities, metadata, and payload content.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    - A-006
+    status: draft
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-001-network-registration-contract/t_context.yaml
+  atomic_steps: 6
+- tactical_step: T-002-registration-lifecycle
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/README.yaml
+  spec:
+    step_id: T-002
+    parent_global_step: G-007
+    name: Proxy Registration Lifecycle
+    description: 'Create the proxy registration lifecycle contract: define Proxy Registration Lifecycle (C-038) as the startup, heartbeat, re-registration, retry, and shutdown behavior that uses Proxy Registration Endpoint (C-036), Advertised Server URL (C-035), and Registration Payload (C-039).'
+    concepts:
+    - C-038
+    - C-036
+    - C-035
+    - C-039
+    inputs:
+    - name: registration_endpoint_contract
+      type: registration_contract
+      description: Registration endpoint and payload contracts consumed by registration lifecycle policy.
+    - name: adapter_runtime_state
+      type: runtime_state
+      description: Runtime listener readiness and shutdown state emitted by the adapter runtime entrypoint.
+    outputs:
+    - name: registration_lifecycle_policy
+      type: lifecycle_contract
+      description: A policy for waiting until listener readiness, registering, heartbeating, retrying, re-registering, and unregistering during shutdown.
+    - name: registration_state_snapshot
+      type: status_contract
+      description: A structured status object for registered state, heartbeat freshness, instance identity, and proxy recognition.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    status: draft
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/t_context.yaml
+  atomic_steps: 3
+- tactical_step: T-003-cli-service-management
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/README.yaml
+  spec:
+    step_id: T-003
+    parent_global_step: G-007
+    name: CLI Service Management Contract
+    description: 'Create the CLI operations contract: define CLI Command Wrapper Module (C-040), Metadata-Driven CLI Help (C-041), CLI Server Manager (C-042), and Service Health Verification (C-043) as the operator surface for command wrappers, help derived from metadata, start, stop, status, and health checks that use active service probes instead of PID-only evidence.'
+    concepts:
+    - C-040
+    - C-041
+    - C-042
+    - C-043
+    - C-027
+    - C-028
+    - C-029
+    - C-032
+    - C-034
+    - C-035
+    - C-038
+    inputs:
+    - name: adapter_command_contracts
+      type: adapter_contract_set
+      description: Thin command, schema, metadata, and runtime hook contracts consumed by CLI operations.
+    - name: runtime_registration_status
+      type: status_contract
+      description: Listener, advertised URL, and registration lifecycle status needed by service health verification.
+    outputs:
+    - name: cli_wrapper_contract
+      type: operator_contract
+      description: A contract for local command wrappers that call canonical command contracts and expose metadata-derived help.
+    - name: server_manager_contract
+      type: operator_lifecycle_contract
+      description: A contract for start, stop, and status operations with exact service identity and active health verification.
+    - name: service_health_probe_contract
+      type: health_contract
+      description: A health verification contract combining process identity, listener reachability, health response, command/help availability, registration state, and heartbeat freshness.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    status: draft
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-003-cli-service-management/t_context.yaml
+  atomic_steps: 4
+assignment: Spawn T orchestrators for tactical steps in this G scope using gpt-5.4-mini. Provide each T orchestrator the common context, root context, this G context, and its T context. Verify and accept T outputs before reporting to root.
+forbidden:
+- Reading or modifying plan scopes outside this G unless explicitly escalated and approved
+- Delegating directly to AS executors except through a T orchestrator
+- Guessing missing details
+acceptance:
+- All T results accepted
+- All changes verified through proxy against the server project
+- Escalations resolved or propagated to root

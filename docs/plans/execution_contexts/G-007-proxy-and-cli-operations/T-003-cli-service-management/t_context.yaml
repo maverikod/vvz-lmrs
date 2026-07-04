@@ -1,0 +1,245 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-003-cli-service-management
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/README.yaml
+  allowed_plan_subtree: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/
+tactical_step_spec:
+  step_id: T-003
+  parent_global_step: G-007
+  name: CLI Service Management Contract
+  description: 'Create the CLI operations contract: define CLI Command Wrapper Module (C-040), Metadata-Driven CLI Help (C-041), CLI Server Manager (C-042), and Service Health Verification (C-043) as the operator surface for command wrappers, help derived from metadata, start, stop, status, and health checks that use active service probes instead of PID-only evidence.'
+  concepts:
+  - C-040
+  - C-041
+  - C-042
+  - C-043
+  - C-027
+  - C-028
+  - C-029
+  - C-032
+  - C-034
+  - C-035
+  - C-038
+  inputs:
+  - name: adapter_command_contracts
+    type: adapter_contract_set
+    description: Thin command, schema, metadata, and runtime hook contracts consumed by CLI operations.
+  - name: runtime_registration_status
+    type: status_contract
+    description: Listener, advertised URL, and registration lifecycle status needed by service health verification.
+  outputs:
+  - name: cli_wrapper_contract
+    type: operator_contract
+    description: A contract for local command wrappers that call canonical command contracts and expose metadata-derived help.
+  - name: server_manager_contract
+    type: operator_lifecycle_contract
+    description: A contract for start, stop, and status operations with exact service identity and active health verification.
+  - name: service_health_probe_contract
+    type: health_contract
+    description: A health verification contract combining process identity, listener reachability, health response, command/help availability, registration state, and heartbeat freshness.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-027
+  name: Thin Adapter Command
+  definition: A public LMRS command class that translates adapter calls into domain service execution without owning LMRS business logic.
+  properties:
+  - Each command inherits the adapter Command base class.
+  - Each command exposes a stable name and uses use_queue for long-running work when required.
+  - Each command validates parameters, delegates to a domain executor or service, and returns adapter SuccessResult or ErrorResult.
+  - Adapter command classes do not embed admission, tokenizer, VRAM, or model lifecycle business logic.
+  source_labels:
+  - '{acmd}'
+- concept_id: C-028
+  name: Command Schema Contract
+  definition: The per-command request, result, and error schema contract used for validation and command discovery.
+  properties:
+  - Request schema is returned by get_schema.
+  - Result schema is returned by get_result_schema.
+  - Error schema is returned by get_error_schema.
+  - Schemas live separately from executor code and are used by adapter schema-based validation before domain checks.
+  source_labels:
+  - '{asch}'
+- concept_id: C-029
+  name: Command Metadata Contract
+  definition: The per-command discovery contract that publishes help, schema, error, and example information for MCP tooling.
+  properties:
+  - Metadata includes command name, description, parameter schema, result schema, error schema, stable error codes, and examples.
+  - Metadata must be sufficient for MCP help, proxy discovery, and OpenAPI generation without reading internal implementation.
+  - Metadata lives separately from executor code.
+  source_labels:
+  - '{amet}'
+- concept_id: C-032
+  name: Adapter Runtime Entrypoint
+  definition: The startup boundary that wires command hooks, configuration loading, domain lifecycle services, and adapter server execution.
+  properties:
+  - The entrypoint registers LMRS command hooks before adapter server startup.
+  - The entrypoint loads configuration and starts LMRS domain lifecycle services.
+  - The entrypoint hands control to the adapter startup mechanism (create_app to build the application, then run via the adapter application runner).
+  - Adapter factory code remains free of LMRS admission, tokenizer, VRAM, and model lifecycle logic.
+  source_labels:
+  - '{ahok}'
+- concept_id: C-034
+  name: Server Listen Endpoint
+  definition: The adapter server endpoint that binds the LMRS runtime to a configured local host, port, and protocol.
+  properties:
+  - Listen settings are independent from proxy registration settings.
+  - The server protocol controls whether the bound listener is HTTP, HTTPS, or mTLS.
+  - The endpoint may include server name, SSL or mTLS material, and optional advertised host.
+  source_labels:
+  - '{lstn}'
+- concept_id: C-035
+  name: Advertised Server URL
+  definition: The proxy-visible URL derived from the server listen endpoint and normalized for reachability by the proxy.
+  properties:
+  - Wildcard bind addresses are not advertised directly.
+  - An explicit advertised host is preferred when configured.
+  - For local deployments, wildcard bind addresses are normalized to a reachable host such as localhost.
+  source_labels:
+  - '{radv}'
+- concept_id: C-038
+  name: Proxy Registration Lifecycle
+  definition: The startup, heartbeat, retry, re-registration, and shutdown behavior used to keep the LMRS adapter visible through the proxy.
+  properties:
+  - Startup waits until the advertised server URL is listening before proxy registration.
+  - Heartbeat sends registration payloads on the configured interval.
+  - Failed or unrecognized registrations are retried and may trigger re-registration.
+  - Shutdown unregisters the adapter when configured.
+  source_labels:
+  - '{rhbt}'
+- concept_id: C-040
+  name: CLI Command Wrapper Module
+  definition: A dedicated CLI module that exposes local wrappers for the main LMRS user-facing and operator-facing commands.
+  properties:
+  - CLI wrappers call the canonical command contracts used by the adapter-facing command layer.
+  - The CLI is a local operator surface over existing command implementation, not a separate command implementation.
+  - The module groups main commands behind a scriptable command-line interface.
+  source_labels:
+  - '{cliw}'
+- concept_id: C-041
+  name: Metadata-Driven CLI Help
+  definition: The CLI help system that derives command documentation from command metadata and schemas.
+  properties:
+  - CLI help uses command metadata and schemas as its source of truth.
+  - The CLI does not maintain a separate hand-written help catalog that can drift from command code.
+  - Command names, parameter descriptions, examples, return shape, error cases, and best practices are exposed from metadata.
+  source_labels:
+  - '{clih}'
+- concept_id: C-042
+  name: CLI Server Manager
+  definition: The CLI service-management surface that starts, stops, and reports status for the LMRS service runtime.
+  properties:
+  - The manager supports start, stop, and status operations.
+  - The manager launches the configured service runtime.
+  - The manager stops the correct service instance.
+  - The manager reports status in a form useful for both humans and scripts.
+  source_labels:
+  - '{svcm}'
+- concept_id: C-043
+  name: Service Health Verification
+  definition: A runtime status verification mechanism that proves service availability beyond PID or process-file presence.
+  properties:
+  - A running PID is not sufficient proof of service availability.
+  - Status combines process identity with active service verification.
+  - Valid probes include listener reachability, health endpoint response, command or help availability, registration state, heartbeat freshness, or another explicit protocol-appropriate runtime check.
+  source_labels:
+  - '{hlth}'
+atomic_steps:
+- path: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-001-cli-command-wrapper.yaml
+  step_id: A-001
+  name: Define CliCommandWrapper
+  target_file: lmrs/cli/operations.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-040
+  - C-027
+  objects:
+  - CliCommandWrapper
+  verification:
+    type: static_analysis
+    target: lmrs/cli/operations.py::CliCommandWrapper
+    expected: CliCommandWrapper exposes main commands via a scriptable CLI that delegates to canonical command contracts without re-implementing business logic.
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-003-cli-service-management/A-001-cli-command-wrapper.yaml
+- path: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-002-build-cli-help.yaml
+  step_id: A-002
+  name: Implement build_cli_help
+  target_file: lmrs/cli/operations.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-041
+  - C-029
+  - C-028
+  objects:
+  - build_cli_help
+  verification:
+    type: static_analysis
+    target: lmrs/cli/operations.py::build_cli_help
+    expected: build_cli_help renders CLI help from command metadata and schema contracts with no separate hand-written catalog.
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-003-cli-service-management/A-002-build-cli-help.yaml
+- path: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-003-verify-service-health.yaml
+  step_id: A-003
+  name: Implement verify_service_health
+  target_file: lmrs/cli/operations.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-043
+  - C-034
+  - C-035
+  - C-038
+  objects:
+  - verify_service_health
+  verification:
+    type: static_analysis
+    target: lmrs/cli/operations.py::verify_service_health
+    expected: verify_service_health combines process identity with active probes (listener reachability, health response, command/help availability, registration state, heartbeat freshness) instead of PID-only evidence.
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-003-cli-service-management/A-003-verify-service-health.yaml
+- path: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-004-cli-server-manager.yaml
+  step_id: A-004
+  name: Define CliServerManager
+  target_file: lmrs/cli/operations.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-042
+  - C-032
+  - C-043
+  objects:
+  - CliServerManager
+  verification:
+    type: static_analysis
+    target: lmrs/cli/operations.py::CliServerManager
+    expected: CliServerManager exposes start, stop, and status operations that launch via the adapter runtime entrypoint, stop the correct instance, and report status via active health verification.
+  context_file: execution_contexts/G-007-proxy-and-cli-operations/T-003-cli-service-management/A-004-cli-server-manager.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

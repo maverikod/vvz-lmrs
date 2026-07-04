@@ -1,0 +1,207 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-002-model-memory-lifecycle
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/README.yaml
+  allowed_plan_subtree: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/
+tactical_step_spec:
+  step_id: T-002
+  parent_global_step: G-004
+  name: Model Memory Lifecycle
+  description: 'Create the model memory lifecycle contract: use Model Memory Lifecycle (C-024), Disk Model Cache (C-023), and VRAM Runtime Facts (C-008) to define load, unload, reload, resident status, measured static VRAM, and post-operation VRAM fact updates.'
+  concepts:
+  - C-024
+  - C-023
+  - C-008
+  - C-017
+  inputs:
+  - name: memory_lifecycle_claims
+    type: source_labels
+    description: Binding claims {mlife1}, {mlife2}, {mlife3}, {mlife4}, {mlife5}, {mlife6}, and {inv4} defining memory residency lifecycle.
+  - name: disk_cache_state
+    type: cache_status
+    description: Disk model cache status consumed before memory load operations.
+  outputs:
+  - name: memory_lifecycle_state_contract
+    type: state_machine_contract
+    description: A lifecycle contract for not loaded, loading, loaded, unloading, reload, failed, and keep-loaded states.
+  - name: model_load_vram_fact_update
+    type: runtime_fact_update
+    description: Measured model static VRAM and model-loaded free VRAM facts emitted after successful lifecycle transitions.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  - A-005
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-008
+  name: VRAM Runtime Facts
+  definition: Measured runtime facts describing baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity.
+  properties:
+  - model_loaded_free_vram is measured after loading the local model.
+  - measured_model_static_vram is the difference between service_baseline_free_vram and model_loaded_free_vram.
+  - Measured static VRAM is stored for model_name, runtime, quantization/profile, and hardware_profile.
+  - Runtime facts must not be replaced by purely theoretical assumptions.
+  source_labels:
+  - '{load}'
+  - '{stat}'
+  - '{inv3}'
+- concept_id: C-017
+  name: Public Command Contract
+  definition: The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations.
+  properties:
+  - The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation.
+  - The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot.
+  - The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code.
+  - Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload.
+  source_labels:
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{dcache3}'
+  - '{mlife2}'
+- concept_id: C-023
+  name: Disk Model Cache
+  definition: The disk-resident model cache that stores model weights, tokenizer files, runtime metadata, integrity information, readiness state, and cache profile independently from VRAM residency.
+  properties:
+  - Preload downloads, verifies integrity, prepares local layout, tokenizer files, runtime metadata, and readiness marker without requiring VRAM load.
+  - Disk cache and VRAM model residency are separate states.
+  - Model states include not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed.
+  - Cache management commands add, check, delete, list, verify integrity, and update metadata.
+  - Cache profile stores model_name, runtime, model_path, quantization/profile, declared_context_window, tokenizer profile, checksum or revision, disk size, load date, compatibility flags, and cache status.
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{inv4}'
+- concept_id: C-024
+  name: Model Memory Lifecycle
+  definition: The lifecycle that explicitly loads, unloads, reloads, and reports model residency in memory independently from disk cache availability.
+  properties:
+  - Loading to memory is separate from disk cache preload.
+  - Lifecycle commands include load_model, unload_model, reload_model, model_status, and model_lifecycle_status.
+  - Before loading, the service verifies disk cache presence and runtime compatibility or returns MODEL_NOT_CACHED unless preload is explicitly allowed.
+  - After loading, the service measures model_loaded_free_vram and records measured_model_static_vram.
+  - Unloading frees VRAM residency without requiring disk cache deletion and updates free VRAM state.
+  - The MVP policy is keep_loaded for one resident LLM until explicit unload or replacement.
+  source_labels:
+  - '{mlife1}'
+  - '{mlife2}'
+  - '{mlife3}'
+  - '{mlife4}'
+  - '{mlife5}'
+  - '{mlife6}'
+  - '{inv4}'
+atomic_steps:
+- path: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-001-lifecycle-state.yaml
+  step_id: A-001
+  name: Define LifecycleState
+  target_file: lmrs/model_lifecycle.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-024
+  objects:
+  - LifecycleState
+  verification:
+    type: static_analysis
+    target: lmrs/model_lifecycle.py::LifecycleState
+    expected: LifecycleState exposes stable memory-residency state names and a keep_loaded marker, separate from disk cache state.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/A-001-lifecycle-state.yaml
+- path: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-002-model-residency.yaml
+  step_id: A-002
+  name: Define ModelResidency
+  target_file: lmrs/model_lifecycle.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-024
+  - C-008
+  objects:
+  - ModelResidency
+  verification:
+    type: static_analysis
+    target: lmrs/model_lifecycle.py::ModelResidency
+    expected: ModelResidency stores resident model identity, lifecycle state, keep_loaded policy, measured static VRAM, model-loaded free VRAM, and metadata.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/A-002-model-residency.yaml
+- path: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-003-measure-model-static-vram.yaml
+  step_id: A-003
+  name: Implement measure_model_static_vram
+  target_file: lmrs/model_lifecycle.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-008
+  - C-024
+  objects:
+  - measure_model_static_vram
+  verification:
+    type: static_analysis
+    target: lmrs/model_lifecycle.py::measure_model_static_vram
+    expected: Function computes measured model static VRAM as baseline-free minus model-loaded-free VRAM and rejects negative inputs and results.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/A-003-measure-model-static-vram.yaml
+- path: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-004-model-memory-lifecycle.yaml
+  step_id: A-004
+  name: Define ModelMemoryLifecycle
+  target_file: lmrs/model_lifecycle.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-024
+  - C-023
+  - C-017
+  objects:
+  - ModelMemoryLifecycle
+  verification:
+    type: static_analysis
+    target: lmrs/model_lifecycle.py::ModelMemoryLifecycle
+    expected: ModelMemoryLifecycle exposes load/unload/reload/status commands, verifies disk cache before load with MODEL_NOT_CACHED, and keeps one resident model under keep_loaded policy without deleting disk cache on unload.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/A-004-model-memory-lifecycle.yaml
+- path: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/atomic_steps/A-005-lifecycle-command-result.yaml
+  step_id: A-005
+  name: Define LifecycleCommandResult
+  target_file: lmrs/model_lifecycle.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-024
+  - C-008
+  - C-017
+  objects:
+  - LifecycleCommandResult
+  verification:
+    type: static_analysis
+    target: lmrs/model_lifecycle.py::LifecycleCommandResult
+    expected: LifecycleCommandResult represents structured lifecycle command output with stable reason code, resulting state, success flag, and the post-operation measured VRAM fact update.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/A-005-lifecycle-command-result.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

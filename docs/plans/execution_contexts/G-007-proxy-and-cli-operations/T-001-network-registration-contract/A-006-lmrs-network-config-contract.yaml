@@ -1,0 +1,84 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-006-lmrs-network-config-contract.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-001-network-registration-contract
+  atomic_step: A-006
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-006-lmrs-network-config-contract.yaml
+  target_file: lmrs/proxy/registration.py
+atomic_step_spec:
+  step_id: A-006
+  parent_tactical_step: T-001
+  name: Implement lmrs_network_config_contract
+  target_file: lmrs/proxy/registration.py
+  operation: modify_file
+  priority: 6
+  depends_on:
+  - A-005
+  concepts:
+  - C-030
+  - C-031
+  - C-034
+  - C-036
+  objects:
+  - lmrs_network_config_contract
+  prompt: Modify lmrs/proxy/registration.py after A-001 through A-005. Append lmrs_network_config_contract(config) that reads the listen and registration configuration sections produced by the LMRS configuration generator and checked by the LMRS configuration validator, and constructs a ServerListenEndpoint and a ProxyRegistrationEndpoint from them. It keeps listener and registration settings separate and returns both contract objects. Do not regenerate or revalidate the configuration here and do not perform any network call.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/proxy/registration.py::lmrs_network_config_contract
+    expected: lmrs_network_config_contract builds a ServerListenEndpoint and a ProxyRegistrationEndpoint from generated and validated listen and registration configuration sections, keeping them separate.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-030
+  name: Adapter Configuration Generator
+  definition: The LMRS configuration generator that extends the adapter generator with LMRS-specific runtime and admission configuration sections.
+  properties:
+  - The generator first creates adapter server, registration, and queue manager configuration.
+  - The generator adds LMRS sections for hardware profile, resident services, model profiles, runtime backends, tokenizer profiles, admission policy, disk model cache, LMCache, telemetry, and lifecycle limits.
+  - Generated configuration is the starting point for validated LMRS runtime configuration.
+  source_labels:
+  - '{acfg}'
+- concept_id: C-031
+  name: Adapter Configuration Validator
+  definition: The LMRS configuration validator that extends adapter validation with LMRS-specific consistency checks.
+  properties:
+  - The validator first checks base adapter configuration sections.
+  - The validator checks model, runtime, tokenizer, hardware, resident service, queue, admission, disk cache, LMCache, error, and telemetry sections.
+  - The validator rejects inconsistent or incomplete configuration before LMRS starts or accepts runtime work.
+  source_labels:
+  - '{aval}'
+- concept_id: C-034
+  name: Server Listen Endpoint
+  definition: The adapter server endpoint that binds the LMRS runtime to a configured local host, port, and protocol.
+  properties:
+  - Listen settings are independent from proxy registration settings.
+  - The server protocol controls whether the bound listener is HTTP, HTTPS, or mTLS.
+  - The endpoint may include server name, SSL or mTLS material, and optional advertised host.
+  source_labels:
+  - '{lstn}'
+- concept_id: C-036
+  name: Proxy Registration Endpoint
+  definition: The registration-side contract that tells LMRS how to register, unregister, and send heartbeat data to the MCP proxy.
+  properties:
+  - Registration settings are separate from listener settings.
+  - The contract includes enablement, startup and shutdown behavior, full registration URLs, heartbeat URL and interval, server identity, instance UUID, metadata, and client credentials.
+  source_labels:
+  - '{rprx}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

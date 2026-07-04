@@ -1,0 +1,56 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-calibration-key.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-003-calibration-profile
+  atomic_step: A-001
+  source_file: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/atomic_steps/A-001-calibration-key.yaml
+  target_file: lmrs/calibration.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-003
+  name: Define CalibrationKey
+  target_file: lmrs/calibration.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-020
+  objects:
+  - CalibrationKey
+  prompt: Create lmrs/calibration.py with imports for dataclass and Mapping. Define frozen dataclass CalibrationKey with fields model_name, runtime_backend, quantization_profile, hardware_profile_id, tokenizer_profile default None, and metadata Mapping[str, str] default empty. It identifies the model/runtime/quantization/hardware tuple that owns calibration facts. Do not add observations, profiles, builders, snapshots, admission, or runtime execution logic.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/calibration.py::CalibrationKey
+    expected: Frozen CalibrationKey dataclass uniquely binds calibration data to model, runtime, quantization/profile, and hardware profile.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-020
+  name: Calibration Profile
+  definition: The model, runtime, quantization, and hardware-specific calibration data for estimating KV-cache and overhead costs.
+  properties:
+  - KV-cache cost per token supports empirical calibration.
+  - The preferred calibration method measures VRAM growth across prompt lengths.
+  - Calibration profiles are bound to model, runtime backend, quantization/profile, and hardware profile.
+  - Changing model, runtime, or GPU invalidates or requires renewing the calibration profile.
+  source_labels:
+  - '{cal1}'
+  - '{cal2}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

@@ -1,0 +1,190 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-001-service-boundary
+  tactical_step: T-001-service-boundary
+  source_file: docs/plans/G-001-service-boundary/T-001-service-boundary/README.yaml
+  allowed_plan_subtree: docs/plans/G-001-service-boundary/T-001-service-boundary/
+tactical_step_spec:
+  step_id: T-001
+  parent_global_step: G-001
+  name: Service Boundary Contract
+  description: 'Create the LMRS service boundary contract: define the Local Model Runtime Service (C-001) as an independent runtime authority, bind its provider-gateway role through Provider Gateway Integration (C-002), expose it through the Adapter-Based MCP Interface (C-003), and encode the MVP Scope (C-022) as execution limits and invariants for the rest of the plan.'
+  concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-022
+  inputs:
+  - name: service_boundary_claims
+    type: source_labels
+    description: Binding claims {lmrs}, {sep1}, {goal}, {adpt}, {mvp1}, {mvp2}, and {mvp3} defining service identity, separation, adapter exposure, and MVP limits.
+  - name: service_boundary_concepts
+    type: concept_set
+    description: MRS concepts C-001, C-002, C-003, and C-022 with their service boundary relations.
+  outputs:
+  - name: service_boundary_contract
+    type: domain_contract
+    description: A precise contract that states what LMRS owns, what remains outside it, how it is exposed, and which MVP capabilities are in or out of scope.
+  - name: top_level_invariants
+    type: invariant_set
+    description: Executor-facing invariants that oversized prompts are blocked before runtime and that LMRS remains separate from the provider gateway.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  - A-005
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-001
+  name: Local Model Runtime Service
+  definition: A standalone adapter-based microservice that provides high-level access to locally executed language models while enforcing prompt admission before runtime execution.
+  properties:
+  - It is separate from model_access_core and ollama/model_workspace.
+  - It exposes local model access through an adapter-based MCP interface.
+  - It must prevent any prompt from reaching the local model runtime until context-window and dynamic VRAM capacity have been proven.
+  source_labels:
+  - '{lmrs}'
+  - '{goal}'
+  - '{inv1}'
+- concept_id: C-002
+  name: Provider Gateway Integration
+  definition: The integration boundary through which model_access_core routes local provider requests to the Local Model Runtime Service.
+  properties:
+  - model_access_core remains the universal provider gateway.
+  - model_access_core does not manage VRAM, load local models, or execute local prompts directly.
+  - LMRS appears to model_access_core as a local provider backend and returns responses normalizable into canonical provider responses.
+  source_labels:
+  - '{sep1}'
+  - '{prov}'
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+- concept_id: C-022
+  name: MVP Scope
+  definition: The explicit boundary of features included and excluded from the initial LMRS implementation.
+  properties:
+  - MVP includes one resident LLM on one GPU, persistent vectorizer/chunker services, service baseline measurement, model static measurement, tokenizer-aware counting, admission, largest-fit queue, one selected runtime backend, and adapter-based MCP commands.
+  - MVP excludes multi-GPU scheduling, multiple resident LLMs, streaming, speculative decoding, distributed inference, automatic model eviction, and advanced batching optimizer.
+  - MVP includes disk cache lifecycle, explicit memory load/unload, VRAM measurement after load, and basic vLLM LMCache configuration support.
+  source_labels:
+  - '{mvp1}'
+  - '{mvp2}'
+  - '{mvp3}'
+atomic_steps:
+- path: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-001-adapter-exposure.yaml
+  step_id: A-001
+  name: Create AdapterExposure contract object
+  target_file: lmrs/contracts.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-003
+  objects:
+  - AdapterExposure
+  verification:
+    type: import
+    target: lmrs.contracts.AdapterExposure
+    expected: Module imports and AdapterExposure exists with the listed fields.
+  context_file: execution_contexts/G-001-service-boundary/T-001-service-boundary/A-001-adapter-exposure.yaml
+- path: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-002-mvp-scope.yaml
+  step_id: A-002
+  name: Add MVPScope contract object
+  target_file: lmrs/contracts.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-022
+  objects:
+  - MVPScope
+  verification:
+    type: import
+    target: lmrs.contracts.MVPScope
+    expected: Module imports and MVPScope includes includes/excludes methods.
+  context_file: execution_contexts/G-001-service-boundary/T-001-service-boundary/A-002-mvp-scope.yaml
+- path: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-003-service-boundary.yaml
+  step_id: A-003
+  name: Add ServiceBoundary contract object
+  target_file: lmrs/contracts.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-022
+  objects:
+  - ServiceBoundary
+  verification:
+    type: import
+    target: lmrs.contracts.ServiceBoundary
+    expected: Module imports and ServiceBoundary links AdapterExposure and MVPScope.
+  context_file: execution_contexts/G-001-service-boundary/T-001-service-boundary/A-003-service-boundary.yaml
+- path: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-004-default-boundary-factory.yaml
+  step_id: A-004
+  name: Add default ServiceBoundary factory
+  target_file: lmrs/contracts.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-001
+  - C-002
+  - C-003
+  - C-022
+  objects:
+  - build_default_service_boundary
+  verification:
+    type: import
+    target: lmrs.contracts.build_default_service_boundary
+    expected: Factory returns a ServiceBoundary with adapter exposure and MVP scope populated.
+  context_file: execution_contexts/G-001-service-boundary/T-001-service-boundary/A-004-default-boundary-factory.yaml
+- path: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-005-boundary-snapshot.yaml
+  step_id: A-005
+  name: Add service boundary snapshot export
+  target_file: lmrs/contracts.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-001
+  - C-003
+  - C-022
+  objects:
+  - boundary_snapshot
+  - __all__
+  verification:
+    type: import
+    target: lmrs.contracts.boundary_snapshot
+    expected: boundary_snapshot returns a serializable mapping and __all__ exports the public contract objects.
+  context_file: execution_contexts/G-001-service-boundary/T-001-service-boundary/A-005-boundary-snapshot.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

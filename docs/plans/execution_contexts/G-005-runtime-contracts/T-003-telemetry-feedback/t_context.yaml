@@ -1,0 +1,145 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-003-telemetry-feedback
+  source_file: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/README.yaml
+  allowed_plan_subtree: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/
+tactical_step_spec:
+  step_id: T-003
+  parent_global_step: G-005
+  name: Telemetry Feedback Contract
+  description: 'Create the telemetry feedback contract: define Telemetry (C-019) as the runtime and admission observation stream that records predicted and actual tokens, predicted and actual VRAM, latency, queue wait, verdicts, reason codes, and produces Calibration Profile (C-020) inputs.'
+  concepts:
+  - C-019
+  - C-020
+  inputs:
+  - name: execution_observations
+    type: observation_stream
+    description: Observed request, queue, runtime, cache, and capacity facts emitted by the execution path.
+  - name: prediction_context
+    type: estimate_snapshot
+    description: The predicted token, VRAM, queue, and admission facts that telemetry compares against actual results.
+  outputs:
+  - name: telemetry_record_contract
+    type: telemetry_contract
+    description: A structured telemetry record for request estimates, actual usage, latency, queue wait, VRAM snapshots, verdicts, and reason codes.
+  - name: calibration_observation_set
+    type: calibration_input
+    description: Aggregated observations made available to Calibration Profile (C-020) without changing calibration ownership.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-019
+  name: Telemetry
+  definition: The observable data emitted and returned by LMRS for debugging, admission traceability, and calibration feedback.
+  properties:
+  - Telemetry includes predicted tokens, predicted VRAM, actual prompt tokens, actual output tokens, latency, queue wait, VRAM snapshots, admission verdict, and reason code.
+  - Telemetry supports calibration of KV-cache cost, per-request overhead, safety margin, and scheduler policy.
+  - LMCache telemetry includes hit/miss, reused tokens, new tokens, lookup latency, write latency, eviction events, and impact on actual VRAM and latency.
+  source_labels:
+  - '{obs1}'
+  - '{obs2}'
+  - '{lmcache7}'
+- concept_id: C-020
+  name: Calibration Profile
+  definition: The model, runtime, quantization, and hardware-specific calibration data for estimating KV-cache and overhead costs.
+  properties:
+  - KV-cache cost per token supports empirical calibration.
+  - The preferred calibration method measures VRAM growth across prompt lengths.
+  - Calibration profiles are bound to model, runtime backend, quantization/profile, and hardware profile.
+  - Changing model, runtime, or GPU invalidates or requires renewing the calibration profile.
+  source_labels:
+  - '{cal1}'
+  - '{cal2}'
+atomic_steps:
+- path: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-001-telemetry-record.yaml
+  step_id: A-001
+  name: Define TelemetryRecord
+  target_file: lmrs/telemetry.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-019
+  objects:
+  - TelemetryRecord
+  verification:
+    type: static_analysis
+    target: lmrs/telemetry.py::TelemetryRecord
+    expected: TelemetryRecord captures predicted and actual tokens and VRAM, latency, queue wait, VRAM snapshot, admission verdict, reason code, and LMCache hit/miss and latency fields.
+  context_file: execution_contexts/G-005-runtime-contracts/T-003-telemetry-feedback/A-001-telemetry-record.yaml
+- path: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-002-build-telemetry-record.yaml
+  step_id: A-002
+  name: Implement build_telemetry_record
+  target_file: lmrs/telemetry.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-019
+  objects:
+  - build_telemetry_record
+  verification:
+    type: static_analysis
+    target: lmrs/telemetry.py::build_telemetry_record
+    expected: Function assembles a TelemetryRecord from execution observations and a prediction snapshot without altering admission, scheduling, or VRAM accounting.
+  context_file: execution_contexts/G-005-runtime-contracts/T-003-telemetry-feedback/A-002-build-telemetry-record.yaml
+- path: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-003-calibration-observation.yaml
+  step_id: A-003
+  name: Define TelemetryCalibrationObservation
+  target_file: lmrs/telemetry.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-019
+  - C-020
+  objects:
+  - TelemetryCalibrationObservation
+  verification:
+    type: static_analysis
+    target: lmrs/telemetry.py::TelemetryCalibrationObservation
+    expected: TelemetryCalibrationObservation carries model/runtime/quantization/hardware keys with measured VRAM growth and KV-cache and overhead samples as inputs to calibration, without owning calibration.
+  context_file: execution_contexts/G-005-runtime-contracts/T-003-telemetry-feedback/A-003-calibration-observation.yaml
+- path: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-004-collect-calibration-observations.yaml
+  step_id: A-004
+  name: Implement collect_calibration_observations
+  target_file: lmrs/telemetry.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-019
+  - C-020
+  objects:
+  - collect_calibration_observations
+  verification:
+    type: static_analysis
+    target: lmrs/telemetry.py::collect_calibration_observations
+    expected: Function aggregates telemetry records into calibration observations grouped by model/runtime/quantization/hardware without owning calibration or affecting admission.
+  context_file: execution_contexts/G-005-runtime-contracts/T-003-telemetry-feedback/A-004-collect-calibration-observations.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

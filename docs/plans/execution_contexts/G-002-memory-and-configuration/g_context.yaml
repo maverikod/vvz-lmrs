@@ -1,0 +1,340 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: g_context
+context_bundle_order:
+- ../00-common/common_context.yaml
+- ../00-common/root_orchestrator_task.yaml
+- ./g_context.yaml
+role: g_orchestrator
+required_model: gpt-5.5
+scope:
+  global_step: G-002-memory-and-configuration
+  source_file: docs/plans/G-002-memory-and-configuration/README.yaml
+  allowed_plan_subtree: docs/plans/G-002-memory-and-configuration/
+global_step_spec:
+  step_id: G-002
+  name: Model Profiles, Configuration, and VRAM Facts
+  description: Define model and hardware profiles, runtime configuration ownership, resident-service baseline measurement, loaded-model VRAM facts, the dynamic VRAM pool, calibration feedback, and the KV-cache byte formulas that convert model/runtime profile parameters into memory facts used by later admission decisions.
+  concepts:
+  - C-005
+  - C-006
+  - C-007
+  - C-008
+  - C-009
+  - C-020
+  - C-021
+  - C-044
+  - C-045
+  - C-046
+  relations:
+  - from_concept: C-001
+    to_concept: C-005
+    type: uses
+  - from_concept: C-005
+    to_concept: C-015
+    type: depends_on
+  - from_concept: C-001
+    to_concept: C-006
+    type: uses
+  - from_concept: C-001
+    to_concept: C-007
+    type: produces
+  - from_concept: C-001
+    to_concept: C-008
+    type: produces
+  - from_concept: C-008
+    to_concept: C-009
+    type: produces
+  - from_concept: C-020
+    to_concept: C-011
+    type: depends_on
+  - from_concept: C-021
+    to_concept: C-005
+    type: owns
+  - from_concept: C-021
+    to_concept: C-006
+    type: owns
+  - from_concept: C-021
+    to_concept: C-014
+    type: owns
+  - from_concept: C-005
+    to_concept: C-045
+    type: owns
+  - from_concept: C-021
+    to_concept: C-045
+    type: owns
+  - from_concept: C-045
+    to_concept: C-044
+    type: uses
+  - from_concept: C-046
+    to_concept: C-008
+    type: depends_on
+  - from_concept: C-046
+    to_concept: C-009
+    type: depends_on
+  source_labels:
+  - '{mdl1}'
+  - '{hw01}'
+  - '{base}'
+  - '{mem1}'
+  - '{load}'
+  - '{stat}'
+  - '{dyn1}'
+  - '{dyn2}'
+  - '{cal1}'
+  - '{cal2}'
+  - '{cfg1}'
+  - '{kvf1}'
+  - '{ctxb}'
+  - '{vram1}'
+  - '{inv3}'
+  depends_on:
+  - G-001
+  tactical_steps:
+  - T-001
+  - T-002
+  - T-003
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-005
+  name: Model Profile
+  definition: A model-specific runtime description that makes LMRS independent from any one local model.
+  properties:
+  - It includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy.
+  - Qwen, Ollama models, GPT-OSS, and other local models are instances described by profiles.
+  source_labels:
+  - '{mdl1}'
+- concept_id: C-006
+  name: Hardware Profile
+  definition: The hardware capacity description used for admission and calibration decisions.
+  properties:
+  - The initial target profile is one GPU with 24 GB VRAM and 128 GB RAM.
+  - The architecture must allow future larger VRAM cards and multiple GPUs without changing the external provider contract.
+  source_labels:
+  - '{hw01}'
+- concept_id: C-007
+  name: Resident GPU Services Baseline
+  definition: The measured GPU baseline after always-on GPU resident services are running and before the main LLM is loaded.
+  properties:
+  - Resident services may include vectorizer, chunker, CUDA/runtime buffers, and other always-on processes.
+  - The baseline is not an empty GPU state.
+  - The service measures service_baseline_free_vram at start or calibration.
+  source_labels:
+  - '{base}'
+  - '{mem1}'
+- concept_id: C-008
+  name: VRAM Runtime Facts
+  definition: Measured runtime facts describing baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity.
+  properties:
+  - model_loaded_free_vram is measured after loading the local model.
+  - measured_model_static_vram is the difference between service_baseline_free_vram and model_loaded_free_vram.
+  - Measured static VRAM is stored for model_name, runtime, quantization/profile, and hardware_profile.
+  - Runtime facts must not be replaced by purely theoretical assumptions.
+  source_labels:
+  - '{load}'
+  - '{stat}'
+  - '{inv3}'
+- concept_id: C-009
+  name: Dynamic VRAM Pool
+  definition: The remaining VRAM capacity available for KV-cache, runtime buffers, batching overhead, and active request reservations after resident services and model static memory.
+  properties:
+  - Maximum dynamic pool is computed from free VRAM after model load minus safety margin and runtime reserve.
+  - Current dynamic pool additionally subtracts active request reservations.
+  - The dynamic pool bounds whether requests execute immediately, queue, or reject.
+  source_labels:
+  - '{dyn1}'
+  - '{dyn2}'
+  - '{lim3}'
+- concept_id: C-011
+  name: Request Capacity Estimate
+  definition: The computed token and dynamic VRAM requirement for an individual request.
+  properties:
+  - required_tokens includes input tokens, tool tokens, service tokens, and reserved output tokens.
+  - Requests exceeding the declared model context window are rejected.
+  - Dynamic VRAM estimate is based on required_tokens, calibrated KV-cache cost per token, and per-request overhead.
+  - Allowed request size is the minimum of declared context window and dynamic-pool token capacity.
+  source_labels:
+  - '{lim1}'
+  - '{lim2}'
+  - '{lim3}'
+- concept_id: C-020
+  name: Calibration Profile
+  definition: The model, runtime, quantization, and hardware-specific calibration data for estimating KV-cache and overhead costs.
+  properties:
+  - KV-cache cost per token supports empirical calibration.
+  - The preferred calibration method measures VRAM growth across prompt lengths.
+  - Calibration profiles are bound to model, runtime backend, quantization/profile, and hardware profile.
+  - Changing model, runtime, or GPU invalidates or requires renewing the calibration profile.
+  source_labels:
+  - '{cal1}'
+  - '{cal2}'
+- concept_id: C-021
+  name: Runtime Configuration
+  definition: The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits.
+  properties:
+  - Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits.
+  - For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile.
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+- concept_id: C-044
+  name: KV Cache Byte Formula
+  definition: Formula contract for computing worst-case KV-cache byte usage from request tokens and explicit model/runtime parameters.
+  properties:
+    formula: kv_bytes = tokens * layers * 2 * kv_heads * head_dim * kv_element_bytes
+    key_value_factor: 2
+    derived_facts:
+    - kv_bytes_per_token = layers * 2 * kv_heads * head_dim * kv_element_bytes
+    - kv_full_window_bytes = declared_context_window * kv_bytes_per_token
+    scope: Used for model profile facts, request estimates, and full-window capacity calculations.
+  source_labels:
+  - '{kvf1}'
+  - '{ctxb}'
+- concept_id: C-045
+  name: Model KV Memory Profile
+  definition: Derived memory profile that stores KV-cache parameters, runtime KV dtype, bytes per token, and full-window byte cost for a concrete model profile.
+  properties:
+    required_parameters:
+    - layers
+    - kv_heads
+    - head_dim
+    - kv_element_bytes
+    - declared_context_window
+    quantization_rule: Weight quantization such as Q8 or K8 does not reduce KV-cache bytes unless the runtime explicitly uses a reduced KV-cache element dtype.
+    example_qwen3_profile:
+      layers: 48
+      kv_heads: 4
+      head_dim: 128
+      kv_element_bytes: 2
+      context_40960_bytes: 4026531840
+      context_32768_bytes: 3221225472
+    one_byte_kv_rule: If runtime KV elements are one byte, KV-cache byte cost is halved.
+  source_labels:
+  - '{ctxb}'
+  - '{mdl1}'
+- concept_id: C-046
+  name: Usable Dynamic VRAM Formula
+  definition: Runtime formula for the currently usable GPU dynamic memory pool after model load, safety margin, runtime reserve, and active request reservations.
+  properties:
+    formula: usable_dynamic_vram_bytes = model_loaded_free_vram_bytes - safety_margin_bytes - runtime_reserve_bytes - active_reservation_bytes
+    active_reservation_bytes: Sum of reservations held by running requests.
+    admission_rule: Admission and scheduling use current usable dynamic VRAM, not total VRAM, total RAM, disk cache size, or LMCache capacity.
+  source_labels:
+  - '{vram1}'
+tactical_steps:
+- tactical_step: T-001-profile-configuration
+  source_file: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/README.yaml
+  spec:
+    step_id: T-001
+    parent_global_step: G-002
+    name: Profile and Configuration Facts
+    description: 'Create the profile and configuration fact model: define Model Profile (C-005), Hardware Profile (C-006), Runtime Configuration (C-021), Model KV Memory Profile (C-045), and KV Cache Byte Formula (C-044) as the configuration-owned facts that downstream capacity logic consumes.'
+    concepts:
+    - C-005
+    - C-006
+    - C-021
+    - C-044
+    - C-045
+    inputs:
+    - name: profile_claims
+      type: source_labels
+      description: Binding claims {mdl1}, {hw01}, {cfg1}, {kvf1}, and {ctxb} defining model parameters, hardware parameters, configuration ownership, and KV byte formulas.
+    - name: profile_relations
+      type: relation_set
+      description: Relations C-021 owns C-005, C-021 owns C-006, C-021 owns C-045, C-005 owns C-045, and C-045 uses C-044.
+    outputs:
+    - name: profile_fact_schema
+      type: data_schema
+      description: A domain schema for model, hardware, runtime configuration, KV profile parameters, and derived KV byte facts.
+    - name: configuration_ownership_rules
+      type: ownership_rule_set
+      description: Rules stating which profile facts are owned by runtime configuration and how they are made available to capacity calculations.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    - A-006
+    - A-007
+    status: draft
+  context_file: execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/t_context.yaml
+  atomic_steps: 7
+- tactical_step: T-002-vram-runtime-facts
+  source_file: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/README.yaml
+  spec:
+    step_id: T-002
+    parent_global_step: G-002
+    name: VRAM Runtime Fact Pipeline
+    description: 'Create the VRAM fact pipeline: measure Resident GPU Services Baseline (C-007), produce VRAM Runtime Facts (C-008), derive Dynamic VRAM Pool (C-009), and compute Usable Dynamic VRAM Formula (C-046) as the current GPU capacity fact used by admission and scheduling.'
+    concepts:
+    - C-007
+    - C-008
+    - C-009
+    - C-046
+    inputs:
+    - name: vram_measurement_claims
+      type: source_labels
+      description: Binding claims {base}, {mem1}, {load}, {stat}, {dyn1}, {dyn2}, {inv3}, and {vram1} defining baseline, model-loaded facts, dynamic pool, and usable VRAM formula.
+    - name: profile_facts
+      type: domain_fact_set
+      description: Profile and configuration facts used by the VRAM fact pipeline without redefining their ownership.
+    outputs:
+    - name: vram_fact_lifecycle
+      type: measurement_contract
+      description: A contract for collecting baseline VRAM, model-loaded VRAM, measured model static VRAM, and dynamic VRAM pool facts.
+    - name: usable_dynamic_vram_fact
+      type: capacity_fact
+      description: The computed usable dynamic VRAM value with active reservations, safety margin, and runtime reserve accounted for.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    - A-006
+    status: draft
+  context_file: execution_contexts/G-002-memory-and-configuration/T-002-vram-runtime-facts/t_context.yaml
+  atomic_steps: 6
+- tactical_step: T-003-calibration-profile
+  source_file: docs/plans/G-002-memory-and-configuration/T-003-calibration-profile/README.yaml
+  spec:
+    step_id: T-003
+    parent_global_step: G-002
+    name: Calibration Feedback Contract
+    description: 'Create the calibration feedback contract: define Calibration Profile (C-020) as the domain object that stores empirical KV-cache and overhead observations and supplies corrected facts to Request Capacity Estimate (C-011) without owning request admission or runtime execution.'
+    concepts:
+    - C-020
+    - C-011
+    inputs:
+    - name: calibration_claims
+      type: source_labels
+      description: Binding claims {cal1} and {cal2} defining empirical calibration and profile invalidation conditions.
+    - name: telemetry_observations
+      type: telemetry_fact_set
+      description: Observed runtime token, VRAM, and overhead facts consumed by calibration without redefining Telemetry (C-019).
+    outputs:
+    - name: calibration_profile_contract
+      type: domain_contract
+      description: A contract for storing calibrated KV and overhead costs by model, runtime, quantization/profile, and hardware profile.
+    - name: capacity_estimate_adjustment
+      type: calibration_output
+      description: Corrected estimate inputs made available to Request Capacity Estimate (C-011).
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    status: draft
+  context_file: execution_contexts/G-002-memory-and-configuration/T-003-calibration-profile/t_context.yaml
+  atomic_steps: 5
+assignment: Spawn T orchestrators for tactical steps in this G scope using gpt-5.4-mini. Provide each T orchestrator the common context, root context, this G context, and its T context. Verify and accept T outputs before reporting to root.
+forbidden:
+- Reading or modifying plan scopes outside this G unless explicitly escalated and approved
+- Delegating directly to AS executors except through a T orchestrator
+- Guessing missing details
+acceptance:
+- All T results accepted
+- All changes verified through proxy against the server project
+- Escalations resolved or propagated to root

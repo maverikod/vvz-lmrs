@@ -1,0 +1,76 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-build-cli-help.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-003-cli-service-management
+  atomic_step: A-002
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-002-build-cli-help.yaml
+  target_file: lmrs/cli/operations.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-003
+  name: Implement build_cli_help
+  target_file: lmrs/cli/operations.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-041
+  - C-029
+  - C-028
+  objects:
+  - build_cli_help
+  prompt: Modify lmrs/cli/operations.py after A-001. Append build_cli_help(metadata, schema) that derives CLI command documentation from the command metadata contract and schema contract as the single source of truth. It exposes command names, parameter descriptions, examples, return shape, error cases, and best practices from metadata, and must not maintain a separate hand-written help catalog that can drift from command code. Return the rendered help structure. Do not start or stop the service here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/cli/operations.py::build_cli_help
+    expected: build_cli_help renders CLI help from command metadata and schema contracts with no separate hand-written catalog.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-028
+  name: Command Schema Contract
+  definition: The per-command request, result, and error schema contract used for validation and command discovery.
+  properties:
+  - Request schema is returned by get_schema.
+  - Result schema is returned by get_result_schema.
+  - Error schema is returned by get_error_schema.
+  - Schemas live separately from executor code and are used by adapter schema-based validation before domain checks.
+  source_labels:
+  - '{asch}'
+- concept_id: C-029
+  name: Command Metadata Contract
+  definition: The per-command discovery contract that publishes help, schema, error, and example information for MCP tooling.
+  properties:
+  - Metadata includes command name, description, parameter schema, result schema, error schema, stable error codes, and examples.
+  - Metadata must be sufficient for MCP help, proxy discovery, and OpenAPI generation without reading internal implementation.
+  - Metadata lives separately from executor code.
+  source_labels:
+  - '{amet}'
+- concept_id: C-041
+  name: Metadata-Driven CLI Help
+  definition: The CLI help system that derives command documentation from command metadata and schemas.
+  properties:
+  - CLI help uses command metadata and schemas as its source of truth.
+  - The CLI does not maintain a separate hand-written help catalog that can drift from command code.
+  - Command names, parameter descriptions, examples, return shape, error cases, and best practices are exposed from metadata.
+  source_labels:
+  - '{clih}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

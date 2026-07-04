@@ -1,0 +1,71 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-calculate-required-tokens.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-003-admission-and-scheduling
+  tactical_step: T-001-token-capacity-estimate
+  atomic_step: A-003
+  source_file: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-003-calculate-required-tokens.yaml
+  target_file: lmrs/estimation.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-001
+  name: Implement calculate_required_tokens
+  target_file: lmrs/estimation.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-010
+  - C-011
+  objects:
+  - calculate_required_tokens
+  prompt: 'Modify lmrs/estimation.py after A-001 and A-002. Append calculate_required_tokens(breakdown: TokenBreakdown) -> int. It must sum input, tool, service, and reserved output tokens, reject negative components, and return the preflight required token total. Do not make context-window or admission decisions.'
+  verification: &id001
+    type: static_analysis
+    target: lmrs/estimation.py::calculate_required_tokens
+    expected: Function sums all token components and rejects negative token counts.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-010
+  name: Token Accounting
+  definition: The tokenizer-aware accounting process that computes request token requirements before queuing and before runtime execution.
+  properties:
+  - Token counting covers final prompt/chat-template content, system messages, role markers, assistant/user messages, tool schemas, service headers, and reserved output tokens.
+  - The preferred mode uses the tokenizer matching the executing model and runtime.
+  - Rough chars/4 estimates are allowed only as explicitly marked fallback.
+  - If exact tokenizer is unavailable, the service either uses explicitly allowed approximate mode or rejects with TOKENIZER_UNAVAILABLE.
+  source_labels:
+  - '{tok1}'
+  - '{tok2}'
+  - '{tok3}'
+- concept_id: C-011
+  name: Request Capacity Estimate
+  definition: The computed token and dynamic VRAM requirement for an individual request.
+  properties:
+  - required_tokens includes input tokens, tool tokens, service tokens, and reserved output tokens.
+  - Requests exceeding the declared model context window are rejected.
+  - Dynamic VRAM estimate is based on required_tokens, calibrated KV-cache cost per token, and per-request overhead.
+  - Allowed request size is the minimum of declared context window and dynamic-pool token capacity.
+  source_labels:
+  - '{lim1}'
+  - '{lim2}'
+  - '{lim3}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

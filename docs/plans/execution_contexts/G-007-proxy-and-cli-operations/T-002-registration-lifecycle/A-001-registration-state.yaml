@@ -1,0 +1,55 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-registration-state.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-002-registration-lifecycle
+  atomic_step: A-001
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-001-registration-state.yaml
+  target_file: lmrs/proxy/lifecycle.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-002
+  name: Define RegistrationState
+  target_file: lmrs/proxy/lifecycle.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-038
+  objects:
+  - RegistrationState
+  prompt: Create lmrs/proxy/lifecycle.py and define frozen dataclass RegistrationState with registered bool default False, last_heartbeat_at, heartbeat_fresh bool, instance_uuid, server_name, proxy_recognized bool, and metadata. It is the structured status object for registered state, heartbeat freshness, instance identity, and proxy recognition. Do not add lifecycle policy or the run loop in this step.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/proxy/lifecycle.py::RegistrationState
+    expected: RegistrationState captures registered state, heartbeat freshness, instance identity, and proxy recognition.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-038
+  name: Proxy Registration Lifecycle
+  definition: The startup, heartbeat, retry, re-registration, and shutdown behavior used to keep the LMRS adapter visible through the proxy.
+  properties:
+  - Startup waits until the advertised server URL is listening before proxy registration.
+  - Heartbeat sends registration payloads on the configured interval.
+  - Failed or unrecognized registrations are retried and may trigger re-registration.
+  - Shutdown unregisters the adapter when configured.
+  source_labels:
+  - '{rhbt}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

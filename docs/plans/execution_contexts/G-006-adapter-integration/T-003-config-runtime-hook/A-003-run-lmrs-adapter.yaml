@@ -1,0 +1,65 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-run-lmrs-adapter.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-006-adapter-integration
+  tactical_step: T-003-config-runtime-hook
+  atomic_step: A-003
+  source_file: docs/plans/G-006-adapter-integration/T-003-config-runtime-hook/atomic_steps/A-003-run-lmrs-adapter.yaml
+  target_file: lmrs/adapter/runtime.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-003
+  name: Implement run_lmrs_adapter
+  target_file: lmrs/adapter/runtime.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-032
+  - C-003
+  objects:
+  - run_lmrs_adapter
+  prompt: Modify lmrs/adapter/runtime.py after A-001 and A-002. Append run_lmrs_adapter() that is the startup boundary. It registers LMRS command hooks before adapter server startup, loads configuration and validates it, starts LMRS domain lifecycle services, and then hands control to the adapter create_and_run_server function. The adapter factory code must remain free of LMRS admission, tokenizer, VRAM, and model lifecycle logic. Do not implement command business logic here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/adapter/runtime.py::run_lmrs_adapter
+    expected: run_lmrs_adapter registers hooks, loads and validates configuration, starts lifecycle services, and hands control to adapter create_and_run_server without embedding domain logic.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+- concept_id: C-032
+  name: Adapter Runtime Entrypoint
+  definition: The startup boundary that wires command hooks, configuration loading, domain lifecycle services, and adapter server execution.
+  properties:
+  - The entrypoint registers LMRS command hooks before adapter server startup.
+  - The entrypoint loads configuration and starts LMRS domain lifecycle services.
+  - The entrypoint hands control to the adapter startup mechanism (create_app to build the application, then run via the adapter application runner).
+  - Adapter factory code remains free of LMRS admission, tokenizer, VRAM, and model lifecycle logic.
+  source_labels:
+  - '{ahok}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

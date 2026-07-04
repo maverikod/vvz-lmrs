@@ -1,0 +1,65 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-004-resolve-registration-protocol.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-001-network-registration-contract
+  atomic_step: A-004
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-004-resolve-registration-protocol.yaml
+  target_file: lmrs/proxy/registration.py
+atomic_step_spec:
+  step_id: A-004
+  parent_tactical_step: T-001
+  name: Implement resolve_registration_protocol
+  target_file: lmrs/proxy/registration.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-037
+  - C-036
+  objects:
+  - resolve_registration_protocol
+  prompt: Modify lmrs/proxy/registration.py after A-001 through A-003. Append resolve_registration_protocol(endpoint) that resolves the proxy client protocol from a ProxyRegistrationEndpoint registration URL scheme and credential material. HTTP registration URLs select HTTP. HTTPS registration URLs select HTTPS unless client certificate, client key, and CA material are all present. HTTPS registration with full client credential material selects mTLS. A missing or unsupported URL scheme is a configuration error and must be reported as such. Return the resolved protocol value.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/proxy/registration.py::resolve_registration_protocol
+    expected: resolve_registration_protocol returns http, https, or mtls per URL scheme and credentials, and reports missing or unsupported schemes as configuration errors.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-036
+  name: Proxy Registration Endpoint
+  definition: The registration-side contract that tells LMRS how to register, unregister, and send heartbeat data to the MCP proxy.
+  properties:
+  - Registration settings are separate from listener settings.
+  - The contract includes enablement, startup and shutdown behavior, full registration URLs, heartbeat URL and interval, server identity, instance UUID, metadata, and client credentials.
+  source_labels:
+  - '{rprx}'
+- concept_id: C-037
+  name: Registration Protocol Resolution
+  definition: The rule set that resolves the proxy client protocol from registration URL scheme and credential material.
+  properties:
+  - HTTP registration URLs select HTTP.
+  - HTTPS registration URLs select HTTPS unless client certificate, client key, and CA material are present.
+  - HTTPS registration with full client credential material selects mTLS.
+  - Missing or unsupported URL schemes are configuration errors.
+  source_labels:
+  - '{rpro}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

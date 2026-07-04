@@ -1,0 +1,63 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-adapter-exposure.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-001-service-boundary
+  tactical_step: T-001-service-boundary
+  atomic_step: A-001
+  source_file: docs/plans/G-001-service-boundary/T-001-service-boundary/atomic_steps/A-001-adapter-exposure.yaml
+  target_file: lmrs/contracts.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-001
+  name: Create AdapterExposure contract object
+  target_file: lmrs/contracts.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-003
+  objects:
+  - AdapterExposure
+  prompt: 'Target file: lmrs/contracts.py
+
+    Operation: create_file
+
+    Current file content before this step: file does not exist.
+
+
+    MRS excerpt: C-003 Adapter-Based MCP Interface requires public MCP exposure with schemas, metadata, structured errors, healthcheck, and proxy registration.
+
+
+    Create lmrs/contracts.py with only module docstring, future annotations import, dataclass import, typing Sequence import, and frozen dataclass AdapterExposure. AdapterExposure fields: command_surface: tuple[str, ...], requires_schemas: bool, requires_metadata: bool, requires_structured_errors: bool, requires_healthcheck: bool, requires_proxy_registration: bool. Add class docstring. Do not add MVP, ServiceBoundary, factory, snapshot, admission, runtime, or gateway logic.'
+  verification: &id001
+    type: import
+    target: lmrs.contracts.AdapterExposure
+    expected: Module imports and AdapterExposure exists with the listed fields.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-003
+  name: Adapter-Based MCP Interface
+  definition: The public MCP command surface implemented according to mcp_proxy_adapter conventions.
+  properties:
+  - The service is built on mcp_proxy_adapter principles.
+  - Public commands expose schemas, validation, execution, metadata, structured responses, structured errors, healthcheck, and MCP Proxy registration.
+  source_labels:
+  - '{adpt}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

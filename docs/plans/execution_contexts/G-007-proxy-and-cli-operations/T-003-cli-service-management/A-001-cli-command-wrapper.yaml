@@ -1,0 +1,65 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-cli-command-wrapper.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-003-cli-service-management
+  atomic_step: A-001
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-003-cli-service-management/atomic_steps/A-001-cli-command-wrapper.yaml
+  target_file: lmrs/cli/operations.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-003
+  name: Define CliCommandWrapper
+  target_file: lmrs/cli/operations.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-040
+  - C-027
+  objects:
+  - CliCommandWrapper
+  prompt: Create lmrs/cli/operations.py and define CliCommandWrapper as a local operator wrapper contract that exposes the main LMRS user-facing and operator-facing commands behind a scriptable command-line interface. Each wrapper calls the canonical command contracts used by the adapter-facing thin command layer and must not re-implement command business logic; it is a local surface over existing command implementation. Provide a stable command_name and an invoke method that delegates to the canonical command contract. Do not add help rendering or server management here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/cli/operations.py::CliCommandWrapper
+    expected: CliCommandWrapper exposes main commands via a scriptable CLI that delegates to canonical command contracts without re-implementing business logic.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-027
+  name: Thin Adapter Command
+  definition: A public LMRS command class that translates adapter calls into domain service execution without owning LMRS business logic.
+  properties:
+  - Each command inherits the adapter Command base class.
+  - Each command exposes a stable name and uses use_queue for long-running work when required.
+  - Each command validates parameters, delegates to a domain executor or service, and returns adapter SuccessResult or ErrorResult.
+  - Adapter command classes do not embed admission, tokenizer, VRAM, or model lifecycle business logic.
+  source_labels:
+  - '{acmd}'
+- concept_id: C-040
+  name: CLI Command Wrapper Module
+  definition: A dedicated CLI module that exposes local wrappers for the main LMRS user-facing and operator-facing commands.
+  properties:
+  - CLI wrappers call the canonical command contracts used by the adapter-facing command layer.
+  - The CLI is a local operator surface over existing command implementation, not a separate command implementation.
+  - The module groups main commands behind a scriptable command-line interface.
+  source_labels:
+  - '{cliw}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

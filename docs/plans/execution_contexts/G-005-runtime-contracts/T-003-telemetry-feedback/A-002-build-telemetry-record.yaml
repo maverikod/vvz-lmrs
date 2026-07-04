@@ -1,0 +1,57 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-build-telemetry-record.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-003-telemetry-feedback
+  atomic_step: A-002
+  source_file: docs/plans/G-005-runtime-contracts/T-003-telemetry-feedback/atomic_steps/A-002-build-telemetry-record.yaml
+  target_file: lmrs/telemetry.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-003
+  name: Implement build_telemetry_record
+  target_file: lmrs/telemetry.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-019
+  objects:
+  - build_telemetry_record
+  prompt: Modify lmrs/telemetry.py after A-001. Append build_telemetry_record(observations, prediction_context) -> TelemetryRecord that consumes execution observations and the prediction snapshot and assembles one TelemetryRecord comparing predicted versus actual tokens, VRAM, latency, queue wait, verdict, and reason code. It records observed facts only and must not alter admission, scheduling, or VRAM accounting.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/telemetry.py::build_telemetry_record
+    expected: Function assembles a TelemetryRecord from execution observations and a prediction snapshot without altering admission, scheduling, or VRAM accounting.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-019
+  name: Telemetry
+  definition: The observable data emitted and returned by LMRS for debugging, admission traceability, and calibration feedback.
+  properties:
+  - Telemetry includes predicted tokens, predicted VRAM, actual prompt tokens, actual output tokens, latency, queue wait, VRAM snapshots, admission verdict, and reason code.
+  - Telemetry supports calibration of KV-cache cost, per-request overhead, safety margin, and scheduler policy.
+  - LMCache telemetry includes hit/miss, reused tokens, new tokens, lookup latency, write latency, eviction events, and impact on actual VRAM and latency.
+  source_labels:
+  - '{obs1}'
+  - '{obs2}'
+  - '{lmcache7}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

@@ -1,0 +1,357 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: g_context
+context_bundle_order:
+- ../00-common/common_context.yaml
+- ../00-common/root_orchestrator_task.yaml
+- ./g_context.yaml
+role: g_orchestrator
+required_model: gpt-5.5
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  source_file: docs/plans/G-004-model-cache-and-lmcache/README.yaml
+  allowed_plan_subtree: docs/plans/G-004-model-cache-and-lmcache/
+global_step_spec:
+  step_id: G-004
+  name: Model Disk Cache, Memory Lifecycle, and LMCache Storage
+  description: Define the model disk cache lifecycle, explicit model memory load and unload lifecycle, and vLLM LMCache integration as a cache subsystem. This step separates model files, model residency, LMCache runtime artifacts, CPU and disk cache tiers, and cache telemetry from GPU admission capacity.
+  concepts:
+  - C-023
+  - C-024
+  - C-025
+  - C-049
+  relations:
+  - from_concept: C-017
+    to_concept: C-023
+    type: uses
+  - from_concept: C-017
+    to_concept: C-024
+    type: uses
+  - from_concept: C-023
+    to_concept: C-005
+    type: owns
+  - from_concept: C-024
+    to_concept: C-023
+    type: depends_on
+  - from_concept: C-024
+    to_concept: C-008
+    type: produces
+  - from_concept: C-025
+    to_concept: C-015
+    type: extends
+  - from_concept: C-025
+    to_concept: C-012
+    type: depends_on
+  - from_concept: C-025
+    to_concept: C-019
+    type: produces
+  - from_concept: C-021
+    to_concept: C-025
+    type: owns
+  - from_concept: C-021
+    to_concept: C-049
+    type: owns
+  - from_concept: C-049
+    to_concept: C-019
+    type: extends
+  - from_concept: C-049
+    to_concept: C-025
+    type: depends_on
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{mlife1}'
+  - '{mlife2}'
+  - '{mlife3}'
+  - '{mlife4}'
+  - '{mlife5}'
+  - '{mlife6}'
+  - '{lmcache1}'
+  - '{lmcache3}'
+  - '{lmcache4}'
+  - '{lmcache5}'
+  - '{lmcache7}'
+  - '{inv4}'
+  - '{lmc2}'
+  depends_on:
+  - G-002
+  - G-003
+  tactical_steps:
+  - T-001
+  - T-002
+  - T-003
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-005
+  name: Model Profile
+  definition: A model-specific runtime description that makes LMRS independent from any one local model.
+  properties:
+  - It includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy.
+  - Qwen, Ollama models, GPT-OSS, and other local models are instances described by profiles.
+  source_labels:
+  - '{mdl1}'
+- concept_id: C-008
+  name: VRAM Runtime Facts
+  definition: Measured runtime facts describing baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity.
+  properties:
+  - model_loaded_free_vram is measured after loading the local model.
+  - measured_model_static_vram is the difference between service_baseline_free_vram and model_loaded_free_vram.
+  - Measured static VRAM is stored for model_name, runtime, quantization/profile, and hardware_profile.
+  - Runtime facts must not be replaced by purely theoretical assumptions.
+  source_labels:
+  - '{load}'
+  - '{stat}'
+  - '{inv3}'
+- concept_id: C-012
+  name: Admission Control
+  definition: The pre-queue decision process that classifies requests as executable, queueable, or rejected using context-window and VRAM capacity constraints.
+  properties:
+  - Admission runs before a request enters the queue.
+  - Requests over the model context window are rejected with CONTEXT_OVERFLOW.
+  - Requests too large for the maximum dynamic pool are rejected with REQUEST_TOO_LARGE or HARDWARE_VRAM_INSUFFICIENT.
+  - Requests that fit the maximum dynamic pool but not current capacity are queued, not permanently rejected.
+  - Requests fitting both model window and current dynamic pool may execute immediately or be queued according to scheduler policy.
+  - LMCache reuse does not permit unsafe admission.
+  source_labels:
+  - '{adm1}'
+  - '{adm2}'
+  - '{adm3}'
+  - '{inv1}'
+  - '{inv2}'
+  - '{lmcache2}'
+  - '{lmcache6}'
+  - '{inv5}'
+- concept_id: C-015
+  name: Runtime Backend
+  definition: An execution backend abstraction that runs only requests admitted by LMRS.
+  properties:
+  - Supported backend examples include vLLM, Ollama, llama.cpp, GPT-OSS runtime, or another local runtime.
+  - The runtime backend does not make admission decisions.
+  source_labels:
+  - '{run1}'
+- concept_id: C-017
+  name: Public Command Contract
+  definition: The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations.
+  properties:
+  - The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation.
+  - The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot.
+  - The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code.
+  - Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload.
+  source_labels:
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{dcache3}'
+  - '{mlife2}'
+- concept_id: C-019
+  name: Telemetry
+  definition: The observable data emitted and returned by LMRS for debugging, admission traceability, and calibration feedback.
+  properties:
+  - Telemetry includes predicted tokens, predicted VRAM, actual prompt tokens, actual output tokens, latency, queue wait, VRAM snapshots, admission verdict, and reason code.
+  - Telemetry supports calibration of KV-cache cost, per-request overhead, safety margin, and scheduler policy.
+  - LMCache telemetry includes hit/miss, reused tokens, new tokens, lookup latency, write latency, eviction events, and impact on actual VRAM and latency.
+  source_labels:
+  - '{obs1}'
+  - '{obs2}'
+  - '{lmcache7}'
+- concept_id: C-021
+  name: Runtime Configuration
+  definition: The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits.
+  properties:
+  - Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits.
+  - For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile.
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+- concept_id: C-023
+  name: Disk Model Cache
+  definition: The disk-resident model cache that stores model weights, tokenizer files, runtime metadata, integrity information, readiness state, and cache profile independently from VRAM residency.
+  properties:
+  - Preload downloads, verifies integrity, prepares local layout, tokenizer files, runtime metadata, and readiness marker without requiring VRAM load.
+  - Disk cache and VRAM model residency are separate states.
+  - Model states include not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed.
+  - Cache management commands add, check, delete, list, verify integrity, and update metadata.
+  - Cache profile stores model_name, runtime, model_path, quantization/profile, declared_context_window, tokenizer profile, checksum or revision, disk size, load date, compatibility flags, and cache status.
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{inv4}'
+- concept_id: C-024
+  name: Model Memory Lifecycle
+  definition: The lifecycle that explicitly loads, unloads, reloads, and reports model residency in memory independently from disk cache availability.
+  properties:
+  - Loading to memory is separate from disk cache preload.
+  - Lifecycle commands include load_model, unload_model, reload_model, model_status, and model_lifecycle_status.
+  - Before loading, the service verifies disk cache presence and runtime compatibility or returns MODEL_NOT_CACHED unless preload is explicitly allowed.
+  - After loading, the service measures model_loaded_free_vram and records measured_model_static_vram.
+  - Unloading frees VRAM residency without requiring disk cache deletion and updates free VRAM state.
+  - The MVP policy is keep_loaded for one resident LLM until explicit unload or replacement.
+  source_labels:
+  - '{mlife1}'
+  - '{mlife2}'
+  - '{mlife3}'
+  - '{mlife4}'
+  - '{mlife5}'
+  - '{mlife6}'
+  - '{inv4}'
+- concept_id: C-025
+  name: LMCache Integration
+  definition: The vLLM LMCache runtime caching integration used to accelerate reuse of repeated or long context while preserving conservative admission decisions.
+  properties:
+  - LMCache is a separate runtime/caching backend and does not replace admission control.
+  - Disk model cache and LMCache are distinct caches with different artifacts.
+  - Estimate responses may include cache_reuse_possible, estimated_cache_hit_tokens, effective_new_tokens, and cache_estimate_quality when pre-execution cache information is available.
+  - If a cache hit is not guaranteed before launch, admission estimates the request as a full cache miss.
+  source_labels:
+  - '{lmcache1}'
+  - '{lmcache2}'
+  - '{lmcache3}'
+  - '{lmcache4}'
+  - '{lmcache5}'
+  - '{lmcache6}'
+  - '{lmcache7}'
+  - '{inv5}'
+- concept_id: C-049
+  name: LMCache Storage Telemetry
+  definition: Telemetry and storage accounting contract that separates LMCache CPU/disk tiers from GPU dynamic VRAM.
+  properties:
+    storage_tiers:
+      ram: Hot KV storage tier.
+      disk: Warm or cold KV storage tier.
+    separation_rule: CPU and disk LMCache capacity do not count as free VRAM.
+    telemetry_fields:
+    - hit_tokens
+    - miss_tokens
+    - hit_quality
+    - restore_latency
+    - cpu_cache_usage
+    - cpu_cache_limit
+    - disk_cache_usage
+    - disk_cache_limit
+    - evictions
+    - memory_pressure
+    - swap_indicators
+    purpose: Tune cache limits without weakening admission safety.
+  source_labels:
+  - '{lmc2}'
+  - '{lmcache7}'
+tactical_steps:
+- tactical_step: T-001-disk-model-cache
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/README.yaml
+  spec:
+    step_id: T-001
+    parent_global_step: G-004
+    name: Disk Model Cache Lifecycle
+    description: 'Create the disk model cache lifecycle: define Disk Model Cache (C-023) as the owner of cached model profile material, cache states, integrity checks, preload behavior, delete behavior, and cache metadata used by model lifecycle and public commands.'
+    concepts:
+    - C-023
+    - C-005
+    - C-017
+    inputs:
+    - name: model_cache_claims
+      type: source_labels
+      description: Binding claims {dcache1}, {dcache2}, {dcache3}, {dcache4}, and {inv4} defining disk cache semantics and commands.
+    - name: model_profile_facts
+      type: profile_fact_set
+      description: Model Profile (C-005) facts that are stored with cached model metadata.
+    outputs:
+    - name: disk_cache_state_contract
+      type: state_machine_contract
+      description: A cache lifecycle contract with explicit states, readiness markers, integrity checks, metadata updates, and command-visible cache status.
+    - name: cached_model_profile_record
+      type: metadata_record
+      description: A structured cached model record containing model identity, runtime, tokenizer, revision or checksum, size, compatibility flags, and cache status.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    status: draft
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-001-disk-model-cache/t_context.yaml
+  atomic_steps: 4
+- tactical_step: T-002-model-memory-lifecycle
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/README.yaml
+  spec:
+    step_id: T-002
+    parent_global_step: G-004
+    name: Model Memory Lifecycle
+    description: 'Create the model memory lifecycle contract: use Model Memory Lifecycle (C-024), Disk Model Cache (C-023), and VRAM Runtime Facts (C-008) to define load, unload, reload, resident status, measured static VRAM, and post-operation VRAM fact updates.'
+    concepts:
+    - C-024
+    - C-023
+    - C-008
+    - C-017
+    inputs:
+    - name: memory_lifecycle_claims
+      type: source_labels
+      description: Binding claims {mlife1}, {mlife2}, {mlife3}, {mlife4}, {mlife5}, {mlife6}, and {inv4} defining memory residency lifecycle.
+    - name: disk_cache_state
+      type: cache_status
+      description: Disk model cache status consumed before memory load operations.
+    outputs:
+    - name: memory_lifecycle_state_contract
+      type: state_machine_contract
+      description: A lifecycle contract for not loaded, loading, loaded, unloading, reload, failed, and keep-loaded states.
+    - name: model_load_vram_fact_update
+      type: runtime_fact_update
+      description: Measured model static VRAM and model-loaded free VRAM facts emitted after successful lifecycle transitions.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    status: draft
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/t_context.yaml
+  atomic_steps: 5
+- tactical_step: T-003-lmcache-storage-telemetry
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/README.yaml
+  spec:
+    step_id: T-003
+    parent_global_step: G-004
+    name: LMCache Storage and Telemetry Contract
+    description: 'Create the LMCache storage contract: define LMCache Integration (C-025) and LMCache Storage Telemetry (C-049) as CPU and disk cache tiers, namespace/session binding, hit/miss estimate fields, restore and write latency facts, eviction facts, and telemetry outputs that never count as free GPU VRAM.'
+    concepts:
+    - C-025
+    - C-049
+    - C-019
+    - C-021
+    - C-015
+    - C-012
+    inputs:
+    - name: lmcache_claims
+      type: source_labels
+      description: Binding claims {lmcache1}, {lmcache3}, {lmcache4}, {lmcache5}, {lmcache7}, {lmc2}, and {inv5} defining LMCache integration and storage separation.
+    - name: runtime_and_admission_facts
+      type: runtime_context
+      description: Runtime backend and admission context consumed to bind LMCache reuse and telemetry without weakening admission safety.
+    outputs:
+    - name: lmcache_storage_policy
+      type: cache_policy_contract
+      description: A policy contract for enabled state, storage tiers, namespace binding, limits, eviction, and compatibility with runtime and model profiles.
+    - name: lmcache_telemetry_contract
+      type: telemetry_contract
+      description: Telemetry fields for hit tokens, miss tokens, hit quality, restore latency, CPU and disk usage, evictions, memory pressure, and swap indicators.
+    atomic_steps:
+    - A-001
+    - A-002
+    - A-003
+    - A-004
+    - A-005
+    status: draft
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/t_context.yaml
+  atomic_steps: 5
+assignment: Spawn T orchestrators for tactical steps in this G scope using gpt-5.4-mini. Provide each T orchestrator the common context, root context, this G context, and its T context. Verify and accept T outputs before reporting to root.
+forbidden:
+- Reading or modifying plan scopes outside this G unless explicitly escalated and approved
+- Delegating directly to AS executors except through a T orchestrator
+- Guessing missing details
+acceptance:
+- All T results accepted
+- All changes verified through proxy against the server project
+- Escalations resolved or propagated to root

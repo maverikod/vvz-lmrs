@@ -1,0 +1,57 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-token-breakdown.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-003-admission-and-scheduling
+  tactical_step: T-001-token-capacity-estimate
+  atomic_step: A-001
+  source_file: docs/plans/G-003-admission-and-scheduling/T-001-token-capacity-estimate/atomic_steps/A-001-token-breakdown.yaml
+  target_file: lmrs/estimation.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-001
+  name: Define TokenBreakdown
+  target_file: lmrs/estimation.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-010
+  objects:
+  - TokenBreakdown
+  prompt: Create lmrs/estimation.py and define frozen dataclass TokenBreakdown with input_tokens, tool_tokens, service_tokens, reserved_output_tokens, tokenizer_name, tokenizer_accuracy, rough_estimate bool default False, and metadata. It represents tokenizer-aware preflight accounting only; do not add capacity or admission logic.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/estimation.py::TokenBreakdown
+    expected: TokenBreakdown stores all token components and tokenizer accuracy state.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-010
+  name: Token Accounting
+  definition: The tokenizer-aware accounting process that computes request token requirements before queuing and before runtime execution.
+  properties:
+  - Token counting covers final prompt/chat-template content, system messages, role markers, assistant/user messages, tool schemas, service headers, and reserved output tokens.
+  - The preferred mode uses the tokenizer matching the executing model and runtime.
+  - Rough chars/4 estimates are allowed only as explicitly marked fallback.
+  - If exact tokenizer is unavailable, the service either uses explicitly allowed approximate mode or rejects with TOKENIZER_UNAVAILABLE.
+  source_labels:
+  - '{tok1}'
+  - '{tok2}'
+  - '{tok3}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

@@ -1,0 +1,55 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-command-schema-contract.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-006-adapter-integration
+  tactical_step: T-002-schema-metadata-contracts
+  atomic_step: A-001
+  source_file: docs/plans/G-006-adapter-integration/T-002-schema-metadata-contracts/atomic_steps/A-001-command-schema-contract.yaml
+  target_file: lmrs/adapter/schemas.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-002
+  name: Define CommandSchemaContract
+  target_file: lmrs/adapter/schemas.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-028
+  objects:
+  - CommandSchemaContract
+  prompt: 'Create lmrs/adapter/schemas.py and define CommandSchemaContract as the per-command request/result/error schema contract. It declares three schema providers: a request schema (returned by get_schema), a result schema (returned by get_result_schema), and an error schema (returned by get_error_schema). Schemas live separately from executor code and are used by adapter schema-based validation before domain checks. Do not add metadata or help fields in this step.'
+  verification: &id001
+    type: static_analysis
+    target: lmrs/adapter/schemas.py::CommandSchemaContract
+    expected: CommandSchemaContract declares request, result, and error schema providers separate from executor code for adapter validation before domain checks.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-028
+  name: Command Schema Contract
+  definition: The per-command request, result, and error schema contract used for validation and command discovery.
+  properties:
+  - Request schema is returned by get_schema.
+  - Result schema is returned by get_result_schema.
+  - Error schema is returned by get_error_schema.
+  - Schemas live separately from executor code and are used by adapter schema-based validation before domain checks.
+  source_labels:
+  - '{asch}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

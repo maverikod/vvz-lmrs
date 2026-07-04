@@ -1,0 +1,163 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-001-disk-model-cache
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/README.yaml
+  allowed_plan_subtree: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/
+tactical_step_spec:
+  step_id: T-001
+  parent_global_step: G-004
+  name: Disk Model Cache Lifecycle
+  description: 'Create the disk model cache lifecycle: define Disk Model Cache (C-023) as the owner of cached model profile material, cache states, integrity checks, preload behavior, delete behavior, and cache metadata used by model lifecycle and public commands.'
+  concepts:
+  - C-023
+  - C-005
+  - C-017
+  inputs:
+  - name: model_cache_claims
+    type: source_labels
+    description: Binding claims {dcache1}, {dcache2}, {dcache3}, {dcache4}, and {inv4} defining disk cache semantics and commands.
+  - name: model_profile_facts
+    type: profile_fact_set
+    description: Model Profile (C-005) facts that are stored with cached model metadata.
+  outputs:
+  - name: disk_cache_state_contract
+    type: state_machine_contract
+    description: A cache lifecycle contract with explicit states, readiness markers, integrity checks, metadata updates, and command-visible cache status.
+  - name: cached_model_profile_record
+    type: metadata_record
+    description: A structured cached model record containing model identity, runtime, tokenizer, revision or checksum, size, compatibility flags, and cache status.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-005
+  name: Model Profile
+  definition: A model-specific runtime description that makes LMRS independent from any one local model.
+  properties:
+  - It includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy.
+  - Qwen, Ollama models, GPT-OSS, and other local models are instances described by profiles.
+  source_labels:
+  - '{mdl1}'
+- concept_id: C-017
+  name: Public Command Contract
+  definition: The minimum stable command surface exposed by LMRS for health, capacity, admission, chat, queue, cache, and model lifecycle operations.
+  properties:
+  - The minimal runtime command set includes healthcheck, model status, capacity, token counting, dry-run estimate/admission, chat request, queue status, and request cancellation.
+  - The estimate command performs dry-run admission and returns would_execute, would_queue, or would_reject with reason code, token breakdown, and capacity snapshot.
+  - The chat command performs token counting and admission, then returns executed, queued, or rejected with the appropriate result, queue state, or stable reason code.
+  - Additional cache and memory commands include local_model_cache_preload, local_model_cache_status, local_model_cache_delete, local_model_load, local_model_unload, and local_model_reload.
+  source_labels:
+  - '{cmd1}'
+  - '{cmd2}'
+  - '{cmd3}'
+  - '{cmd4}'
+  - '{dcache3}'
+  - '{mlife2}'
+- concept_id: C-023
+  name: Disk Model Cache
+  definition: The disk-resident model cache that stores model weights, tokenizer files, runtime metadata, integrity information, readiness state, and cache profile independently from VRAM residency.
+  properties:
+  - Preload downloads, verifies integrity, prepares local layout, tokenizer files, runtime metadata, and readiness marker without requiring VRAM load.
+  - Disk cache and VRAM model residency are separate states.
+  - Model states include not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed.
+  - Cache management commands add, check, delete, list, verify integrity, and update metadata.
+  - Cache profile stores model_name, runtime, model_path, quantization/profile, declared_context_window, tokenizer profile, checksum or revision, disk size, load date, compatibility flags, and cache status.
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{inv4}'
+atomic_steps:
+- path: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-001-cached-model-record.yaml
+  step_id: A-001
+  name: Define CachedModelRecord
+  target_file: lmrs/model_cache.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-023
+  - C-005
+  objects:
+  - CachedModelRecord
+  verification:
+    type: static_analysis
+    target: lmrs/model_cache.py::CachedModelRecord
+    expected: CachedModelRecord stores disk model cache identity, model profile fields, integrity/revision, size, readiness marker, compatibility flags, status, and metadata.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-001-disk-model-cache/A-001-cached-model-record.yaml
+- path: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-002-cache-state-enum.yaml
+  step_id: A-002
+  name: Define CacheState
+  target_file: lmrs/model_cache.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-023
+  objects:
+  - CacheState
+  verification:
+    type: static_analysis
+    target: lmrs/model_cache.py::CacheState
+    expected: CacheState exposes stable cache/lifecycle state names and preserves the separation between disk cache and memory residency.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-001-disk-model-cache/A-002-cache-state-enum.yaml
+- path: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-003-disk-model-cache.yaml
+  step_id: A-003
+  name: Define DiskModelCache
+  target_file: lmrs/model_cache.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-023
+  - C-017
+  objects:
+  - DiskModelCache
+  verification:
+    type: static_analysis
+    target: lmrs/model_cache.py::DiskModelCache
+    expected: DiskModelCache owns cached records and exposes preload/status/delete/list/integrity/metadata-update command surface without VRAM load semantics.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-001-disk-model-cache/A-003-disk-model-cache.yaml
+- path: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-004-cache-command-results.yaml
+  step_id: A-004
+  name: Define CacheCommandResult
+  target_file: lmrs/model_cache.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-023
+  - C-017
+  objects:
+  - CacheCommandResult
+  verification:
+    type: static_analysis
+    target: lmrs/model_cache.py::CacheCommandResult
+    expected: CacheCommandResult represents structured disk-cache command output with stable reason code, optional record, success flag, and metadata.
+  context_file: execution_contexts/G-004-model-cache-and-lmcache/T-001-disk-model-cache/A-004-cache-command-results.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

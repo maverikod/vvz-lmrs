@@ -1,0 +1,69 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-cached-model-record.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-001-disk-model-cache
+  atomic_step: A-001
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-001-cached-model-record.yaml
+  target_file: lmrs/model_cache.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-001
+  name: Define CachedModelRecord
+  target_file: lmrs/model_cache.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-023
+  - C-005
+  objects:
+  - CachedModelRecord
+  prompt: Create lmrs/model_cache.py and define frozen dataclass CachedModelRecord with model_name, runtime_backend, model_path, quantization_profile, declared_context_window, tokenizer_profile, checksum_or_revision, size_bytes, downloaded_at, compatibility_flags, cache_status, readiness_marker_path, and metadata. It represents disk cache metadata only; do not model VRAM residency here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/model_cache.py::CachedModelRecord
+    expected: CachedModelRecord stores disk model cache identity, model profile fields, integrity/revision, size, readiness marker, compatibility flags, status, and metadata.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-005
+  name: Model Profile
+  definition: A model-specific runtime description that makes LMRS independent from any one local model.
+  properties:
+  - It includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy.
+  - Qwen, Ollama models, GPT-OSS, and other local models are instances described by profiles.
+  source_labels:
+  - '{mdl1}'
+- concept_id: C-023
+  name: Disk Model Cache
+  definition: The disk-resident model cache that stores model weights, tokenizer files, runtime metadata, integrity information, readiness state, and cache profile independently from VRAM residency.
+  properties:
+  - Preload downloads, verifies integrity, prepares local layout, tokenizer files, runtime metadata, and readiness marker without requiring VRAM load.
+  - Disk cache and VRAM model residency are separate states.
+  - Model states include not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed.
+  - Cache management commands add, check, delete, list, verify integrity, and update metadata.
+  - Cache profile stores model_name, runtime, model_path, quantization/profile, declared_context_window, tokenizer profile, checksum or revision, disk size, load date, compatibility flags, and cache status.
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{inv4}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

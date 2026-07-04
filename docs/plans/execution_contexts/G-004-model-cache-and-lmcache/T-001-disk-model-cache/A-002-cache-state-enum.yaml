@@ -1,0 +1,61 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-cache-state-enum.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-004-model-cache-and-lmcache
+  tactical_step: T-001-disk-model-cache
+  atomic_step: A-002
+  source_file: docs/plans/G-004-model-cache-and-lmcache/T-001-disk-model-cache/atomic_steps/A-002-cache-state-enum.yaml
+  target_file: lmrs/model_cache.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-001
+  name: Define CacheState
+  target_file: lmrs/model_cache.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-023
+  objects:
+  - CacheState
+  prompt: Modify lmrs/model_cache.py after A-001. Append CacheState string constants or enum values for not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed. It must explicitly separate disk cache state from VRAM residency state. Do not add lifecycle operations.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/model_cache.py::CacheState
+    expected: CacheState exposes stable cache/lifecycle state names and preserves the separation between disk cache and memory residency.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-023
+  name: Disk Model Cache
+  definition: The disk-resident model cache that stores model weights, tokenizer files, runtime metadata, integrity information, readiness state, and cache profile independently from VRAM residency.
+  properties:
+  - Preload downloads, verifies integrity, prepares local layout, tokenizer files, runtime metadata, and readiness marker without requiring VRAM load.
+  - Disk cache and VRAM model residency are separate states.
+  - Model states include not_cached, caching, cached_on_disk, loading_to_memory, loaded_in_memory, unloading, and failed.
+  - Cache management commands add, check, delete, list, verify integrity, and update metadata.
+  - Cache profile stores model_name, runtime, model_path, quantization/profile, declared_context_window, tokenizer profile, checksum or revision, disk size, load date, compatibility flags, and cache status.
+  source_labels:
+  - '{dcache1}'
+  - '{dcache2}'
+  - '{dcache3}'
+  - '{dcache4}'
+  - '{inv4}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

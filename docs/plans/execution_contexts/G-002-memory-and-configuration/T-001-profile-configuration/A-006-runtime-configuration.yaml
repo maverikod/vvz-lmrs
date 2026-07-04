@@ -1,0 +1,75 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-006-runtime-configuration.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-001-profile-configuration
+  atomic_step: A-006
+  source_file: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-006-runtime-configuration.yaml
+  target_file: lmrs/configuration.py
+atomic_step_spec:
+  step_id: A-006
+  parent_tactical_step: T-001
+  name: Define RuntimeConfiguration
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 6
+  depends_on:
+  - A-005
+  concepts:
+  - C-005
+  - C-006
+  - C-021
+  objects:
+  - RuntimeConfiguration
+  prompt: "Target file: lmrs/configuration.py\nOperation: modify_file\n\nMRS excerpt:\n- C-005 Model Profile: runtime description for local models.\n- C-006 Hardware Profile: hardware capacity description for admission and calibration.\n- C-021 Runtime Configuration: service configuration owns hardware profile, resident services, safety margin, runtime reserve, model profiles, runtime backend, tokenizer, queue policy, and queue limits.\n\nCurrent full content of lmrs/configuration.py before this modification:\n```python\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import Mapping\n\n\n@dataclass(frozen=True)\nclass HardwareProfile:\n    \"\"\"Hardware capacity profile used by LMRS admission and calibration logic.\"\"\"\n\n    gpu_count: int = 1\n    total_vram_bytes: int = 24 * 1024**3\n    total_ram_bytes: int = 128 * 1024**3\n    gpu_model: str | None = None\n    metadata: Mapping[str, str] = field(default_factory=dict)\n\n\n@dataclass(frozen=True)\n\
+    class KVCacheProfile:\n    \"\"\"Model KV-cache parameters used to derive memory facts.\"\"\"\n\n    layers: int\n    kv_heads: int\n    head_dim: int\n    kv_element_bytes: int\n    declared_context_window: int\n    runtime_kv_dtype: str = \"fp16\"\n    quantization_profile: str | None = None\n\n    def kv_bytes_per_token(self) -> int:\n        \"\"\"Return worst-case KV-cache bytes required for one token.\"\"\"\n\n        return self.layers * 2 * self.kv_heads * self.head_dim * self.kv_element_bytes\n\n    def kv_full_window_bytes(self) -> int:\n        \"\"\"Return worst-case KV-cache bytes for the declared context window.\"\"\"\n\n        return self.declared_context_window * self.kv_bytes_per_token()\n\n\n@dataclass(frozen=True)\nclass ModelProfile:\n    \"\"\"Runtime-independent profile for one locally executable model.\"\"\"\n\n    model_name: str\n    runtime_backend: str\n    model_path_or_endpoint: str\n    declared_context_window: int\n    tokenizer_profile: str\n    load_policy:\
+    \ str\n    kv_cache_profile: KVCacheProfile\n    concurrency_policy: Mapping[str, int] = field(default_factory=dict)\n    options: Mapping[str, str] = field(default_factory=dict)\n```\n\nModify the file by adding this dataclass after ModelProfile:\n```python\n\n@dataclass(frozen=True)\nclass RuntimeConfiguration:\n    \"\"\"Configuration-owned LMRS profile facts consumed by capacity logic.\"\"\"\n\n    hardware_profile: HardwareProfile\n    model_profiles: Mapping[str, ModelProfile]\n    default_model_name: str\n    resident_services: tuple[str, ...] = ()\n    safety_margin_bytes: int = 0\n    runtime_reserve_bytes: int = 0\n    queue_policy: str = \"largest_fit\"\n    queue_limits: Mapping[str, int] = field(default_factory=dict)\n```\n\nConstraints:\n- Keep previous classes unchanged.\n- Use existing imports only.\n- RuntimeConfiguration must be frozen.\n- Do not add validation in this step."
+  verification: &id001
+    type: static_analysis
+    target: lmrs/configuration.py::RuntimeConfiguration
+    expected: The file defines a frozen RuntimeConfiguration dataclass owning hardware profile, model profiles, default model, resident services, safety/reserve bytes, queue policy, and queue limits.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-005
+  name: Model Profile
+  definition: A model-specific runtime description that makes LMRS independent from any one local model.
+  properties:
+  - It includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy.
+  - Qwen, Ollama models, GPT-OSS, and other local models are instances described by profiles.
+  source_labels:
+  - '{mdl1}'
+- concept_id: C-006
+  name: Hardware Profile
+  definition: The hardware capacity description used for admission and calibration decisions.
+  properties:
+  - The initial target profile is one GPU with 24 GB VRAM and 128 GB RAM.
+  - The architecture must allow future larger VRAM cards and multiple GPUs without changing the external provider contract.
+  source_labels:
+  - '{hw01}'
+- concept_id: C-021
+  name: Runtime Configuration
+  definition: The service configuration that defines hardware, resident services, safety reserves, model profiles, runtime backend, tokenizer, queue policy, and queue limits.
+  properties:
+  - Configuration includes hardware profile, resident services, safety margin, runtime reserve, models, runtime backend, tokenizer profile, queue policy, and queue limits.
+  - For vLLM, configuration includes LMCache enablement, cache storage path, policy, limits, eviction policy, namespace/session binding, and compatibility mode with model profile.
+  source_labels:
+  - '{cfg1}'
+  - '{lmcache3}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

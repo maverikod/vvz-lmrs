@@ -1,0 +1,54 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-proxy-registration-endpoint.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-001-network-registration-contract
+  atomic_step: A-003
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-003-proxy-registration-endpoint.yaml
+  target_file: lmrs/proxy/registration.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-001
+  name: Define ProxyRegistrationEndpoint
+  target_file: lmrs/proxy/registration.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-036
+  objects:
+  - ProxyRegistrationEndpoint
+  prompt: Modify lmrs/proxy/registration.py after A-001 and A-002. Append frozen dataclass ProxyRegistrationEndpoint with enabled bool default False, register_on_startup bool, unregister_on_shutdown bool, register_url, unregister_url, heartbeat_url, heartbeat_interval_seconds, server_id, server_name, instance_uuid, metadata, client_cert, client_key, ca_cert. It is the registration-side contract for registering, unregistering, and sending heartbeat data to the MCP proxy. Registration settings are separate from listener settings. Do not add protocol resolution or payload assembly here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/proxy/registration.py::ProxyRegistrationEndpoint
+    expected: ProxyRegistrationEndpoint captures enablement, startup and shutdown behavior, registration and heartbeat URLs and interval, server identity, instance UUID, metadata, and client credentials, separate from listener settings.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-036
+  name: Proxy Registration Endpoint
+  definition: The registration-side contract that tells LMRS how to register, unregister, and send heartbeat data to the MCP proxy.
+  properties:
+  - Registration settings are separate from listener settings.
+  - The contract includes enablement, startup and shutdown behavior, full registration URLs, heartbeat URL and interval, server identity, instance UUID, metadata, and client credentials.
+  source_labels:
+  - '{rprx}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

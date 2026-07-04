@@ -1,0 +1,205 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: t_context
+context_bundle_order:
+- ../../00-common/common_context.yaml
+- ../../00-common/root_orchestrator_task.yaml
+- ../g_context.yaml
+- ./t_context.yaml
+role: t_orchestrator
+required_model: gpt-5.4-mini
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-002-vram-runtime-facts
+  source_file: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/README.yaml
+  allowed_plan_subtree: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/
+tactical_step_spec:
+  step_id: T-002
+  parent_global_step: G-002
+  name: VRAM Runtime Fact Pipeline
+  description: 'Create the VRAM fact pipeline: measure Resident GPU Services Baseline (C-007), produce VRAM Runtime Facts (C-008), derive Dynamic VRAM Pool (C-009), and compute Usable Dynamic VRAM Formula (C-046) as the current GPU capacity fact used by admission and scheduling.'
+  concepts:
+  - C-007
+  - C-008
+  - C-009
+  - C-046
+  inputs:
+  - name: vram_measurement_claims
+    type: source_labels
+    description: Binding claims {base}, {mem1}, {load}, {stat}, {dyn1}, {dyn2}, {inv3}, and {vram1} defining baseline, model-loaded facts, dynamic pool, and usable VRAM formula.
+  - name: profile_facts
+    type: domain_fact_set
+    description: Profile and configuration facts used by the VRAM fact pipeline without redefining their ownership.
+  outputs:
+  - name: vram_fact_lifecycle
+    type: measurement_contract
+    description: A contract for collecting baseline VRAM, model-loaded VRAM, measured model static VRAM, and dynamic VRAM pool facts.
+  - name: usable_dynamic_vram_fact
+    type: capacity_fact
+    description: The computed usable dynamic VRAM value with active reservations, safety margin, and runtime reserve accounted for.
+  atomic_steps:
+  - A-001
+  - A-002
+  - A-003
+  - A-004
+  - A-005
+  - A-006
+  status: draft
+hrs_mrs_excerpts:
+- concept_id: C-007
+  name: Resident GPU Services Baseline
+  definition: The measured GPU baseline after always-on GPU resident services are running and before the main LLM is loaded.
+  properties:
+  - Resident services may include vectorizer, chunker, CUDA/runtime buffers, and other always-on processes.
+  - The baseline is not an empty GPU state.
+  - The service measures service_baseline_free_vram at start or calibration.
+  source_labels:
+  - '{base}'
+  - '{mem1}'
+- concept_id: C-008
+  name: VRAM Runtime Facts
+  definition: Measured runtime facts describing baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity.
+  properties:
+  - model_loaded_free_vram is measured after loading the local model.
+  - measured_model_static_vram is the difference between service_baseline_free_vram and model_loaded_free_vram.
+  - Measured static VRAM is stored for model_name, runtime, quantization/profile, and hardware_profile.
+  - Runtime facts must not be replaced by purely theoretical assumptions.
+  source_labels:
+  - '{load}'
+  - '{stat}'
+  - '{inv3}'
+- concept_id: C-009
+  name: Dynamic VRAM Pool
+  definition: The remaining VRAM capacity available for KV-cache, runtime buffers, batching overhead, and active request reservations after resident services and model static memory.
+  properties:
+  - Maximum dynamic pool is computed from free VRAM after model load minus safety margin and runtime reserve.
+  - Current dynamic pool additionally subtracts active request reservations.
+  - The dynamic pool bounds whether requests execute immediately, queue, or reject.
+  source_labels:
+  - '{dyn1}'
+  - '{dyn2}'
+  - '{lim3}'
+- concept_id: C-046
+  name: Usable Dynamic VRAM Formula
+  definition: Runtime formula for the currently usable GPU dynamic memory pool after model load, safety margin, runtime reserve, and active request reservations.
+  properties:
+    formula: usable_dynamic_vram_bytes = model_loaded_free_vram_bytes - safety_margin_bytes - runtime_reserve_bytes - active_reservation_bytes
+    active_reservation_bytes: Sum of reservations held by running requests.
+    admission_rule: Admission and scheduling use current usable dynamic VRAM, not total VRAM, total RAM, disk cache size, or LMCache capacity.
+  source_labels:
+  - '{vram1}'
+atomic_steps:
+- path: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-001-vram-runtime-facts.yaml
+  step_id: A-001
+  name: Define VramRuntimeFacts
+  target_file: lmrs/vram.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-007
+  - C-008
+  objects:
+  - VramRuntimeFacts
+  verification:
+    type: static_analysis
+    target: lmrs/vram.py::VramRuntimeFacts
+    expected: The file defines a frozen VramRuntimeFacts dataclass carrying baseline free VRAM, optional model-loaded free VRAM, model/runtime/profile identity, resident services, and metadata.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-002-vram-runtime-facts/A-001-vram-runtime-facts.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-002-dynamic-vram-state.yaml
+  step_id: A-002
+  name: Define DynamicVramState
+  target_file: lmrs/vram.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-009
+  - C-046
+  objects:
+  - DynamicVramState
+  verification:
+    type: static_analysis
+    target: lmrs/vram.py::DynamicVramState
+    expected: The file defines a frozen DynamicVramState dataclass with model-loaded free VRAM, safety margin, runtime reserve, and active reservations.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-002-vram-runtime-facts/A-002-dynamic-vram-state.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-003-calculate-static-vram.yaml
+  step_id: A-003
+  name: Implement calculate_static_vram
+  target_file: lmrs/vram.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-008
+  objects:
+  - calculate_static_vram
+  verification:
+    type: static_analysis
+    target: lmrs/vram.py::calculate_static_vram
+    expected: The function computes measured static VRAM as service baseline free VRAM minus model-loaded free VRAM and rejects missing or impossible measurements.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-002-vram-runtime-facts/A-003-calculate-static-vram.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-004-calculate-max-dynamic-pool.yaml
+  step_id: A-004
+  name: Implement calculate_max_dynamic_pool
+  target_file: lmrs/vram.py
+  operation: modify_file
+  priority: 4
+  depends_on:
+  - A-003
+  concepts:
+  - C-009
+  - C-046
+  objects:
+  - calculate_max_dynamic_pool
+  verification:
+    type: static_analysis
+    target: lmrs/vram.py::calculate_max_dynamic_pool
+    expected: The function computes max dynamic VRAM as model-loaded free VRAM minus safety margin and runtime reserve, clamped to zero.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-002-vram-runtime-facts/A-004-calculate-max-dynamic-pool.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-005-calculate-usable-dynamic-vram.yaml
+  step_id: A-005
+  name: Implement calculate_usable_dynamic_vram
+  target_file: lmrs/vram.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-009
+  - C-046
+  objects:
+  - calculate_usable_dynamic_vram
+  verification:
+    type: static_analysis
+    target: lmrs/vram.py::calculate_usable_dynamic_vram
+    expected: The function computes current usable dynamic VRAM by subtracting active reservations from max dynamic pool and clamping to zero.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-002-vram-runtime-facts/A-005-calculate-usable-dynamic-vram.yaml
+- path: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-006-runtime-fact-snapshot.yaml
+  step_id: A-006
+  name: Implement runtime_fact_snapshot
+  target_file: lmrs/vram.py
+  operation: modify_file
+  priority: 6
+  depends_on:
+  - A-005
+  concepts:
+  - C-008
+  objects:
+  - runtime_fact_snapshot
+  verification:
+    type: static_analysis
+    target: lmrs/vram.py::runtime_fact_snapshot
+    expected: The function returns a structured dictionary containing resident services, measured baseline and loaded VRAM facts, measured static VRAM, dynamic pool values, identity fields, and metadata.
+  context_file: execution_contexts/G-002-memory-and-configuration/T-002-vram-runtime-facts/A-006-runtime-fact-snapshot.yaml
+assignment: Spawn AS executors for atomic steps in dependency/priority order using the cheapest available model. Provide each AS executor the concatenated common, root, G, T, and AS context files. Verify each AS before accepting it.
+forbidden:
+- Changing files outside atomic step target scopes unless an AS context explicitly requires it
+- Reading sibling T or parent G source files beyond supplied context
+- Guessing missing implementation details
+acceptance:
+- Each AS verification target is satisfied
+- No AS unresolved escalation remains
+- The tactical step result matches its T spec and MRS/HRS excerpts

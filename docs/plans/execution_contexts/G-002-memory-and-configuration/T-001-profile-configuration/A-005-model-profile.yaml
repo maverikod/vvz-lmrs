@@ -1,0 +1,79 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-005-model-profile.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-001-profile-configuration
+  atomic_step: A-005
+  source_file: docs/plans/G-002-memory-and-configuration/T-001-profile-configuration/atomic_steps/A-005-model-profile.yaml
+  target_file: lmrs/configuration.py
+atomic_step_spec:
+  step_id: A-005
+  parent_tactical_step: T-001
+  name: Define ModelProfile
+  target_file: lmrs/configuration.py
+  operation: modify_file
+  priority: 5
+  depends_on:
+  - A-004
+  concepts:
+  - C-005
+  - C-045
+  objects:
+  - ModelProfile
+  prompt: "Target file: lmrs/configuration.py\nOperation: modify_file\n\nMRS excerpt:\n- C-005 Model Profile: model-specific runtime description that includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy.\n- C-045 Model KV Memory Profile: concrete model profile owns the KV-cache memory profile and derived facts.\n\nCurrent full content of lmrs/configuration.py before this modification:\n```python\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import Mapping\n\n\n@dataclass(frozen=True)\nclass HardwareProfile:\n    \"\"\"Hardware capacity profile used by LMRS admission and calibration logic.\"\"\"\n\n    gpu_count: int = 1\n    total_vram_bytes: int = 24 * 1024**3\n    total_ram_bytes: int = 128 * 1024**3\n    gpu_model: str | None = None\n    metadata: Mapping[str, str] = field(default_factory=dict)\n\n\n@dataclass(frozen=True)\nclass KVCacheProfile:\n\
+    \    \"\"\"Model KV-cache parameters used to derive memory facts.\"\"\"\n\n    layers: int\n    kv_heads: int\n    head_dim: int\n    kv_element_bytes: int\n    declared_context_window: int\n    runtime_kv_dtype: str = \"fp16\"\n    quantization_profile: str | None = None\n\n    def kv_bytes_per_token(self) -> int:\n        \"\"\"Return worst-case KV-cache bytes required for one token.\"\"\"\n\n        return self.layers * 2 * self.kv_heads * self.head_dim * self.kv_element_bytes\n\n    def kv_full_window_bytes(self) -> int:\n        \"\"\"Return worst-case KV-cache bytes for the declared context window.\"\"\"\n\n        return self.declared_context_window * self.kv_bytes_per_token()\n```\n\nModify the file by adding this dataclass after KVCacheProfile:\n```python\n\n@dataclass(frozen=True)\nclass ModelProfile:\n    \"\"\"Runtime-independent profile for one locally executable model.\"\"\"\n\n    model_name: str\n    runtime_backend: str\n    model_path_or_endpoint: str\n    declared_context_window:\
+    \ int\n    tokenizer_profile: str\n    load_policy: str\n    kv_cache_profile: KVCacheProfile\n    concurrency_policy: Mapping[str, int] = field(default_factory=dict)\n    options: Mapping[str, str] = field(default_factory=dict)\n```\n\nConstraints:\n- Keep HardwareProfile and KVCacheProfile unchanged.\n- Use existing imports only.\n- ModelProfile must be frozen.\n- Do not add RuntimeConfiguration or validation in this step."
+  verification: &id001
+    type: static_analysis
+    target: lmrs/configuration.py::ModelProfile
+    expected: The file defines a frozen ModelProfile dataclass with model identity, runtime, endpoint/path, context window, tokenizer, load policy, KV cache profile, concurrency policy, and options.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-005
+  name: Model Profile
+  definition: A model-specific runtime description that makes LMRS independent from any one local model.
+  properties:
+  - It includes model_name, runtime backend, path or endpoint, declared context window, tokenizer profile, load policy, KV-cache profile, and concurrency policy.
+  - Qwen, Ollama models, GPT-OSS, and other local models are instances described by profiles.
+  source_labels:
+  - '{mdl1}'
+- concept_id: C-045
+  name: Model KV Memory Profile
+  definition: Derived memory profile that stores KV-cache parameters, runtime KV dtype, bytes per token, and full-window byte cost for a concrete model profile.
+  properties:
+    required_parameters:
+    - layers
+    - kv_heads
+    - head_dim
+    - kv_element_bytes
+    - declared_context_window
+    quantization_rule: Weight quantization such as Q8 or K8 does not reduce KV-cache bytes unless the runtime explicitly uses a reduced KV-cache element dtype.
+    example_qwen3_profile:
+      layers: 48
+      kv_heads: 4
+      head_dim: 128
+      kv_element_bytes: 2
+      context_40960_bytes: 4026531840
+      context_32768_bytes: 3221225472
+    one_byte_kv_rule: If runtime KV elements are one byte, KV-cache byte cost is halved.
+  source_labels:
+  - '{ctxb}'
+  - '{mdl1}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

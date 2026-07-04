@@ -1,0 +1,52 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: context_index
+root_files:
+- execution_contexts/00-common/common_context.yaml
+- execution_contexts/00-common/root_orchestrator_task.yaml
+counts:
+  g_contexts: 7
+  t_contexts: 20
+  as_contexts: 92
+global_steps:
+- global_step: G-001-service-boundary
+  g_context: execution_contexts/G-001-service-boundary/g_context.yaml
+  t_contexts:
+  - execution_contexts/G-001-service-boundary/T-001-service-boundary/t_context.yaml
+  - execution_contexts/G-001-service-boundary/T-002-canonical-gateway-request/t_context.yaml
+- global_step: G-002-memory-and-configuration
+  g_context: execution_contexts/G-002-memory-and-configuration/g_context.yaml
+  t_contexts:
+  - execution_contexts/G-002-memory-and-configuration/T-001-profile-configuration/t_context.yaml
+  - execution_contexts/G-002-memory-and-configuration/T-002-vram-runtime-facts/t_context.yaml
+  - execution_contexts/G-002-memory-and-configuration/T-003-calibration-profile/t_context.yaml
+- global_step: G-003-admission-and-scheduling
+  g_context: execution_contexts/G-003-admission-and-scheduling/g_context.yaml
+  t_contexts:
+  - execution_contexts/G-003-admission-and-scheduling/T-001-token-capacity-estimate/t_context.yaml
+  - execution_contexts/G-003-admission-and-scheduling/T-002-admission-verdict/t_context.yaml
+  - execution_contexts/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/t_context.yaml
+- global_step: G-004-model-cache-and-lmcache
+  g_context: execution_contexts/G-004-model-cache-and-lmcache/g_context.yaml
+  t_contexts:
+  - execution_contexts/G-004-model-cache-and-lmcache/T-001-disk-model-cache/t_context.yaml
+  - execution_contexts/G-004-model-cache-and-lmcache/T-002-model-memory-lifecycle/t_context.yaml
+  - execution_contexts/G-004-model-cache-and-lmcache/T-003-lmcache-storage-telemetry/t_context.yaml
+- global_step: G-005-runtime-contracts
+  g_context: execution_contexts/G-005-runtime-contracts/g_context.yaml
+  t_contexts:
+  - execution_contexts/G-005-runtime-contracts/T-001-runtime-client-execution/t_context.yaml
+  - execution_contexts/G-005-runtime-contracts/T-002-command-error-contract/t_context.yaml
+  - execution_contexts/G-005-runtime-contracts/T-003-telemetry-feedback/t_context.yaml
+- global_step: G-006-adapter-integration
+  g_context: execution_contexts/G-006-adapter-integration/g_context.yaml
+  t_contexts:
+  - execution_contexts/G-006-adapter-integration/T-001-command-registration-wrappers/t_context.yaml
+  - execution_contexts/G-006-adapter-integration/T-002-schema-metadata-contracts/t_context.yaml
+  - execution_contexts/G-006-adapter-integration/T-003-config-runtime-hook/t_context.yaml
+- global_step: G-007-proxy-and-cli-operations
+  g_context: execution_contexts/G-007-proxy-and-cli-operations/g_context.yaml
+  t_contexts:
+  - execution_contexts/G-007-proxy-and-cli-operations/T-001-network-registration-contract/t_context.yaml
+  - execution_contexts/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/t_context.yaml
+  - execution_contexts/G-007-proxy-and-cli-operations/T-003-cli-service-management/t_context.yaml

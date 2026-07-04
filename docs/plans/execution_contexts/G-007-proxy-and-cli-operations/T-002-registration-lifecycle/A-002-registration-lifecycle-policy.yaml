@@ -1,0 +1,65 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-registration-lifecycle-policy.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-002-registration-lifecycle
+  atomic_step: A-002
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-002-registration-lifecycle/atomic_steps/A-002-registration-lifecycle-policy.yaml
+  target_file: lmrs/proxy/lifecycle.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-002
+  name: Define RegistrationLifecyclePolicy
+  target_file: lmrs/proxy/lifecycle.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-038
+  - C-036
+  objects:
+  - RegistrationLifecyclePolicy
+  prompt: Modify lmrs/proxy/lifecycle.py after A-001. Append frozen dataclass RegistrationLifecyclePolicy with wait_for_listener bool, listener_wait_timeout, register_on_startup bool, heartbeat_interval_seconds, retry_attempts, retry_backoff_seconds, re_register_on_unrecognized bool, and unregister_on_shutdown bool. It encodes the startup, heartbeat, retry, re-registration, and shutdown policy and is derived from a ProxyRegistrationEndpoint. Do not implement the run loop in this step.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/proxy/lifecycle.py::RegistrationLifecyclePolicy
+    expected: RegistrationLifecyclePolicy captures listener-wait, startup registration, heartbeat interval, retry, re-registration, and shutdown unregistration policy.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-036
+  name: Proxy Registration Endpoint
+  definition: The registration-side contract that tells LMRS how to register, unregister, and send heartbeat data to the MCP proxy.
+  properties:
+  - Registration settings are separate from listener settings.
+  - The contract includes enablement, startup and shutdown behavior, full registration URLs, heartbeat URL and interval, server identity, instance UUID, metadata, and client credentials.
+  source_labels:
+  - '{rprx}'
+- concept_id: C-038
+  name: Proxy Registration Lifecycle
+  definition: The startup, heartbeat, retry, re-registration, and shutdown behavior used to keep the LMRS adapter visible through the proxy.
+  properties:
+  - Startup waits until the advertised server URL is listening before proxy registration.
+  - Heartbeat sends registration payloads on the configured interval.
+  - Failed or unrecognized registrations are retried and may trigger re-registration.
+  - Shutdown unregisters the adapter when configured.
+  source_labels:
+  - '{rhbt}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

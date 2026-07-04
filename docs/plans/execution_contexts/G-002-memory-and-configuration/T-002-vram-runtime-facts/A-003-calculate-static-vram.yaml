@@ -1,0 +1,59 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-003-calculate-static-vram.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-002-vram-runtime-facts
+  atomic_step: A-003
+  source_file: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-003-calculate-static-vram.yaml
+  target_file: lmrs/vram.py
+atomic_step_spec:
+  step_id: A-003
+  parent_tactical_step: T-002
+  name: Implement calculate_static_vram
+  target_file: lmrs/vram.py
+  operation: modify_file
+  priority: 3
+  depends_on:
+  - A-002
+  concepts:
+  - C-008
+  objects:
+  - calculate_static_vram
+  prompt: "Target file: lmrs/vram.py\nOperation: modify_file\n\nCurrent file after lower-priority steps contains VramRuntimeFacts and DynamicVramState exactly as defined by A-001 and A-002.\n\nMRS excerpt:\n- C-008 requires measured_model_static_vram to be the difference between service_baseline_free_vram and model_loaded_free_vram for a concrete model/runtime/quantization/hardware profile.\n\nAppend exactly this function:\n```python\n\n\ndef calculate_static_vram(facts: VramRuntimeFacts) -> int:\n    \"\"\"Return measured model static VRAM bytes from baseline and loaded facts.\"\"\"\n    if facts.model_loaded_free_vram_bytes is None:\n        raise ValueError(\"model_loaded_free_vram_bytes is required\")\n    if facts.service_baseline_free_vram_bytes < 0 or facts.model_loaded_free_vram_bytes < 0:\n        raise ValueError(\"VRAM measurements must be non-negative\")\n    if facts.model_loaded_free_vram_bytes > facts.service_baseline_free_vram_bytes:\n        raise ValueError(\"model-loaded\
+    \ free VRAM cannot exceed service baseline free VRAM\")\n    return facts.service_baseline_free_vram_bytes - facts.model_loaded_free_vram_bytes\n```\n\nConstraints:\n- Do not infer static VRAM from model size or quantization.\n- The function must use measured free-VRAM fields only."
+  verification: &id001
+    type: static_analysis
+    target: lmrs/vram.py::calculate_static_vram
+    expected: The function computes measured static VRAM as service baseline free VRAM minus model-loaded free VRAM and rejects missing or impossible measurements.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-008
+  name: VRAM Runtime Facts
+  definition: Measured runtime facts describing baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity.
+  properties:
+  - model_loaded_free_vram is measured after loading the local model.
+  - measured_model_static_vram is the difference between service_baseline_free_vram and model_loaded_free_vram.
+  - Measured static VRAM is stored for model_name, runtime, quantization/profile, and hardware_profile.
+  - Runtime facts must not be replaced by purely theoretical assumptions.
+  source_labels:
+  - '{load}'
+  - '{stat}'
+  - '{inv3}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

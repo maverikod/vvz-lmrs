@@ -1,0 +1,69 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-vram-runtime-facts.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-002-memory-and-configuration
+  tactical_step: T-002-vram-runtime-facts
+  atomic_step: A-001
+  source_file: docs/plans/G-002-memory-and-configuration/T-002-vram-runtime-facts/atomic_steps/A-001-vram-runtime-facts.yaml
+  target_file: lmrs/vram.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-002
+  name: Define VramRuntimeFacts
+  target_file: lmrs/vram.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-007
+  - C-008
+  objects:
+  - VramRuntimeFacts
+  prompt: "Target file: lmrs/vram.py\nOperation: create_file\n\nMRS excerpt:\n- C-007 Resident GPU Services Baseline: measured GPU baseline after always-on resident GPU services are running and before the main LLM is loaded.\n- C-008 VRAM Runtime Facts: measured facts for baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity. Runtime facts must not be replaced by theoretical assumptions.\n\nCreate lmrs/vram.py with exactly this content:\n```python\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import Mapping\n\n\n@dataclass(frozen=True)\nclass VramRuntimeFacts:\n    \"\"\"Measured VRAM facts for one model/runtime/hardware profile.\"\"\"\n\n    resident_services: tuple[str, ...]\n    service_baseline_free_vram_bytes: int\n    model_loaded_free_vram_bytes: int | None = None\n    model_name: str | None = None\n    runtime_backend: str | None = None\n    quantization_profile: str | None = None\n    hardware_profile_id:\
+    \ str | None = None\n    measurement_metadata: Mapping[str, str] = field(default_factory=dict)\n```\n\nConstraints:\n- Store resident-service baseline as a measured fact, not as an empty-GPU assumption.\n- Do not add dynamic state or calculation functions in this step."
+  verification: &id001
+    type: static_analysis
+    target: lmrs/vram.py::VramRuntimeFacts
+    expected: The file defines a frozen VramRuntimeFacts dataclass carrying baseline free VRAM, optional model-loaded free VRAM, model/runtime/profile identity, resident services, and metadata.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-007
+  name: Resident GPU Services Baseline
+  definition: The measured GPU baseline after always-on GPU resident services are running and before the main LLM is loaded.
+  properties:
+  - Resident services may include vectorizer, chunker, CUDA/runtime buffers, and other always-on processes.
+  - The baseline is not an empty GPU state.
+  - The service measures service_baseline_free_vram at start or calibration.
+  source_labels:
+  - '{base}'
+  - '{mem1}'
+- concept_id: C-008
+  name: VRAM Runtime Facts
+  definition: Measured runtime facts describing baseline free VRAM, model-loaded free VRAM, measured model static VRAM, and dynamic pool capacity.
+  properties:
+  - model_loaded_free_vram is measured after loading the local model.
+  - measured_model_static_vram is the difference between service_baseline_free_vram and model_loaded_free_vram.
+  - Measured static VRAM is stored for model_name, runtime, quantization/profile, and hardware_profile.
+  - Runtime facts must not be replaced by purely theoretical assumptions.
+  source_labels:
+  - '{load}'
+  - '{stat}'
+  - '{inv3}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

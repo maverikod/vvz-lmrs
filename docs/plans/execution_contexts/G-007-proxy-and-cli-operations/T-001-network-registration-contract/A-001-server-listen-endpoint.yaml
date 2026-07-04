@@ -1,0 +1,54 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-server-listen-endpoint.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-001-network-registration-contract
+  atomic_step: A-001
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-001-server-listen-endpoint.yaml
+  target_file: lmrs/proxy/registration.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-001
+  name: Define ServerListenEndpoint
+  target_file: lmrs/proxy/registration.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-034
+  objects:
+  - ServerListenEndpoint
+  prompt: Create lmrs/proxy/registration.py and define frozen dataclass ServerListenEndpoint with host, port, protocol where protocol is one of http, https, or mtls, server_name, ssl_certfile, ssl_keyfile, ca_cert, advertised_host optional, and metadata. It is the adapter server bind endpoint and its protocol controls whether the listener is HTTP, HTTPS, or mTLS. Listen settings are independent from proxy registration settings. Do not add advertised URL derivation or registration fields in this step.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/proxy/registration.py::ServerListenEndpoint
+    expected: ServerListenEndpoint captures host, port, protocol, server name, SSL or mTLS material, and optional advertised host, independent of registration settings.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-034
+  name: Server Listen Endpoint
+  definition: The adapter server endpoint that binds the LMRS runtime to a configured local host, port, and protocol.
+  properties:
+  - Listen settings are independent from proxy registration settings.
+  - The server protocol controls whether the bound listener is HTTP, HTTPS, or mTLS.
+  - The endpoint may include server name, SSL or mTLS material, and optional advertised host.
+  source_labels:
+  - '{lstn}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

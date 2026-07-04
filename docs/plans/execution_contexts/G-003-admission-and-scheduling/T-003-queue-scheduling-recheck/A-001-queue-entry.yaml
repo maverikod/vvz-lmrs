@@ -1,0 +1,54 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-queue-entry.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-003-admission-and-scheduling
+  tactical_step: T-003-queue-scheduling-recheck
+  atomic_step: A-001
+  source_file: docs/plans/G-003-admission-and-scheduling/T-003-queue-scheduling-recheck/atomic_steps/A-001-queue-entry.yaml
+  target_file: lmrs/queue.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-003
+  name: Define QueueEntry
+  target_file: lmrs/queue.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-013
+  objects:
+  - QueueEntry
+  prompt: Create lmrs/queue.py and define frozen dataclass QueueEntry with request_id, session_id, model_name, required_tokens, required_dynamic_vram_bytes, admitted_at, expires_at, priority default 0, status default queued, and metadata. It stores precomputed request estimates and queue state only.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/queue.py::QueueEntry
+    expected: QueueEntry stores request identity, model, token/VRAM estimates, timestamps, priority, status, and metadata.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-013
+  name: Request Queue
+  definition: The queue of admitted requests waiting for dynamic VRAM capacity or scheduler selection.
+  properties:
+  - Queued records store request_id, session_id, model_name, token counts, required dynamic VRAM, admission timestamp, expiration timestamp, priority, and status.
+  - Queued requests must pass capacity recheck before actual launch.
+  source_labels:
+  - '{que1}'
+  - '{rech}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

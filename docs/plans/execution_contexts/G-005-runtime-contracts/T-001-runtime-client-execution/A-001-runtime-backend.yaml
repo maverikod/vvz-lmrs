@@ -1,0 +1,53 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-001-runtime-backend.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-005-runtime-contracts
+  tactical_step: T-001-runtime-client-execution
+  atomic_step: A-001
+  source_file: docs/plans/G-005-runtime-contracts/T-001-runtime-client-execution/atomic_steps/A-001-runtime-backend.yaml
+  target_file: lmrs/runtime_client.py
+atomic_step_spec:
+  step_id: A-001
+  parent_tactical_step: T-001
+  name: Define RuntimeBackend
+  target_file: lmrs/runtime_client.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-015
+  objects:
+  - RuntimeBackend
+  prompt: Create lmrs/runtime_client.py and define RuntimeBackend string constants or enum values for vllm, ollama, llama_cpp, gpt_oss, and other_local. It names the execution backend abstraction that runs only requests already admitted by LMRS. The runtime backend must not make admission decisions. Do not add client execution or result types in this step.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/runtime_client.py::RuntimeBackend
+    expected: RuntimeBackend exposes stable local backend identifiers and carries no admission-decision logic.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-015
+  name: Runtime Backend
+  definition: An execution backend abstraction that runs only requests admitted by LMRS.
+  properties:
+  - Supported backend examples include vLLM, Ollama, llama.cpp, GPT-OSS runtime, or another local runtime.
+  - The runtime backend does not make admission decisions.
+  source_labels:
+  - '{run1}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.

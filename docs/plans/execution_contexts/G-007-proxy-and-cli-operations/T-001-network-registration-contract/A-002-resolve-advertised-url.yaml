@@ -1,0 +1,65 @@
+schema_version: lmrs.execution_context.v1
+language: en
+file_kind: as_context
+context_bundle_order:
+- ../../../00-common/common_context.yaml
+- ../../../00-common/root_orchestrator_task.yaml
+- ../../g_context.yaml
+- ../t_context.yaml
+- ./A-002-resolve-advertised-url.yaml
+role: atomic_step_executor
+required_model: gpt-5.3-codex-spark
+scope:
+  global_step: G-007-proxy-and-cli-operations
+  tactical_step: T-001-network-registration-contract
+  atomic_step: A-002
+  source_file: docs/plans/G-007-proxy-and-cli-operations/T-001-network-registration-contract/atomic_steps/A-002-resolve-advertised-url.yaml
+  target_file: lmrs/proxy/registration.py
+atomic_step_spec:
+  step_id: A-002
+  parent_tactical_step: T-001
+  name: Implement resolve_advertised_url
+  target_file: lmrs/proxy/registration.py
+  operation: modify_file
+  priority: 2
+  depends_on:
+  - A-001
+  concepts:
+  - C-035
+  - C-034
+  objects:
+  - resolve_advertised_url
+  prompt: Modify lmrs/proxy/registration.py after A-001. Append resolve_advertised_url(endpoint) that derives the proxy-visible URL from a ServerListenEndpoint and normalizes it for proxy reachability. Wildcard bind addresses are not advertised directly; an explicit advertised host is preferred when configured; for local deployments a wildcard bind address is normalized to a reachable host such as localhost. Return the normalized advertised URL string. Do not add registration endpoint logic here.
+  verification: &id001
+    type: static_analysis
+    target: lmrs/proxy/registration.py::resolve_advertised_url
+    expected: resolve_advertised_url returns a proxy-reachable URL, preferring an explicit advertised host and normalizing wildcard binds to a reachable host.
+  status: done
+hrs_mrs_excerpts:
+- concept_id: C-034
+  name: Server Listen Endpoint
+  definition: The adapter server endpoint that binds the LMRS runtime to a configured local host, port, and protocol.
+  properties:
+  - Listen settings are independent from proxy registration settings.
+  - The server protocol controls whether the bound listener is HTTP, HTTPS, or mTLS.
+  - The endpoint may include server name, SSL or mTLS material, and optional advertised host.
+  source_labels:
+  - '{lstn}'
+- concept_id: C-035
+  name: Advertised Server URL
+  definition: The proxy-visible URL derived from the server listen endpoint and normalized for reachability by the proxy.
+  properties:
+  - Wildcard bind addresses are not advertised directly.
+  - An explicit advertised host is preferred when configured.
+  - For local deployments, wildcard bind addresses are normalized to a reachable host such as localhost.
+  source_labels:
+  - '{radv}'
+execution_rules:
+  single_target_step: true
+  assume_empty_initial_context: true
+  use_only_concatenated_context: true
+  no_guessing: true
+  on_conflict_or_missing_fact: Escalate to the T orchestrator with exact file paths, command outputs, and the decision required.
+acceptance:
+- *id001
+- Report changed files and verification evidence to the T orchestrator.
