@@ -8,6 +8,15 @@
 # email: vasilyvz@gmail.com
 set -euo pipefail
 
+# systemd passes these via EnvironmentFile, but also source it here so a direct
+# `lmrs-container recreate` (outside systemd) honours LMRS_BIND and friends.
+if [ -f /etc/default/lmrs ]; then
+    set -a
+    # shellcheck source=/dev/null
+    . /etc/default/lmrs
+    set +a
+fi
+
 CONTAINER_NAME="${LMRS_CONTAINER_NAME:-lmrs}"
 ETC_DIR="${LMRS_ETC:-/etc/lmrs}"
 VAR_DIR="${LMRS_RUN_DIR:-/var/lmrs}"
@@ -17,6 +26,9 @@ BIND="${LMRS_BIND:-127.0.0.1}"
 GPUS="${LMRS_GPUS:-all}"
 HF_CACHE="${LMRS_HF_CACHE:-/var/lmrs/hf-cache}"
 ENV_FILE="${LMRS_ENV_FILE:-/etc/default/lmrs}"
+# Shared mesh network: join it so peers (and the proxy) are reachable by Docker's
+# embedded DNS name instead of a fixed IP.
+NETWORK="${LMRS_NETWORK:-smart-assistant}"
 
 image_ref() {
     if [ -n "${LMRS_IMAGE:-}" ]; then
@@ -43,9 +55,13 @@ cmd_recreate() {
     [ -n "${GPUS}" ] && gpu_args=(--gpus "${GPUS}")
     local env_args=()
     [ -f "${ENV_FILE}" ] && env_args=(--env-file "${ENV_FILE}")
+    docker network inspect "${NETWORK}" >/dev/null 2>&1 || docker network create "${NETWORK}"
     docker run -d \
         --name "${CONTAINER_NAME}" \
         --restart unless-stopped \
+        --network "${NETWORK}" \
+        --network-alias "${CONTAINER_NAME}" \
+        --network-alias "${CONTAINER_NAME}.techsup.od.ua" \
         "${gpu_args[@]}" \
         "${env_args[@]}" \
         -p "${BIND}:${PORT}:8012" \
