@@ -72,7 +72,9 @@ laws:
     git_merge) BEFORE agents continue. main->local pull is allowed ONLY AFTER a deploy
     has completed (local takes only deploy-verified states of main). Only the
     orchestrator merges cas->main, and only after delivery_checks pass; server-side
-    main is protected.
+    main is protected. LOCAL-mode symmetry: when working locally the same principle
+    applies with 'local' as the changing branch - merge local->main and push/pull are
+    done IMMEDIATELY after completing each task or step, never batched.
   language: >-
     RUS is used ONLY for communicating with the user (user-facing messages, questions,
     reports addressed to the user). ENG for everything else: code, comments, commit
