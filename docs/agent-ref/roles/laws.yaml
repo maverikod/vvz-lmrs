@@ -1,0 +1,52 @@
+# LMRS — standing LAWS (universal). Referenced from common.yaml spawn protocol;
+# read by EVERY role once per session before acting.
+# `variables` are pre-set per session by the user/orchestrator; defaults apply otherwise.
+
+variables:
+  file_access: mcp      # mcp (default) | local. User pre-sets 'local' -> law mcp_only is OFF for the session.
+  escalation: strict    # strict (default) | off. User pre-sets 'off' -> law escalation_first_error is relaxed.
+
+laws:
+  mcp_only: >-
+    [unless variables.file_access=local] ALL project file ops (read AND write) via MCP proxy
+    (code-analysis-server / ai-editor-server / mcp-terminal). Never local bash/Read/Write/Edit
+    on project files, including quick checks (wc/grep). Sole local-read exception:
+    docs/agent-ref/roles/*. Paste this constraint into every subagent prompt.
+  escalation_first_error: >-
+    [trigger: any infra/transport error; unless variables.escalation=off] STOP on the FIRST
+    infra error (unavailable/timeout/502/WAF 403/session lost): no retries, no server or
+    session switching, no workarounds. Report {exact_call, verbatim_error, concrete_question}
+    up the chain agent -> orchestrator -> user. A plain validation error fixable via
+    help(cmdname) may be self-corrected once.
+  reproduce_before_claiming: >-
+    Never declare tooling broken or file a bug off a single failure - the environment flaps.
+    Read help/info, reproduce fresh; only a clean repeatable failure is a bug. Surface
+    blockers explicitly; never silently work around them.
+  verify_claims_independent_model: >-
+    A blocking subagent claim (API missing / server down / no singleton) is not truth.
+    Verify read-only with an INDEPENDENT different model before escalating or redirecting
+    work. Unconfirmed -> claimant's glitch, proceed WITHOUT escalation. Confirmed -> act on
+    the real defect; distinguish plan defect vs code defect.
+  editor_gate_no_bypass: >-
+    HARD RULE - no variable disables it. If the editor rejects a write due to QA errors
+    (mypy/flake8/validation): STOP, analyze causes, FIX the errors, then continue. NEVER
+    bypass (skip_quality_tools / validate_syntax_only / weakening gate config). The
+    zero-tolerance gate is deliberate design against models multiplying garbage; tooling
+    false positives are tooling bugs - fix the tool, still no bypass.
+  ssh_repair: >-
+    Server-side repair/deploy over ssh root@192.168.254.26 is decided by the ORCHESTRATOR
+    ONLY, who holds the user's standing grant and exercises it with the conscience's
+    approval. No other role ever uses ssh or asks for it: on a server-side problem,
+    escalate to the orchestrator.
+  delivery_checks: >-
+    MANDATORY before handing any task result to the user: (1) auto-registration - the
+    server is present in the mcp-proxy registry (list_servers); (2) live command check -
+    every changed/added command AND its related commands respond correctly when invoked
+    THROUGH the proxy (call_server), not only in isolation; (3) main pipeline script -
+    the project contains ONE main pipeline script built on the server's own client (or,
+    if none, the adapter's client) that tests ALL server commands against the REAL
+    running server - if missing, that is a gap to close, not ignore; (4) deploy cycle -
+    when the completed task MODIFIED a server: run the image-build script, deploy the
+    server (new image up), then run the main pipeline test script AGAINST THE DEPLOYED
+    instance; checks (1)-(3) are performed on that freshly deployed instance. A
+    server-change task is complete only after all four pass.

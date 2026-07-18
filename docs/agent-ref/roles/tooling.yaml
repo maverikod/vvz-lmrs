@@ -9,6 +9,7 @@ meta:
 
 # Source of truth. Read on trigger; do not paraphrase from memory.
 manuals:
+  rules:       docs/agent-ref/roles/tooling-rules.yaml
   editor:      'call_server(editor,"info")'
   terminal:    'call_server(term,"info")'
   ca_search:   docs/standards/code_analysis_search_instructions.yaml
@@ -19,6 +20,8 @@ manuals:
 
 # condition -> MUST read manual(s) BEFORE the first matching action
 triggers:
+  - when: always — before the first tool call of the task
+    read: [rules]
   - when: before first open/edit/write/close of a project file
     read: [editor, ca_edit]
   - when: before first fs move/copy/remove or text-file create
@@ -28,6 +31,8 @@ triggers:
     order: {1_ast_and_code_analysis: first, 2_cross_search: only_if_step1_missed}
   - when: before first sandbox or host terminal command
     read: [terminal]
+  - when: before first git operation on the server-side project
+    read: [rules]   # cas_rules.git_via_ca — git ONLY through CA git_* commands
 
 # error taxonomy — exactly one branch per failure
 errors:

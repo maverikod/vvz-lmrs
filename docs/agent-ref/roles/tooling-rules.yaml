@@ -1,0 +1,58 @@
+# LMRS — TOOLING rules (tool-using roles only). Referenced from tooling.yaml manuals/triggers.
+# Battle-tested gotchas; each entry exists because an agent lost work without it.
+
+editor_rules:
+  lifecycle: >-
+    CA session_create -> open -> preview -> edit -> write(preview) -> write(commit) ->
+    close ALWAYS, even on error; an unclosed session leaves a stale lock that blocks the pipeline.
+  edit_signal_untrusted: >-
+    bug 296e02c9: universal_file_edit's error signal is uncorrelated with outcome ->
+    after EVERY edit call re-preview the draft; landed -> do not re-apply; absent -> re-apply once.
+  yaml_root_insert_broken: >-
+    bug 690f768c: inserting a NEW top-level key into an existing YAML (tree-temp) fails with
+    INVALID_OPERATION 'marked node missing ___id___'. Add new content via a NEW file
+    (create:true + initial_content) or REPLACE an existing key's whole value.
+  one_agent_one_step: one agent = one atomic step = one file; multiple steps per agent degrade focus into hallucinations.
+  no_subagents: coders/testers NEVER spawn subagents; every needed value is inlined in the task prompt.
+  python_reads: >-
+    never CA get_file_lines on a healthy .py (USE_CST_COMMANDS) - read via
+    universal_file_preview (one-shot, no session_id) or file_structure.
+  toml: 'no .toml handler -> create as .txt, commit, then mv in terminal; remove the orphan .txt.lock.'
+  coder_tool_error: >-
+    a coder hitting a tool error STOPS and reports; NEVER falls back to local bash -
+    it never reaches the remote CA (lost work).
+
+sandbox_rules:
+  waf: WAF returns 403 on complex shell (pipes, 2>&1, loops, command -v) -> simple single commands only.
+  qa_tools: sandbox venv is bare (no mypy/flake8/pytest); the quality gate runs CAS-side tools, not the sandbox venv.
+  host_exec: 'multi-step host commands: wrap in bash -c ''<chain>''; avoid redirects/heredocs (forbidden-pattern scan rejects them).'
+  certs: >-
+    NEVER run the full generate_certs.sh (rebuilds the Root CA and breaks every sibling's
+    certs) - only a per-service helper like gen_lmrs.sh.
+
+host_files:
+  ownership: >-
+    watch_catalog files must be casuser:casgrp; drift fix: chgrp -R casgrp <catalog>;
+    dirs also need the owner-read bit for the CA daemon (symptom: "No Python files found"
+    while exact-path reads work).
+
+cas_rules:
+  sequential_only: >-
+    NEVER run CAS searches in parallel - the concurrent-search race corrupts JSON-RPC
+    (-32600 "command is required", heartbeat stays green, "active" status lies).
+    All CAS calls strictly sequential.
+  copy_number: >-
+    after a casmgr restart CAS re-registers as copy_number=2 (copy 1 -> SERVER_NOT_FOUND);
+    ai-editor and planmgr stay copy 1.
+  usages_index: >-
+    a project's usages table can be EMPTY (find_usages returns 0 for everything) -
+    rely on the AST/class index, not usage counts.
+  git_via_ca: >-
+    when working against the server-side project, ALL git operations go through CA git_*
+    commands (git_status/git_add/git_commit/git_pull/git_push...) - never a local git
+    workaround for server-side state.
+
+planmgr_gotchas:
+  - 'hrs_import defaults dry_run=true - a success without dry_run:false writes NOTHING.'
+  - 'step_update: concepts is a TOP-LEVEL param; fields.concepts is ignored by the gate.'
+  - 'bug_list/comment_list/escalation_list ignore their plan filter - check anchor_plan_uuid manually.'

@@ -20,12 +20,13 @@ coder = implementation; tester = testing; executor = runtime execution of frozen
 (plan-manager runtime records + coder/tester pair orchestration; never plan truth, never direct file edits).
 
 **Spawn protocol (mandatory).** Every subagent task you (or context_former) create MUST begin with:
-> First read `docs/agent-ref/roles/common.yaml` and every file listed in
-> `docs/agent-ref/roles/<role>.yaml` `reads_first` (via Read or CA preview) —
+> First read `docs/agent-ref/roles/common.yaml` AND `docs/agent-ref/roles/laws.yaml`
+> and every file listed in `docs/agent-ref/roles/<role>.yaml` `reads_first` (via Read or CA preview) —
 > do NOT spawn a subagent to read. Then: `<task>`.
 
 Pick the subagent model per contract: researcher / context_former / tester / executor = **sonnet**,
 coder = **haiku** (sonnet fallback), conscience = **opus**.
 
 @docs/agent-ref/roles/common.yaml
+@docs/agent-ref/roles/laws.yaml
 @docs/agent-ref/roles/orchestrator.yaml
