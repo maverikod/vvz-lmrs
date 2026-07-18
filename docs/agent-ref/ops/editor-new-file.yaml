@@ -3,13 +3,13 @@
 purpose: create a file that does not yet exist on the server, or work around formats the editor cannot parse natively.
 
 procedure:
-  new_file:
+  new_file: |
     1. universal_file_open(project_id, file_path, session_id, create=true, initial_content?)
        # pure local draft — zero CA calls until first commit; .py REQUIRES initial_content on create
     2. edit locally as needed (same edit ops as an existing file, see editor-edit-lifecycle.yaml)
     3. universal_file_write(write_mode=commit) -> first commit locks + registers the file atomically on CA
     4. universal_file_close
-  unsupported_format_toml:
+  unsupported_format_toml: |
     1. universal_file_open(create=true, file_path='*.txt') -> author content as text
     2. universal_file_write(commit) the .txt
     3. universal_file_close
