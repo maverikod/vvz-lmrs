@@ -21,9 +21,9 @@ commands:
   merge / rebase / cherry_pick / stash_* / clean / tag / config / identity: 'standard git ops, all server-side via CA'
 
 gotchas:
-  - LAW: server-side git ALWAYS via CA git_* — NEVER console/ssh git without explicit user permission (laws.yaml ssh_repair carve-out)
+  - 'LAW: server-side git ALWAYS via CA git_* — NEVER console/ssh git without explicit user permission (laws.yaml ssh_repair carve-out)'
   - git_pull takes ref, not branch — a common param-naming trap
-  - most git commands are queued: a "completed" queue status is not the same as command success — check the inner result
+  - 'most git commands are queued: a "completed" queue status is not the same as command success — check the inner result'
 
 errors:
   VALIDATION_ERROR: 'wrong param name (e.g. branch instead of ref on git_pull) — cmd_help(cmdname), fix, retry once'
