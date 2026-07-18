@@ -1,0 +1,39 @@
+# ops: ai-editor-server — open/preview/edit/write/close lifecycle for an EXISTING project file.
+
+purpose: full lifecycle to safely edit a file already on the server, keeping CA canonical bytes untouched until commit.
+
+procedure:
+  1. CA session_create -> session_id
+  2. universal_file_open(project_id, file_path, session_id)  # .py REQUIRES initial_content only when create=true
+  3. universal_file_preview -> get node_id / node_ref / line index depending on format
+  4. universal_file_edit(operations[]) -> re-preview after EVERY edit (see gotchas: 296e02c9)
+  5. repeat 3-4 until done
+  6. universal_file_write(write_mode=preview) -> inspect local diff
+  7. universal_file_write(write_mode=commit) -> validates then uploads to CA
+  8. universal_file_close(write_before_close?) -> ALWAYS, even on abort
+
+commands:
+  universal_file_open: 'project_id, file_path, session_id required; create/initial_content optional'
+  universal_file_preview: 'no session_id needed for a one-shot preview of a healthy file'
+  universal_file_edit: 'operations[] required; file_path required if multi_file_bundle.open_file_count > 1'
+  universal_file_write: 'write_mode preview|commit, default preview; unchanged=true is a no-op'
+  universal_file_close: 'write_before_close optional; refuses MODIFIED_NOT_WRITTEN unless set'
+
+gotchas:
+  - 'BUG 296e02c9: edit error signal UNTRUSTED — after EVERY edit, re-preview; if change landed do not reapply, if absent reapply once'
+  - 'BUG 86288c9c: class/def header trailing comment stripped on code_lines replace'
+  - 'BUG 4274b3f3: statements inside try/except unaddressable (replace_range unsupported, no parent id)'
+  - 'BUG bf98dd98: commit-gate QA sandbox can yield a false import-not-found'
+  - unclosed session = stale lock blocking the whole pipeline — close on abort too
+  - never CA get_file_lines on a healthy .py (USE_CST_COMMANDS) — use one-shot preview or file_structure
+  - commit validates (.py: black-parseable/flake8/mypy/docstrings, ZERO TOLERANCE; JSON/YAML: parse)
+
+errors:
+  SESSION_NOT_FOUND: 'session_id invalid/expired — re-run CA session_create'
+  SESSION_INVALID: 'session not usable for this op — check session state'
+  FILE_ALREADY_OPEN: 'reuse the existing open handle, do not reopen'
+  PARSE_ERROR: 'source unparsable at open or edit time — inspect file, may need is_invalid fallback'
+  VALIDATION_ERROR: 'schema/param problem — cmd_help(cmdname), fix, retry once'
+  SESSION_REJECTED: 'commit rejected by CA — inspect reason before retrying'
+  UPSTREAM_UPLOAD_FAILED: 'CA-side upload failed on commit — STOP, escalate, no retry loop'
+  WRITE_FAILED: 'local draft write failed'
