@@ -3,7 +3,7 @@
 purpose: run commands (or an interactive shell) inside the project's Docker sandbox at /workspace, and discover/administer terminal sessions.
 
 procedure:
-  sandbox_run:
+  sandbox_run: |
     1. CA session_create -> session_id
     2. terminal_session_create(project_id, session_id, bootstrap_python_env?)
     3. terminal_run({execution_kind:"shell", command, keep_container?, mode?, network?, timeout_seconds?})  # ALWAYS async: returns job_id+seq
@@ -12,7 +12,7 @@ procedure:
     6. terminal_kill if hung
     7. terminal_delete when the session's work is done
     8. CA session_delete to release the underlying CA session
-  pty_interactive:
+  pty_interactive: |
     - only attaches to a container kept alive by a prior terminal_run with keep_container=true
     - terminal_attach -> terminal_send (input) / terminal_read_shell (output) -> terminal_resize as needed -> terminal_detach
 
