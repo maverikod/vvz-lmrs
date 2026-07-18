@@ -6,17 +6,16 @@ trigger: recording an execution attempt, a review verdict, an escalation, a comm
 commands:
   execution_attempt_create: open a factual per-run record anchored to a plan/revision step (INVALID_ANCHOR if the step
     doesn't belong to that plan/revision); status='running' only if truly starting now, else 'queued' + report later
-  execution_attempt_report / execution_attempt_get / execution_attempt_list: report outcome (terminal: succeeded/failed/
-    cancelled/timed_out) / read one / list
+  execution_attempt_report / execution_attempt_get / execution_attempt_list: 'report outcome (terminal:
+    succeeded/failed/cancelled/timed_out) / read one / list'
   review_result_create: immutable verdict (accepted/rejected/changes_requested/escalated/needs_owner_decision), create-only,
     reviewer != producer
   review_result_get / review_result_list: read verdicts
   escalation_create / escalation_resolve / escalation_get / escalation_list: raise/resolve/read an escalation record
   comment_add / comment_get / comment_list / comment_supersede / comment_resolve / comment_delete: anchored runtime comments
   runtime_link_add / runtime_link_list / runtime_link_remove: cross-reference runtime records to plan truth or each other
-  model_binding_set / model_binding_get / model_binding_list / model_binding_remove / model_binding_resolve /
-    model_binding_update: 6-level scope (system<plan<level<branch<step<role); model_binding_resolve returns effective
-    provider/model + inheritance path
+  model_binding_set / model_binding_get / model_binding_list / model_binding_remove / model_binding_resolve / model_binding_update: >-
+    6-level scope (system<plan<level<branch<step<role); model_binding_resolve returns effective provider/model + inheritance path
 
 owner_ladder: |
   C-017, strictly upward, no self-certification: hrs_mrs verifies gs; gs verifies ts; ts verifies as AND as_execution.

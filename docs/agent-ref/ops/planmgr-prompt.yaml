@@ -10,12 +10,12 @@ commands:
   context_bundle: compiled common+specific bundle for a branch
   block_get / block_list: read one / list compiled context blocks (typed DB rows, never files)
   branch_dump: raw dump of one branch's frozen content, no prompt assembly
-  branch_prompt: deterministic single-branch executor prompt (order: MRS excerpt, HRS slice, GS, TS, AS delta) + token
-    estimate vs context_budget; returns within_budget
+  branch_prompt: 'deterministic single-branch executor prompt (order: MRS excerpt, HRS slice, GS, TS, AS delta) +
+    token estimate vs context_budget; returns within_budget'
   plan_prompt_chain: QUEUED deterministic cache-keyed corpus for a scope+role — waves + per-step manifest; include_statuses
     default [frozen, ready_for_review]
 
-procedure:
+procedure: |
   1. context_common(parent, child_level) before authoring or prompting any child — admission_guard blocks children otherwise
   2. context_specific after common settles (compile_order_rule: children compile LAST)
   3. branch_prompt(one G/T/A) -> check within_budget; False means split the branch, never truncate manually

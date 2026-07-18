@@ -11,7 +11,7 @@ commands:
   concept_get / concept_list: read concepts
   concept_add / concept_update / concept_remove: mutate MRS concepts (behavior/invariant entities only; source_labels required)
   relation_list: list typed relations
-  relation_add / relation_remove / relation_update: mutate relations (types: uses/owns/implements/extends/depends_on/produces/consumes)
+  relation_add / relation_remove / relation_update: 'mutate relations (types: uses/owns/implements/extends/depends_on/produces/consumes)'
   concept_coverage: coverage view — concept_axis (every concept >=1 step, overlap allowed) vs object_work_axis (no two steps
     touch same object/work); "no gaps"=concept axis, "no overlaps"=object axis, never conflate
   step_get / step_tree: read one step / a step subtree

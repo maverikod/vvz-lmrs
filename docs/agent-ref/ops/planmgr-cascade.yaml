@@ -12,7 +12,7 @@ commands:
   step_set_status: atomic-only status flips (in_progress/done) — NEVER used for freeze transitions
   step_transition: status-machine moves (draft->ready_for_review->frozen etc.); require_green=true runs the gate FIRST
 
-procedure:
+procedure: |
   1. cascade_begin(plan) -> cascade_uuid
   2. mutate MRS-and-below under that cascade_uuid (authoring/graph/etc. ops, scoped to the cascade)
   3. cascade_preview(cascade_uuid) -> dry gate + impact, no publish
