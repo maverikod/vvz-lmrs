@@ -17,6 +17,7 @@ manuals:
   ca_edit:     docs/standards/code_analysis_universal_editing_instructions.yaml
   coder_guide: docs/agent-ref/mcp_coder_guide.yaml
   cmd_help:    'call_server(<server>,"help",{cmdname:<command>})'
+  modes:       docs/agent-ref/modes.yaml
 
 # condition -> MUST read manual(s) BEFORE the first matching action
 triggers:
@@ -33,6 +34,8 @@ triggers:
     read: [terminal]
   - when: before first git operation on the server-side project
     read: [rules]   # cas_rules.git_via_ca — git ONLY through CA git_* commands
+  - when: the task declares a mode (planning / analysis / refactoring)
+    read: [modes]
 
 # error taxonomy — exactly one branch per failure
 errors:
