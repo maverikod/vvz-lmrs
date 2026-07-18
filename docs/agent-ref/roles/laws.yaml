@@ -69,8 +69,10 @@ laws:
     receives local->main merges (local work) and cas->main SQUASH merges (agent
     deliveries, one commit per delivery), and every deploy builds from main. MANDATORY
     reverse-sync: after every main update, merge main->cas (on the server, via CA
-    git_merge) and main->local before continuing work. Only the orchestrator merges
-    cas->main, and only after delivery_checks pass; server-side main is protected.
+    git_merge) BEFORE agents continue. main->local pull is allowed ONLY AFTER a deploy
+    has completed (local takes only deploy-verified states of main). Only the
+    orchestrator merges cas->main, and only after delivery_checks pass; server-side
+    main is protected.
   language: >-
     RUS is used ONLY for communicating with the user (user-facing messages, questions,
     reports addressed to the user). ENG for everything else: code, comments, commit
