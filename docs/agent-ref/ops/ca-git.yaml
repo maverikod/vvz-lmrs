@@ -2,7 +2,7 @@
 
 purpose: perform every git operation on the server-side project through CA — status, history, branches, sync, repair.
 
-procedure:
+procedure: |
   1. inspect first: git_status / git_log / git_diff / git_show / git_blame
   2. mutate: git_add / git_commit / git_reset / git_restore / git_revert
   3. sync with remote: prefer git_pull_safe on a dirty tree (guarded stash -> pull -> apply -> drop)
