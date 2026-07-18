@@ -1,0 +1,39 @@
+# ops: ai-editor-server — how to address universal_file_edit operations, per format group.
+
+purpose: pick the right node addressing scheme for universal_file_edit operations[] depending on file format group.
+
+format_groups:
+  sidecar (.py/.pyi/.pyw): |
+    node_id: int short_id AS STRING, from preview/search. code_lines preferred over code.
+    type: replace|insert|delete|move. parent_node_id="__root__" for module level.
+    Sibling insert = target_node_id + position before|after.
+    NESTED_BATCH_FORBIDDEN: never batch a parent op with its child op together.
+  marked_tree (.json/.yaml/.yml/.md): |
+    node_ref: int-string, from preview. New top-level YAML key insert currently fails
+    (see gotchas: 690f768c) — use a workaround, not a retry loop.
+  legacy_tree_temp: |
+    json_pointer + value (RFC6901). '/-' sentinel appends to the end of an array.
+  text (.txt/.rst/.adoc): |
+    0-based line index from preview -> convert to 1-based start_line/end_line for edit.
+    optional anchor_head/anchor_tail for safety. NEVER reuse line numbers across an
+    intervening edit — always re-preview first.
+  parse_error_fallback: |
+    is_invalid=true -> forced into line-based editing until the file achieves one clean commit.
+
+commands:
+  universal_file_edit: 'operations[]; addressing scheme depends on format group above'
+
+gotchas:
+  - 'BUG 690f768c: new top-level YAML key insert fails with "marked node missing ___id___" — create the file fresh (create=true) or replace an existing key''s whole value instead'
+  - never reuse a line index/node_id after an intervening edit shifted the tree — re-preview
+  - NESTED_BATCH_FORBIDDEN applies only to sidecar (.py) parent+child batches
+
+errors:
+  SESSION_FILE_PATH_REQUIRED: 'multi-file session — pass file_path explicitly'
+  NESTED_BATCH_FORBIDDEN: 'split parent and child edits into separate calls'
+  INVALID_OPERATION: 'op shape wrong for this format group — check addressing table above'
+  STALE_NODE_ID: 're-preview, the tree shifted since you read this node_id'
+  UNKNOWN_NODE_REF: 're-preview, node_ref does not exist in current tree'
+  LINE_OUT_OF_RANGE: 're-preview, line index stale'
+  ANCHOR_MISMATCH: 'anchor_head/anchor_tail no longer matches — re-preview'
+  PARSE_ERROR: 'file unparsable — may need is_invalid line-based fallback'
