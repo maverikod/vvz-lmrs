@@ -2,7 +2,7 @@
 
 purpose: full lifecycle to safely edit a file already on the server, keeping CA canonical bytes untouched until commit.
 
-procedure:
+procedure: |
   1. CA session_create -> session_id
   2. universal_file_open(project_id, file_path, session_id)  # .py REQUIRES initial_content only when create=true
   3. universal_file_preview -> get node_id / node_ref / line index depending on format
@@ -24,9 +24,9 @@ gotchas:
   - 'BUG 86288c9c: class/def header trailing comment stripped on code_lines replace'
   - 'BUG 4274b3f3: statements inside try/except unaddressable (replace_range unsupported, no parent id)'
   - 'BUG bf98dd98: commit-gate QA sandbox can yield a false import-not-found'
-  - unclosed session = stale lock blocking the whole pipeline — close on abort too
-  - never CA get_file_lines on a healthy .py (USE_CST_COMMANDS) — use one-shot preview or file_structure
-  - commit validates (.py: black-parseable/flake8/mypy/docstrings, ZERO TOLERANCE; JSON/YAML: parse)
+  - 'unclosed session = stale lock blocking the whole pipeline — close on abort too'
+  - 'never CA get_file_lines on a healthy .py (USE_CST_COMMANDS) — use one-shot preview or file_structure'
+  - 'commit validates (.py: black-parseable/flake8/mypy/docstrings, ZERO TOLERANCE; JSON/YAML: parse)'
 
 errors:
   SESSION_NOT_FOUND: 'session_id invalid/expired — re-run CA session_create'
