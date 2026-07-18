@@ -28,7 +28,7 @@ commands:
   list_errors_by_category: 'aggregate errors grouped by category'
 
 gotchas:
-  - order matters: AST/index first, cross-search only if step 1 missed — do not default to search
+  - 'order matters: AST/index first, cross-search only if step 1 missed — do not default to search'
   - pagination default page_size=20; use block_position to walk pages
   - comprehensive_analysis is async — poll get_comprehensive_analysis_results, and if it returns a job_id see ca-jobs-queue.yaml
 
