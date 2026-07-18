@@ -2,7 +2,7 @@
 
 purpose: search project content when AST/index-based analysis (ca-analysis.yaml) does not cover the need.
 
-procedure:
+procedure: |
   1. search(...) -> fulltext/BM25 always on; enable_semantic and enable_grep are opt-in
   2. first page of results returns inline
   3. for more results: search_get_page(job_id, block_position)  # block_position is 1-based
