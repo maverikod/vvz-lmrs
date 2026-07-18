@@ -1,7 +1,7 @@
 # code-analysis-server — thin server map. Read the triggered ops/ file before acting; no other source needed.
 
 server:
-  id: code-analysis-server
+  id: code-analysis-server-vvz   # LIVE registry id; short name "code-analysis-server" -> SERVER_NOT_FOUND
   copy_number: 2   # AFTER casmgr restart; copy 1 -> SERVER_NOT_FOUND. editor/planmgr stay copy 1.
 
 essence: |
@@ -10,8 +10,9 @@ essence: |
   poll via the queuemgr store; long_task/job_status is a SEPARATE in-memory store — never cross-poll.
 
 hard_rules:
-  - "BUG 5adec7eb: ALL CAS calls strictly sequential — concurrent search races give -32600"
-    "'command is required' for everything; heartbeat stays green, 'active' lies. Never fan out parallel CAS calls."
+  - >-
+    BUG 5adec7eb: ALL CAS calls strictly sequential — concurrent search races give -32600
+    'command is required' for everything; heartbeat stays green, 'active' lies. Never fan out parallel CAS calls.
   - list_projects -> project_id; never host root_dir
   - queue 'completed' != command success — always check the inner result/exit code
   - server-side git ALWAYS via CA git_* — never console/ssh git without explicit user permission
@@ -39,7 +40,7 @@ blocks:
   jobs_queue:
     ops_file: docs/agent-ref/ops/ca-jobs-queue.yaml
     trigger: 'when a command returned a job_id and needs polling, or managing the job queue directly'
-    commands: [queue_add_job, queue_start, queue_stop, queue_delete, queue_get_job_status, queue_get_job_logs, queue_list_jobs, queue_health]
+    commands: [queue_add_job, queue_start_job, queue_stop_job, queue_delete_job, queue_get_job_status, queue_get_job_logs, queue_list_jobs, queue_health]
   fs_sandbox:
     ops_file: docs/agent-ref/ops/ca-fs-sandbox.yaml
     trigger: 'when moving/copying/removing project files, running project scripts, managing venv/pip, batching read-only calls, or managing CA sessions'
