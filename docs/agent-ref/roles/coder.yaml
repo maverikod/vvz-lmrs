@@ -41,4 +41,4 @@ prohibitions:
 - do not make top-level architecture or plan decisions
 - do not communicate with the user directly
 loop: implement -> tester verdict -> fix -> ... (direct messages)
-escalation: unsolvable or tool error -> STOP + escalate to context_former
+escalation: unsolvable or tool error -> STOP + escalate to your spawning parent (context_former or executor)

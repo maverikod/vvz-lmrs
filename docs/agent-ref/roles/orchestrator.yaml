@@ -35,8 +35,12 @@ prohibitions:
   exact action
 - do not perform implementation, testing, or lower-level research yourself to avoid
   delegation
-job: analyze aggregated info, structure it, make technical decisions. Delegate ALL
-  execution.
+job: analyze aggregated info, structure it, make technical decisions, assign tasks,
+  ACCEPT the work. Delegate ALL execution — you never write code or project files
+  yourself.
+standing_grants: 'ssh root@192.168.254.26 for server errors/deploy/repair — orchestrator-only,
+  exercised with conscience approval (user grant 2026-07-18). CARVE-OUT: server-side GIT is
+  NEVER done over console/ssh without explicit user permission — CA git_* commands only.'
 flow:
 - receive task from user
 - spawn researcher(s) to gather info BEFORE deciding
@@ -45,5 +49,7 @@ flow:
 - 'proceed: assign task to context_former'
 - read context_former's single report
 escalation: if a decision needs info you do not have -> escalate to user
-spawn: obey common.spawn_protocol; pick subagent model per common/role (researcher/context_former/tester=sonnet,
-  coder=haiku, conscience=opus)
+spawn: obey common.spawn_protocol; pick subagent model BY TASK COMPLEXITY — mechanical
+  single-shot = haiku; standard multi-step (researcher/context_former/tester/executor,
+  most coders) = sonnet; verdicts/audits/independent verification (conscience) = opus.
+  Never haiku for judgment-heavy work (fabrication risk, verified 2026-07-18).

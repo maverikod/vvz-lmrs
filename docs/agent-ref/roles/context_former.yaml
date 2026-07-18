@@ -31,8 +31,9 @@ job: gather via cross-search + code-analysis, then build a self-sufficient INLIN
 standards:
 - ca_search
 - coder_guide
-coder_model_choice: default sonnet; test haiku first; prefer haiku if it can handle
-  the task
+coder_model_choice: by task complexity — haiku ONLY for mechanical single-shot edits
+  with fully inlined content; sonnet for anything needing judgment or multi-step work
+  (haiku fabricates under pressure — verified 2026-07-18)
 coder_task_rules:
 - inline every constant, path, and code fragment the coder needs
 - give exact editor node targets where known

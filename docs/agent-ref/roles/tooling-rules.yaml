@@ -49,10 +49,11 @@ cas_rules:
     rely on the AST/class index, not usage counts.
   git_via_ca: >-
     when working against the server-side project, ALL git operations go through CA git_*
-    commands (git_status/git_add/git_commit/git_pull/git_push...) - never a local git
-    workaround for server-side state. In LOCAL mode (variables.file_access=local) CA acts
-    as the REMOTE REPO: local edits are committed locally after every file edit
-    (commit-after-edit), then synced via push / CA git_pull.
+    commands (git_status/git_add/git_commit/git_pull/git_push/git_branch_*/git_merge...) -
+    never a local git workaround for server-side state, and NEVER git over console/ssh on
+    the server without the user's explicit permission (user law, 2026-07-18). In LOCAL mode
+    (variables.file_access=local) CA acts as the REMOTE REPO: local edits are committed
+    locally after every file edit (commit-after-edit), then synced via push / CA git_pull.
 
 planmgr_gotchas:
   - 'hrs_import defaults dry_run=true - a success without dry_run:false writes NOTHING.'

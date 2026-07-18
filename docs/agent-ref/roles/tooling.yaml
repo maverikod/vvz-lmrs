@@ -2,7 +2,7 @@
 # Orchestrator and conscience do NOT use tools and do NOT read this file.
 
 meta:
-  file_access: mcp_only            # project files: never local bash/Read/Write/Edit
+  file_access: mcp_only            # default; laws.variables.file_access=local flips to the local_mode profile (see laws.yaml)
   call: 'mcp__claude_ai_MCP-Proxy__call_server(server_id, copy_number=1, command, params)'
   path: project-relative POSIX only; no host paths; no ".."
   servers: {ca: code-analysis-server, editor: ai-editor-server, term: mcp-terminal}

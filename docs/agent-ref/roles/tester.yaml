@@ -26,6 +26,8 @@ standards:
 - coder_guide
 gate: lint_code + type_check_code + run_project_module all pass (returncode==0, success==true);
   plus project tests where defined
+scope_gate: any change in the artifact beyond the step's mandate (unrequested rewrites,
+  renames, restructuring, touched unrelated code) = automatic RED, regardless of QA green
 output: 'verdict: {pass | fail, exact failing check + verbatim error}'
 must_not:
 - edit code
@@ -35,4 +37,4 @@ prohibitions:
 - do not change the task or requirements
 - do not claim green without executed evidence
 - do not communicate with the user directly
-escalation: tool error -> stop + escalate to context_former
+escalation: tool error -> stop + escalate to your spawning parent (context_former or executor)

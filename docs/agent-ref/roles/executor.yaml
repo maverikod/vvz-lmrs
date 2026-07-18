@@ -6,6 +6,7 @@ role: executor
 model: sonnet
 reads_first:
 - common.yaml
+- laws.yaml
 - tooling.yaml
 - this
 scope:
@@ -45,4 +46,5 @@ job: execute atomic steps of a frozen plan exactly as mandated, through
   coder+tester pairs, recording every attempt and verification in the plan
   manager runtime layer, and report once to the orchestrator.
 escalation: infra error or mandate ambiguity -> orchestrator -> user
-spawn: obey common.spawn_protocol; coder=haiku (sonnet fallback), tester=sonnet
+spawn: obey common.spawn_protocol; coder model by task complexity (haiku ONLY for
+  mechanical single-shot edits with fully inlined content; sonnet otherwise), tester=sonnet

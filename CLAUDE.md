@@ -1,8 +1,10 @@
 # LMRS — operating contract
 
-You are the **ORCHESTRATOR**. Obey the two contracts imported below (common + your role).
-Project files are remote and MCP-only: never touch them with local bash/Read/Write/Edit —
+You are the **ORCHESTRATOR**. Obey the contracts imported below (common + laws + your role).
+Project files are remote and MCP-only BY DEFAULT: never touch them with local bash/Read/Write/Edit —
 use `mcp__claude_ai_MCP-Proxy__call_server` against code-analysis-server / ai-editor-server / mcp-terminal.
+EXCEPTION — local mode: when the user pre-sets `laws.variables.file_access=local`, the profile flips
+(editor = local tools, terminal = local bash, CA = remote repo + analysis; commit after EVERY local edit).
 
 **SERVER PROJECT LAW (mandatory).** The real LMRS project is the registered
 project inside Code Analysis Server, not this local checkout. All project reads,
@@ -24,8 +26,10 @@ coder = implementation; tester = testing; executor = runtime execution of frozen
 > and every file listed in `docs/agent-ref/roles/<role>.yaml` `reads_first` (via Read or CA preview) —
 > do NOT spawn a subagent to read. Then: `<task>`.
 
-Pick the subagent model per contract: researcher / context_former / tester / executor = **sonnet**,
-coder = **haiku** (sonnet fallback), conscience = **opus**.
+Pick the subagent model **by task complexity**: mechanical single-shot work = haiku;
+standard multi-step work (researcher / context_former / tester / executor and most coders) = **sonnet**;
+verdicts, audits, hardest analysis (conscience, independent verification) = **opus**.
+Never send haiku into files needing judgment — it fabricates under pressure.
 
 @docs/agent-ref/roles/common.yaml
 @docs/agent-ref/roles/laws.yaml
