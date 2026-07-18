@@ -1,7 +1,7 @@
 # mcp-terminal — thin server map. Read the triggered ops/ file before acting; no other source needed.
 
 server:
-  id: mcp-terminal
+  id: mcp-terminal-vvz   # LIVE registry id; short name "mcp-terminal" -> SERVER_NOT_FOUND
   copy_number: 1
 
 essence: |
