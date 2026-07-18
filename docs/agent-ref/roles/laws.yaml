@@ -62,3 +62,9 @@ laws:
     server-change task is complete only after all four pass. (Owner: the role that
     delivers to the user — orchestrator/executor level. Coders/testers are not gated
     on these checks; they gate DELIVERY, not individual steps.)
+  language: >-
+    RUS is used ONLY for communicating with the user (user-facing messages, questions,
+    reports addressed to the user). ENG for everything else: code, comments, commit
+    messages, prompt/contract files, inter-agent tasks and reports, bug/todo records,
+    logs. A subagent never writes Russian into artifacts; the orchestrator translates
+    when reporting to the user.
