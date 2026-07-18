@@ -1,0 +1,76 @@
+# LMRS — mode -> trigger map. A mode is DECLARED IN THE TASK the orchestrator issues
+# (russian aliases below match the orchestrator's natural-language task wording).
+# A task WITHOUT a declared mode uses only baseline docs/agent-ref/roles/tooling.yaml
+# triggers — modes ADD to that baseline, never replace it.
+# Per tooling.yaml trigger law: before the FIRST use of a triggered tool, the agent
+# MUST read the triggered file at least once.
+
+header_rule: >-
+  The mode is declared in the task the orchestrator issues. No declared mode -> baseline
+  tooling.yaml triggers only. Before first use of a triggered tool, read the triggered
+  file at least once (tooling.yaml trigger law) — this file only says WHEN, tooling.yaml
+  says HOW.
+
+modes:
+  planning:
+    aliases: [планирование, планов_режим]
+    description: >-
+      Authoring, verifying, freezing, or operating the runtime layer of a plan via planmgr
+      (HRS/MRS/GS/TS/AS, cascade, gate/score, graph, prompts, execution/review records,
+      bugs, todos, project binding, export/import).
+    always_read: [servers/planmgr.yaml]
+    triggers:
+      - when: authoring/editing HRS paragraphs, MRS concepts/relations, or GS/TS/AS steps
+        read: [ops/planmgr-authoring.yaml]
+      - when: opening/committing/aborting a cascade, or freezing/unfreezing a step
+        read: [ops/planmgr-cascade.yaml]
+      - when: running or interpreting a gate, score, weak-prompt check, or audit query
+        read: [ops/planmgr-verification.yaml]
+      - when: computing execution order, waves, or step-to-step dependencies
+        read: [ops/planmgr-graph.yaml]
+      - when: assembling an executor/review prompt or compiling a context block
+        read: [ops/planmgr-prompt.yaml]
+      - when: recording an execution attempt, review verdict, escalation, comment, link, or model binding
+        read: [ops/planmgr-runtime.yaml]
+      - when: creating, triaging, fixing, propagating, or closing a bug
+        read: [ops/planmgr-bugs.yaml]
+      - when: creating, resolving, or promoting a todo
+        read: [ops/planmgr-todo.yaml]
+      - when: attaching/detaching a plan-project binding, or managing a project dependency
+        read: [ops/planmgr-project.yaml]
+      - when: exporting, importing, archiving, or diffing a plan
+        read: [ops/planmgr-export.yaml]
+
+  analysis:
+    aliases: [анализ]
+    description: >-
+      Read-only inspection of project code: search, AST/structure/quality, or async job
+      polling on code-analysis-server. No file mutation.
+    always_read: [servers/ca.yaml]
+    triggers:
+      - when: first fulltext/semantic/grep search over project content
+        read: [ops/ca-search.yaml]
+      - when: first AST/entity/quality inspection (structure, entities, complexity, lint, type-check)
+        read: [ops/ca-analysis.yaml]
+      - when: first job_id returned by a queued analysis command
+        read: [ops/ca-jobs-queue.yaml]
+
+  refactoring:
+    aliases: [рефакторинг]
+    description: >-
+      Tracing usages/dependencies/hierarchy and editing project files through the CA +
+      ai-editor + terminal toolchain.
+    always_read: [servers/ca.yaml, servers/editor.yaml]
+    triggers:
+      - when: first usages/dependencies/class-hierarchy lookup before a refactor
+        read: [ops/ca-refactoring-support.yaml]
+      - when: first open/edit/write/close of a project file
+        read: [ops/editor-edit-lifecycle.yaml]
+      - when: creating a new project file
+        read: [ops/editor-new-file.yaml]
+      - when: editing a non-Python format (addressing/handler differs from .py)
+        read: [ops/editor-formats-addressing.yaml]
+      - when: first git operation on the server-side project
+        read: [ops/ca-git.yaml]
+      - when: first sandbox or host terminal command
+        read: [ops/terminal-sandbox.yaml]
