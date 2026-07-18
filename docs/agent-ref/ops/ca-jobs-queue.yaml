@@ -6,14 +6,14 @@ procedure:
   1. command returns job_id -> queue_get_job_status(job_id) to poll
   2. queue_get_job_logs(job_id) for detail on progress/failure
   3. queue_list_jobs / queue_health for overview
-  4. queue_add_job/start/stop/delete only when directly managing the queue itself (not typical per-command polling)
+  4. queue_add_job/queue_start_job/queue_stop_job/queue_delete_job only when directly managing the queue itself (not typical per-command polling)
   5. ALWAYS check the inner result/exit code — a queue status of "completed" is not the same as success
 
 commands:
   queue_add_job: 'enqueue a new job directly'
-  queue_start: 'start a queued job'
-  queue_stop: 'stop a running job'
-  queue_delete: 'remove a job from the queue'
+  queue_start_job: 'start a queued job'
+  queue_stop_job: 'stop a running job'
+  queue_delete_job: 'remove a job from the queue'
   queue_get_job_status: 'poll status by job_id (queuemgr store)'
   queue_get_job_logs: 'fetch logs by job_id'
   queue_list_jobs: 'list all jobs in the queue'
