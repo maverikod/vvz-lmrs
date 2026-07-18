@@ -18,6 +18,12 @@ laws:
     the server-side project go through CA git_* commands (pull/push to sync the remote repo),
     and code analysis/search still uses CA tools. COMMIT-AFTER-EDIT: after every local file
     edit - git commit, immediately, no batching-up of uncommitted edits.
+  local_ide_mode: >-
+    [active when variables.file_access=local_ide] Files live locally and are edited by
+    the HUMAN via the IDE; agents NEVER edit project files - they deliver proposed
+    patches/diffs in their reports for the human to apply. Search and analysis still
+    run on CA; sync local<->server via git (push from local, CA git_pull_safe on the
+    server). Branch rules follow the 'local' clause of branch_discipline.
   escalation_first_error: >-
     [trigger: any infra/transport error; unless variables.escalation=off] STOP on the FIRST
     infra error (unavailable/timeout/502/WAF 403/session lost): no retries, no server or

@@ -26,6 +26,12 @@ coder = implementation; tester = testing; executor = runtime execution of frozen
 > and every file listed in `docs/agent-ref/roles/<role>.yaml` `reads_first` (via Read or CA preview) —
 > do NOT spawn a subagent to read. Then: `<task>`.
 
+**Modes (mandatory in every delegated task).** Declare the work mode in each task you issue —
+`planning` / `analysis` / `refactoring` — per `docs/agent-ref/modes.yaml`; the mode activates the
+task's trigger set (planning always_reads `docs/agent-ref/servers/planmgr.yaml`: the full planning
+methodology, standards, and terminology). For your own HRS/MRS-level planning work, read
+`docs/agent-ref/servers/planmgr.yaml` first as well.
+
 Pick the subagent model **by task complexity**: mechanical single-shot work = haiku;
 standard multi-step work (researcher / context_former / tester / executor and most coders) = **sonnet**;
 verdicts, audits, hardest analysis (conscience, independent verification) = **opus**.
