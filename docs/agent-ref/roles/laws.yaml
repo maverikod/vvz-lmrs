@@ -62,6 +62,15 @@ laws:
     server-change task is complete only after all four pass. (Owner: the role that
     delivers to the user — orchestrator/executor level. Coders/testers are not gated
     on these checks; they gate DELIVERY, not individual steps.)
+  branch_discipline: >-
+    Three-branch flow. The server-side working tree lives on branch 'cas' - all agent
+    edits (editor auto-commits, CA git_commit) land there; agents NEVER commit to main.
+    The local checkout works on branch 'local'. 'main' is integration/deploy ONLY: it
+    receives local->main merges (local work) and cas->main SQUASH merges (agent
+    deliveries, one commit per delivery), and every deploy builds from main. MANDATORY
+    reverse-sync: after every main update, merge main->cas (on the server, via CA
+    git_merge) and main->local before continuing work. Only the orchestrator merges
+    cas->main, and only after delivery_checks pass; server-side main is protected.
   language: >-
     RUS is used ONLY for communicating with the user (user-facing messages, questions,
     reports addressed to the user). ENG for everything else: code, comments, commit
