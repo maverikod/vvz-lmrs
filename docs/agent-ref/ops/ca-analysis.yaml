@@ -2,7 +2,7 @@
 
 purpose: inspect code structure, quality, and metrics from the index/AST BEFORE falling back to cross-search.
 
-procedure:
+procedure: |
   1. try AST/index commands first (get_ast, file_structure, list_code_entities, etc.)
   2. only fall back to ca-search.yaml cross-search if step 1 missed the target
   3. paginate long results: page_size default 20, block_position for the next page
