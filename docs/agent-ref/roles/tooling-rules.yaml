@@ -50,9 +50,12 @@ cas_rules:
   git_via_ca: >-
     when working against the server-side project, ALL git operations go through CA git_*
     commands (git_status/git_add/git_commit/git_pull/git_push...) - never a local git
-    workaround for server-side state.
+    workaround for server-side state. In LOCAL mode (variables.file_access=local) CA acts
+    as the REMOTE REPO: local edits are committed locally after every file edit
+    (commit-after-edit), then synced via push / CA git_pull.
 
 planmgr_gotchas:
   - 'hrs_import defaults dry_run=true - a success without dry_run:false writes NOTHING.'
   - 'step_update: concepts is a TOP-LEVEL param; fields.concepts is ignored by the gate.'
-  - 'bug_list/comment_list/escalation_list ignore their plan filter - check anchor_plan_uuid manually.'
+  - 'bug_list filters (verified 2026-07-18): plan = direct source_plan_uuid equality (project-anchored bugs excluded - correct); project = TRANSITIVE (matches source_project_id and plan-bound bugs). Use project filter for project-anchored records.'
+  - 'anchor validation is weak: bug_create accepts a nonexistent source_project_id (bug 5926d536) - double-check UUIDs before create; fix mistakes via bug_reanchor/todo_reanchor.'

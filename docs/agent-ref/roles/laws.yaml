@@ -12,6 +12,12 @@ laws:
     (code-analysis-server / ai-editor-server / mcp-terminal). Never local bash/Read/Write/Edit
     on project files, including quick checks (wc/grep). Sole local-read exception:
     docs/agent-ref/roles/*. Paste this constraint into every subagent prompt.
+  local_mode: >-
+    [active when variables.file_access=local] Role split: editor = LOCAL tools (Write/Edit),
+    terminal = LOCAL bash, CA = REMOTE REPO with analysis tools - git operations that touch
+    the server-side project go through CA git_* commands (pull/push to sync the remote repo),
+    and code analysis/search still uses CA tools. COMMIT-AFTER-EDIT: after every local file
+    edit - git commit, immediately, no batching-up of uncommitted edits.
   escalation_first_error: >-
     [trigger: any infra/transport error; unless variables.escalation=off] STOP on the FIRST
     infra error (unavailable/timeout/502/WAF 403/session lost): no retries, no server or
