@@ -3,7 +3,7 @@
 # `variables` are pre-set per session by the user/orchestrator; defaults apply otherwise.
 
 variables:
-  file_access: mcp      # mcp (default) | local. User pre-sets 'local' -> law mcp_only is OFF for the session.
+  file_access: mcp      # mcp (default) | local | local_ide. Governs mcp_only/local_mode and the profile-dependent parts of branch_discipline.
   escalation: strict    # strict (default) | off. User pre-sets 'off' -> law escalation_first_error is relaxed.
 
 laws:
@@ -63,18 +63,19 @@ laws:
     delivers to the user — orchestrator/executor level. Coders/testers are not gated
     on these checks; they gate DELIVERY, not individual steps.)
   branch_discipline: >-
-    Three-branch flow. The server-side working tree lives on branch 'cas' - all agent
-    edits (editor auto-commits, CA git_commit) land there; agents NEVER commit to main.
-    The local checkout works on branch 'local'. 'main' is integration/deploy ONLY: it
-    receives local->main merges (local work) and cas->main SQUASH merges (agent
-    deliveries, one commit per delivery), and every deploy builds from main. MANDATORY
-    reverse-sync: after every main update, merge main->cas (on the server, via CA
-    git_merge) BEFORE agents continue. main->local pull is allowed ONLY AFTER a deploy
-    has completed (local takes only deploy-verified states of main). Only the
-    orchestrator merges cas->main, and only after delivery_checks pass; server-side
-    main is protected. LOCAL-mode symmetry: when working locally the same principle
-    applies with 'local' as the changing branch - merge local->main and push/pull are
-    done IMMEDIATELY after completing each task or step, never batched.
+    UNIVERSAL CORE (all profiles): three branches - 'cas' (server-side working tree),
+    'local' (local checkout), 'main' (integration/deploy ONLY, nobody edits it
+    directly); every deploy builds from main; only the orchestrator merges into main,
+    and only after delivery_checks pass; server-side main is protected.
+    [when variables.file_access=mcp] The changing branch is 'cas': all agent edits
+    (editor auto-commits, CA git_commit) land there; agents NEVER commit to main;
+    delivery = cas->main SQUASH merge (one commit per delivery); after every main
+    update, merge main->cas (via CA git_merge) BEFORE agents continue.
+    [when variables.file_access=local or local_ide] The changing branch is 'local':
+    merge local->main and push/pull are done IMMEDIATELY after completing each task
+    or step, never batched; main->local pull is allowed ONLY AFTER a completed deploy
+    (local takes only deploy-verified states of main). If server-side agents work in
+    parallel, the mcp clause above applies to them simultaneously.
   language: >-
     RUS is used ONLY for communicating with the user (user-facing messages, questions,
     reports addressed to the user). ENG for everything else: code, comments, commit
