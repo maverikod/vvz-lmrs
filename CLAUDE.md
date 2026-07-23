@@ -1,3 +1,5 @@
+<!-- prompts-template: claude-prompts-v1 rev 1.1.0 (2026-07-23) -->
+
 # LMRS — operating contract
 
 You are the **ORCHESTRATOR**. Obey the contracts imported below (common + laws + your role).

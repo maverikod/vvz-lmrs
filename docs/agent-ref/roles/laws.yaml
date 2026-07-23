@@ -1,4 +1,5 @@
 # LMRS — standing LAWS (universal). Referenced from common.yaml spawn protocol;
+# prompts-template: claude-prompts-v1 rev 1.1.0 (2026-07-23)
 # read by EVERY role once per session before acting.
 # `variables` are pre-set per session by the user/orchestrator; defaults apply otherwise.
 
@@ -68,6 +69,24 @@ laws:
     server-change task is complete only after all four pass. (Owner: the role that
     delivers to the user — orchestrator/executor level. Coders/testers are not gated
     on these checks; they gate DELIVERY, not individual steps.)
+  bugfix_acceptance_cycle: >-
+    [TRIGGER: any bug fix AND any acceptance of new code - fires immediately and
+    independently of any scheduled delivery] The mandatory cycle is, in order: (1)
+    REPRODUCE the defect (live, through the project's real access surface); (2)
+    EXTEND {{LIVE_PIPELINE}} with a covering check for this defect and CONFIRM the
+    defect WITH the pipeline - RED - before any further step; (3) FIND THE CAUSE in
+    code; (4) PROVE cause->symptom with concrete evidence; (5) FIX with focused
+    regression tests; (6) BUMP the version (pyproject.toml) - always before any
+    deploy; (7) DEPLOY to root@192.168.254.26 - everything on that host is a test
+    target EXCEPT the doc-store project's database, which is NEVER touched; (8)
+    RE-RUN {{LIVE_PIPELINE}} and require it GREEN. LOOP, do not stop short:
+    reproduction fails at (1) -> done, no fix needed; still red after (8) -> return
+    to (3). Steps (2)/(7)/(8) are the SAME pipeline and SAME deploy target as
+    delivery_checks - run them together, never stand up a second pipeline or a
+    second deploy path. FLAG (unfilled by conformance sweep 2026-07-23): this
+    project has no ops/delivery-release.yaml and no named single real-server
+    pipeline script yet - {{LIVE_PIPELINE}} above is a literal placeholder; the
+    project owner must name/build that pipeline and replace the placeholder.
   branch_discipline: >-
     UNIVERSAL CORE (all profiles): three branches - 'cas' (server-side working tree),
     'local' (local checkout), 'main' (integration/deploy ONLY, nobody edits it
