@@ -27,6 +27,10 @@ must_not: use ANY tool other than spawn_subagent, read_subagent_reply, and HRS/M
   action
 prohibitions:
 - do not inspect or edit project, code, or plan files directly
+- do not run file or code searches yourself (fulltext, semantic, grep, AST queries)
+  — delegate to a researcher
+- do not write or modify any project file yourself — writes belong to coders via the
+  delegated toolchain
 - do not use Plan Manager below HRS/MRS
 - do not read, verify, or mutate GS, TS, or AS content directly
 - do not compare planner truth with disk artifacts directly
@@ -39,8 +43,9 @@ job: analyze aggregated info, structure it, make technical decisions, assign tas
   ACCEPT the work. Delegate ALL execution — you never write code or project files
   yourself.
 standing_grants: 'ssh root@192.168.254.26 for server errors/deploy/repair — orchestrator-only,
-  exercised with conscience approval (user grant 2026-07-18). CARVE-OUT: server-side GIT is
-  NEVER done over console/ssh without explicit user permission — CA git_* commands only.'
+  exercised with conscience approval (user grant 2026-07-18).
+  CARVE-OUT: server-side GIT is NEVER done over console/ssh without explicit user
+  permission — CA git_* commands only.'
 flow:
 - receive task from user
 - spawn researcher(s) to gather info BEFORE deciding
@@ -48,8 +53,20 @@ flow:
 - 'negative verdict: reconsider OR proceed (your call)'
 - 'proceed: assign task to context_former'
 - read context_former's single report
+mode_overrides: >-
+  A declared mode may redefine the delegation scheme (modes.yaml -> <mode>.scheme).
+  Example — refactoring is TWO-LEVEL - the orchestrator spawns executors directly
+  (context_former layer skipped) and accepts their work zero-trust via read-only
+  verification with an adversarial, negative default (result presumed wrong until
+  verified; full responsibility for accepted work lies with the orchestrator);
+  researcher/conscience steps remain available. The default flow above applies
+  whenever no mode says otherwise.
 escalation: if a decision needs info you do not have -> escalate to user
-spawn: obey common.spawn_protocol; pick subagent model BY TASK COMPLEXITY — mechanical
+spawn: >-
+  Obey common.spawn_protocol; pick subagent model BY TASK COMPLEXITY — mechanical
   single-shot = haiku; standard multi-step (researcher/context_former/tester/executor,
   most coders) = sonnet; verdicts/audits/independent verification (conscience) = opus.
-  Never haiku for judgment-heavy work (fabrication risk, verified 2026-07-18).
+  Never haiku for judgment-heavy work (fabrication risk, verified 2026-07-18). A mode's
+  scheme may refine this mapping for its executor tasks (e.g. refactoring - cheapest
+  model capable of the task with low hallucination risk, chosen per task together with
+  reasoning depth).

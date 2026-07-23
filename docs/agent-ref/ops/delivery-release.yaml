@@ -1,0 +1,44 @@
+# Generic delivery and production acceptance.
+
+project:
+  version_sources: ['pyproject.toml (root)', 'debian/changelog']
+  build: './build.sh'
+  deploy_host: 'root@192.168.254.26'
+  live_pipeline: 'TODO(user): no real-server pipeline script exists yet'   # aka "realsrv-test" in laws.yaml `bug_fix_cycle`
+  production_servers: ['ai-editor-server-vvz', 'code-analysis-server-vvz']
+  deploy_target_excluded_scope: "the doc-store project's database"
+
+# Bug-handling trigger/loop framing (reproduce -> pipeline-red -> root-cause -> fix -> deploy ->
+# pipeline-green, looped) is DEFINED ONCE in laws.yaml `bug_fix_cycle` - not restated here.
+# The steps below are its mechanical implementation on this project.
+procedure:
+  - reproduce the defect
+  - "extend live_pipeline (realsrv-test, this file) with a covering check and confirm the
+    defect WITH the pipeline - RED - before any mutation (laws.yaml `bug_fix_cycle` step 2);
+    TODO(user): no real-server pipeline script exists yet — this step is blocked until one is written"
+  - find the root cause and prove it with evidence before mutation
+  - implement the localized repair and focused regression test
+  - run project checks
+  - increment and align every version source
+  - build, deploy, and run the single live pipeline from the active working branch; deploy_host
+    scope is everything EXCEPT deploy_target_excluded_scope - never touch excluded scope
+  - verify registration, health, version, and changed behavior through MCP Proxy; the
+    live_pipeline re-run must go GREEN - if still red, loop back to root-cause (laws.yaml
+    `bug_fix_cycle`)
+  - record and verify the Plan Manager fix before closing the proven bug
+  - merge the verified branch into local main, report the exact commit, and wait
+    for user push confirmation
+  - after confirmation, the opposite site pulls main and merges it into its branch
+
+invariants:
+  - exactly one real-server pipeline; extend it instead of adding another
+  - "live_pipeline (realsrv-test) exercises ALL API methods of the server EXCEPT the
+    built-in mcp-proxy-adapter methods; TODO(user): no real-server pipeline script exists yet"
+  - deploy_host scope - everything on deploy_host is a test target EXCEPT the doc-store
+    project's database - NEVER touch it (laws.yaml `bug_fix_cycle`)
+  - a test deploy is cheaper than extended model reasoning - prefer deploy-and-check over
+    analysis when judging "is it fixed" (laws.yaml `bug_fix_cycle` economy principle)
+  - queue handoff is normal; selected client mode determines polling or messages
+  - completed queue state is not success until the inner result is checked
+  - do not deploy from or edit main before production verification
+  - the model never pushes main

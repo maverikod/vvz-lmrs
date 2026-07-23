@@ -4,21 +4,38 @@
 # `variables` are pre-set per session by the user/orchestrator; defaults apply otherwise.
 
 variables:
-  file_access: mcp      # mcp (default) | local | local_ide. Governs mcp_only/local_mode and the profile-dependent parts of branch_discipline.
+  file_access: mcp      # mcp (default) | local | local_ide. Governs mcp_only/local_mode/local_ide_mode and the profile-dependent parts of branch_discipline.
   escalation: strict    # strict (default) | off. User pre-sets 'off' -> law escalation_first_error is relaxed.
 
 laws:
+  branch_discipline: >-
+    Three branches are mandatory: local is the local working branch, cas is the CAS
+    working branch, and main is transfer-only. A site works only on its own branch;
+    main is never edited directly and local is never merged directly with cas. Before
+    new work, synchronize main into the active branch. Build, deploy, and run live
+    acceptance from the active working branch. Only after production verification is
+    green, merge that branch into local main. The model MUST NOT push main: report the
+    exact ready commit and wait for explicit user confirmation that it was pushed.
+    Then the opposite site checks out main, pulls it through its authoritative Git
+    surface, verifies the expected commit, returns to its working branch, and merges
+    main into it. Mirror the same sequence when work originates on cas.
+  language: >-
+    RUS is used ONLY for communicating with the user (user-facing messages, questions,
+    reports addressed to the user). ENG for everything else: code, comments, commit
+    messages, prompt/contract files, inter-agent tasks and reports, bug/todo records,
+    logs. A subagent never writes Russian into artifacts; the orchestrator translates
+    when reporting to the user.
   mcp_only: >-
     [unless variables.file_access=local] ALL project file ops (read AND write) via MCP proxy
-    (code-analysis-server / ai-editor-server / mcp-terminal). Never local bash/Read/Write/Edit
+    (code-analysis-server-vvz / ai-editor-server-vvz / mcp-terminal-vvz). Never local bash/Read/Write/Edit
     on project files, including quick checks (wc/grep). Sole local-read exception:
     docs/agent-ref/roles/*. Paste this constraint into every subagent prompt.
   local_mode: >-
     [active when variables.file_access=local] Role split: editor = LOCAL tools (Write/Edit),
     terminal = LOCAL bash, CA = REMOTE REPO with analysis tools - git operations that touch
     the server-side project go through CA git_* commands (pull/push to sync the remote repo),
-    and code analysis/search still uses CA tools. COMMIT-AFTER-EDIT: after every local file
-    edit - git commit, immediately, no batching-up of uncommitted edits.
+    and code analysis/search still uses CA tools. Commit a coherent verified task;
+    never push main.
   local_ide_mode: >-
     [active when variables.file_access=local_ide] Files live locally and are edited by
     the HUMAN via the IDE; agents NEVER edit project files - they deliver proposed
@@ -35,6 +52,23 @@ laws:
     Never declare tooling broken or file a bug off a single failure - the environment flaps.
     Read help/info, reproduce fresh; only a clean repeatable failure is a bug. Surface
     blockers explicitly; never silently work around them.
+  proxy_defect_bug_registration: >-
+    Every discovered code defect, inaccuracy, or mismatch between observed behavior
+    and description, help, or info in the MCP proxy itself or in any server accessed
+    through it MUST be registered immediately as a BUG in Plan Manager and attached to
+    the corresponding project before continuing. The BUG description must include the
+    evidence, expected behavior, actual behavior, reproduction steps when available,
+    and the confirmed project anchoring. Treat documentation or contract mismatches as
+    BUGs, not TODOs.
+  disk_scale_output_pagination_todo: >-
+    When a command produces output so long that it must be persisted and read from
+    disk, register a separate TODO in Plan Manager for the corresponding server
+    project before continuing. The TODO must name the exact command and require an
+    adequate pagination contract with bounded defaults and maximum limits,
+    deterministic ordering, compatibility behavior for existing callers, and live MCP
+    Proxy verification. The TODO must record the observed output-size or
+    spill-to-disk symptom or evidence and confirm the corresponding project anchoring
+    before continuing.
   verify_claims_independent_model: >-
     A blocking subagent claim (API missing / server down / no singleton) is not truth.
     Verify read-only with an INDEPENDENT different model before escalating or redirecting
@@ -48,64 +82,74 @@ laws:
     bypass (skip_quality_tools / validate_syntax_only / weakening gate config). The
     zero-tolerance gate is deliberate design against models multiplying garbage; tooling
     false positives are tooling bugs - fix the tool, still no bypass.
+  queue_semantics: >-
+    A long operation may validly transition to a queued job. The adapter client
+    supports synchronous poll-and-unwrap mode (auto_poll=true) and asynchronous or
+    message-driven mode (auto_poll=false or manual_event_handling=true). The caller
+    selects the intended mode explicitly; queue handoff itself is not a defect.
   ssh_repair: >-
-    Server-side repair/deploy over ssh root@192.168.254.26 is decided by the ORCHESTRATOR
+    Server-side repair/deploy to root@192.168.254.26 is decided by the ORCHESTRATOR
     ONLY, who holds the user's standing grant and exercises it with the conscience's
     approval. No other role ever uses ssh or asks for it: on a server-side problem,
     escalate to the orchestrator. CARVE-OUT (user, 2026-07-18): GIT operations on the
     server are NEVER done over the console/ssh without the user's explicit permission -
     server-side git goes exclusively through CA git_* commands.
   delivery_checks: >-
-    MANDATORY before handing any task result to the user: (1) auto-registration - the
-    server is present in the mcp-proxy registry (list_servers); (2) live command check -
-    every changed/added command AND its related commands respond correctly when invoked
-    THROUGH the proxy (call_server), not only in isolation; (3) main pipeline script -
-    the project contains ONE main pipeline script built on the server's own client (or,
-    if none, the adapter's client) that tests ALL server commands against the REAL
-    running server - if missing, that is a gap to close, not ignore; (4) deploy cycle -
-    when the completed task MODIFIED a server: run the image-build script, deploy the
-    server (new image up), then run the main pipeline test script AGAINST THE DEPLOYED
-    instance; checks (1)-(3) are performed on that freshly deployed instance. A
-    server-change task is complete only after all four pass. (Owner: the role that
-    delivers to the user — orchestrator/executor level. Coders/testers are not gated
-    on these checks; they gate DELIVERY, not individual steps.)
+    DELIVERY DEFINITION - "work delivered to the user" means, in order: (1) version
+    bump +1 (root pyproject = source of truth); (2) ./build.sh at the project root
+    (local unit tests; docker image build+tag+push when the project ships one; .deb
+    build); (3) client published to PyPI at the same version; (4) deploy to the
+    single testing/production server (method not established earlier -> ASK THE
+    USER first); (5) the ONE real-server test pipeline green against the deployed
+    instance; (6) branch_discipline post-deploy propagation. FULL PROCEDURE,
+    INVARIANTS, AND GOTCHAS: docs/agent-ref/ops/delivery-release.yaml - read it BEFORE the first
+    release action (tooling.yaml trigger). A task that modified a server is complete
+    only after all steps pass. (Owner: the delivering role - orchestrator/executor
+    level; coders/testers gate their own steps, not delivery.)
+  server_client_law: >-
+    A server client wraps mcp-proxy-adapter instead of reimplementing transport. It
+    exposes explicit synchronous-emulation and asynchronous/message modes. Sync
+    callers receive terminal results or exceptions; async callers may receive a valid
+    queued handoff.
+    The client is published to PyPI (credentials via ~/.pypirc), and the versions of
+    client, server, and docker image (when one exists) are ALWAYS identical.
+    Release mechanics: docs/agent-ref/ops/delivery-release.yaml.
   bugfix_acceptance_cycle: >-
     [TRIGGER: any bug fix AND any acceptance of new code - fires immediately and
     independently of any scheduled delivery] The mandatory cycle is, in order: (1)
-    REPRODUCE the defect (live, through the project's real access surface); (2)
-    EXTEND {{LIVE_PIPELINE}} with a covering check for this defect and CONFIRM the
-    defect WITH the pipeline - RED - before any further step; (3) FIND THE CAUSE in
-    code; (4) PROVE cause->symptom with concrete evidence; (5) FIX with focused
-    regression tests; (6) BUMP the version (pyproject.toml) - always before any
-    deploy; (7) DEPLOY to root@192.168.254.26 - everything on that host is a test
-    target EXCEPT the doc-store project's database, which is NEVER touched; (8)
-    RE-RUN {{LIVE_PIPELINE}} and require it GREEN. LOOP, do not stop short:
-    reproduction fails at (1) -> done, no fix needed; still red after (8) -> return
-    to (3). Steps (2)/(7)/(8) are the SAME pipeline and SAME deploy target as
-    delivery_checks - run them together, never stand up a second pipeline or a
-    second deploy path. FLAG (unfilled by conformance sweep 2026-07-23): this
-    project has no ops/delivery-release.yaml and no named single real-server
-    pipeline script yet - {{LIVE_PIPELINE}} above is a literal placeholder; the
-    project owner must name/build that pipeline and replace the placeholder.
-  branch_discipline: >-
-    UNIVERSAL CORE (all profiles): three branches - 'cas' (server-side working tree),
-    'local' (local checkout), 'main' (integration/deploy ONLY, nobody edits it
-    directly); every deploy builds from main; only the orchestrator merges into main,
-    and only after delivery_checks pass; server-side main is protected.
-    [when variables.file_access=mcp] The changing branch is 'cas': all agent edits
-    (editor auto-commits, CA git_commit) land there; agents NEVER commit to main;
-    delivery = cas->main SQUASH merge (one commit per delivery); after every main
-    update, merge main->cas (via CA git_merge) BEFORE agents continue.
-    [when variables.file_access=local or local_ide] The changing branch is 'local':
-    after completing each task or step - IMMEDIATELY and in THIS ORDER: (1) commit on
-    'local', (2) git merge local->main, (3) git push origin main (pushing only the
-    working branch is NOT delivery - the server syncs from main); never batched.
-    main->local pull is allowed ONLY AFTER a completed deploy (local takes only
-    deploy-verified states of main). If server-side agents work in parallel, the mcp
-    clause above applies to them simultaneously.
-  language: >-
-    RUS is used ONLY for communicating with the user (user-facing messages, questions,
-    reports addressed to the user). ENG for everything else: code, comments, commit
-    messages, prompt/contract files, inter-agent tasks and reports, bug/todo records,
-    logs. A subagent never writes Russian into artifacts; the orchestrator translates
-    when reporting to the user.
+    REPRODUCE the defect (live, through the project's real access surface when the
+    project is a server); (2) when the project is a server, EXTEND TODO(user): no real-server pipeline script exists yet
+    with a covering check for this defect and CONFIRM the defect WITH the pipeline -
+    RED - before any further step (a non-server project confirms the reproduction
+    directly and skips to step 3); (3) FIND THE CAUSE in code; (4) PROVE
+    cause->symptom with concrete evidence; (5) FIX with focused regression tests;
+    (6) BUMP the version (pyproject.toml (root); debian/changelog) - always before any deploy;
+    (7) DEPLOY to root@192.168.254.26 - only when the current project is a server;
+    everything on root@192.168.254.26 is a test target EXCEPT
+    the doc-store project's database - excluded scope is NEVER touched; (8) RE-RUN
+    TODO(user): no real-server pipeline script exists yet and require it GREEN (coverage requirement:
+    single_real_server_pipeline). LOOP, do not stop short: reproduction fails at
+    (1) -> OK, done; still red after (8) -> return to (3). ECONOMY PRINCIPLE: a test
+    deploy is CHEAPER than extended model reasoning - when judging "is it fixed",
+    prefer deploy-and-check over further analysis. After the cause of an error is
+    found, checks proving its elimination MUST be added to the pipeline (named
+    after the bug) - this is step (2)/(8) above, not a separate action. Work is not
+    accepted until every applicable step has passed. Single authoritative
+    definition of this cycle - do not restate it elsewhere; ops files and modes.yaml
+    cross-reference this law by name instead.
+  single_real_server_pipeline: >-
+    [once per session; applies when the current project is a server] Verify the
+    project HAS a full-testing pipeline that runs against the REAL deployed
+    server (TODO(user): no real-server pipeline script exists yet) and that it exists in EXACTLY ONE instance. The
+    pipeline MUST exercise ALL API methods of the server EXCEPT the platform's own
+    built-in adapter methods. A missing pipeline is a gap to close immediately; a
+    duplicate is a defect to merge into the single pipeline. New checks always
+    extend the existing pipeline - never create a second one.
+  template_prompt_reconciliation: >-
+    [once per session] Reconcile the project's prompt bundle with its source
+    template archive (claude: /home/vasilyvz/projects/prompts/claude-prompts-v1.tar.gz;
+    codex: /home/vasilyvz/projects/prompts/codex-prompts-v1.tar.gz). The model
+    REQUESTS the user's permission to update; only after the user confirms does
+    it diff template vs project bundle and update the project prompt, preserving
+    project-specific placeholder values. Template improvements flow back to the
+    template only on the user's explicit order.

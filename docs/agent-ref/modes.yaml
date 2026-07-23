@@ -1,5 +1,6 @@
 # LMRS — mode -> trigger map. A mode is DECLARED IN THE TASK the orchestrator issues
-# (russian aliases below match the orchestrator's natural-language task wording).
+# (aliases below are an example of matching the orchestrator's natural-language task wording
+# in another language — swap in your own team's working language or drop the aliases entirely).
 # A task WITHOUT a declared mode uses only baseline docs/agent-ref/roles/tooling.yaml
 # triggers — modes ADD to that baseline, never replace it.
 # Per tooling.yaml trigger law: before the FIRST use of a triggered tool, the agent
@@ -18,59 +19,89 @@ modes:
       Authoring, verifying, freezing, or operating the runtime layer of a plan via planmgr
       (HRS/MRS/GS/TS/AS, cascade, gate/score, graph, prompts, execution/review records,
       bugs, todos, project binding, export/import).
-    always_read: [servers/planmgr.yaml]
+    always_read: [docs/agent-ref/servers/planmgr.yaml]
     triggers:
       - when: authoring/editing HRS paragraphs, MRS concepts/relations, or GS/TS/AS steps
-        read: [ops/planmgr-authoring.yaml]
+        read: [docs/agent-ref/ops/planmgr-authoring.yaml]
       - when: opening/committing/aborting a cascade, or freezing/unfreezing a step
-        read: [ops/planmgr-cascade.yaml]
+        read: [docs/agent-ref/ops/planmgr-cascade.yaml]
       - when: running or interpreting a gate, score, weak-prompt check, or audit query
-        read: [ops/planmgr-verification.yaml]
+        read: [docs/agent-ref/ops/planmgr-verification.yaml]
       - when: computing execution order, waves, or step-to-step dependencies
-        read: [ops/planmgr-graph.yaml]
+        read: [docs/agent-ref/ops/planmgr-graph.yaml]
       - when: assembling an executor/review prompt or compiling a context block
-        read: [ops/planmgr-prompt.yaml]
+        read: [docs/agent-ref/ops/planmgr-prompt.yaml]
       - when: recording an execution attempt, review verdict, escalation, comment, link, or model binding
-        read: [ops/planmgr-runtime.yaml]
+        read: [docs/agent-ref/ops/planmgr-runtime.yaml]
       - when: creating, triaging, fixing, propagating, or closing a bug
-        read: [ops/planmgr-bugs.yaml]
+        read: [docs/agent-ref/ops/planmgr-bugs.yaml]
       - when: creating, resolving, or promoting a todo
-        read: [ops/planmgr-todo.yaml]
+        read: [docs/agent-ref/ops/planmgr-todo.yaml]
       - when: attaching/detaching a plan-project binding, or managing a project dependency
-        read: [ops/planmgr-project.yaml]
+        read: [docs/agent-ref/ops/planmgr-project.yaml]
       - when: exporting, importing, archiving, or diffing a plan
-        read: [ops/planmgr-export.yaml]
+        read: [docs/agent-ref/ops/planmgr-export.yaml]
 
   analysis:
     aliases: [анализ]
     description: >-
       Read-only inspection of project code: search, AST/structure/quality, or async job
       polling on code-analysis-server. No file mutation.
-    always_read: [servers/ca.yaml]
+    always_read: [docs/agent-ref/servers/ca.yaml]
     triggers:
       - when: first fulltext/semantic/grep search over project content
-        read: [ops/ca-search.yaml]
+        read: [docs/agent-ref/ops/ca-search.yaml]
       - when: first AST/entity/quality inspection (structure, entities, complexity, lint, type-check)
-        read: [ops/ca-analysis.yaml]
+        read: [docs/agent-ref/ops/ca-analysis.yaml]
       - when: first job_id returned by a queued analysis command
-        read: [ops/ca-jobs-queue.yaml]
+        read: [docs/agent-ref/ops/ca-jobs-queue.yaml]
 
   refactoring:
-    aliases: [рефакторинг]
+    aliases: [рефакторинг, исправление, доделка, bugfix, мелкие правки]
     description: >-
-      Tracing usages/dependencies/hierarchy and editing project files through the CA +
-      ai-editor + terminal toolchain.
-    always_read: [servers/ca.yaml, servers/editor.yaml]
+      Refactoring, bug fixes, and small finishing touches: tracing
+      usages/dependencies/hierarchy and editing project files. The mode works in BOTH
+      file-access profiles (laws.yaml variables.file_access) and MUST NOT collapse that
+      fork: [mcp] edits go through the CA + ai-editor + terminal toolchain on the
+      server-side project; [local / local_ide] edits follow the local profile of
+      laws.yaml (local editor tools / human IDE, local bash, CA = remote repo +
+      analysis, work on the local branch). This mode changes WHO does the work and HOW it is
+      accepted (see scheme), not WHERE files are edited - the profile decides that.
+    scheme: >-
+      TWO-LEVEL: orchestrator + executors, nothing in between. The orchestrator
+      decomposes the task and spawns executors directly (no context-forming layer in
+      this mode); independent edits run as parallel executors. MODEL CHOICE - per
+      executor task the orchestrator picks the model AND its reasoning depth by two
+      criteria, in order: (1) the model must be able to complete the task with low
+      hallucination risk; (2) among the capable ones, the cheapest wins. On executor
+      failure escalate one tier up, once. For this mode's executor tasks this rule
+      refines the default role->model mapping (CLAUDE.md / orchestrator.yaml spawn).
+      ZERO-TRUST ACCEPTANCE - the orchestrator accepts the work with an ADVERSARIAL,
+      negative default: the result is PRESUMED WRONG until verification proves it
+      correct. This is a direct consequence of the model-choice rule: executors run
+      near the edge of their capability (cheapest capable), which is exactly where
+      models hallucinate - so an executor's "done" report is never evidence, and
+      self-reported success carries zero weight. Acceptance = read-only verification
+      of the actual result (diff review, editor QA-gate / lint / test outcomes, live
+      command check when the change touches a running server) under the orchestrator's
+      authority - via an independent read-only verifier it spawns, or directly by the
+      orchestrator only where the user granted it direct tool access. FULL
+      RESPONSIBILITY for accepted work lies with the ORCHESTRATOR: a defect that
+      slips through acceptance is the orchestrator's failure, not the executor's.
+      Unverified work is not delivered.
+    always_read: [docs/agent-ref/servers/ca.yaml, docs/agent-ref/servers/editor.yaml]
     triggers:
       - when: first usages/dependencies/class-hierarchy lookup before a refactor
-        read: [ops/ca-refactoring-support.yaml]
+        read: [docs/agent-ref/ops/ca-refactoring-support.yaml]
       - when: first open/edit/write/close of a project file
-        read: [ops/editor-edit-lifecycle.yaml]
+        read: [docs/agent-ref/ops/editor-edit-lifecycle.yaml]
       - when: creating a new project file
-        read: [ops/editor-new-file.yaml]
+        read: [docs/agent-ref/ops/editor-new-file.yaml]
       - when: editing a non-Python format (addressing/handler differs from .py)
-        read: [ops/editor-formats-addressing.yaml]
+        read: [docs/agent-ref/ops/editor-formats-addressing.yaml]
       - when: first git operation on the server-side project
-        read: [ops/ca-git.yaml]
+        read: [docs/agent-ref/ops/ca-git.yaml]
       - when: first sandbox or host terminal command
-        read: [ops/terminal-sandbox.yaml]
+        read: [docs/agent-ref/ops/terminal-sandbox.yaml]
+      - when: a bug is confirmed (found/reported/reproduced) during this mode — bugfix alias
+        read: [docs/agent-ref/roles/laws.yaml]   # `bugfix_acceptance_cycle` law: reproduce -> pipeline red -> root cause -> fix -> deploy -> pipeline green, looped; single authoritative definition, do not restate here

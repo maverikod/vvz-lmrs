@@ -8,16 +8,24 @@ meta:
   servers: {ca: code-analysis-server, editor: ai-editor-server, term: mcp-terminal}
 
 # Source of truth. Read on trigger; do not paraphrase from memory.
+# SHIPPED WITH THE TEMPLATE (never delete): rules, coder_guide, modes, and the live
+# server manuals fetched via info/help calls.
+# PROJECT-SPECIFIC (the three docs/standards entries below): fill the
+# placeholder with your project's manual paths, or — if your project has no such
+# document — delete the entry AND remove its name from the `standards` lists in
+# docs/agent-ref/roles/coder.yaml, docs/agent-ref/roles/tester.yaml, docs/agent-ref/roles/context_former.yaml: a dangling name
+# there sends agents hunting for a file that does not exist.
 manuals:
   rules:       docs/agent-ref/roles/tooling-rules.yaml
   editor:      'call_server(editor,"info")'
   terminal:    'call_server(term,"info")'
-  ca_search:   docs/standards/code_analysis_search_instructions.yaml
-  ca_fs:       docs/standards/code_analysis_fs_instructions.yaml
-  ca_edit:     docs/standards/code_analysis_universal_editing_instructions.yaml
-  coder_guide: docs/agent-ref/mcp_coder_guide.yaml
+  ca_search:   'docs/standards/code_analysis_search_instructions.yaml'
+  ca_fs:       'docs/standards/code_analysis_fs_instructions.yaml'
+  ca_edit:     'docs/standards/code_analysis_universal_editing_instructions.yaml'
+  coder_guide: docs/agent-ref/roles/coder-guide.yaml
   cmd_help:    'call_server(<server>,"help",{cmdname:<command>})'
   modes:       docs/agent-ref/modes.yaml
+  delivery:    docs/agent-ref/ops/delivery-release.yaml
 
 # condition -> MUST read manual(s) BEFORE the first matching action
 triggers:
@@ -36,6 +44,8 @@ triggers:
     read: [rules]   # cas_rules.git_via_ca — git ONLY through CA git_* commands
   - when: the task declares a mode (planning / analysis / refactoring)
     read: [modes]
+  - when: before the first release action of a delivery (version bump, build, publish, deploy, real-server pipeline)
+    read: [delivery]
 
 # error taxonomy — exactly one branch per failure
 errors:
