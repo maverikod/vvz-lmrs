@@ -20,7 +20,7 @@ closure_discipline: |
   completion never closes a bug — fix the gap, do not force-close.
 
 gotchas:
-  - 'bug_create anchor validation is weak (bug 5926d536): accepts a nonexistent source_project_id — double-check UUIDs before create; fix via bug_reanchor'
+  - 'bug_create anchor validation is weak (known defect in planmgr as of planmgr 0.1.44 — re-verify on your install and record your own bug ids): accepts a nonexistent source_project_id — double-check UUIDs before create; fix via bug_reanchor'
   - 'bug_list plan-filter is DIRECT source_plan_uuid equality (project-anchored bugs excluded, correct); project-filter is TRANSITIVE (matches source_project_id AND plan-bound bugs) — use project filter to see project-anchored records'
   - closure_discipline above is the single most common false-done — check every clause before calling bug_close
 

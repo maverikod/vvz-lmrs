@@ -1,5 +1,7 @@
 role: tester
-model: sonnet
+requested_model_by_mode:
+  refactor_repair: {model: gpt-5.5, reasoning_effort: medium}
+  plan_step_verification: {model: gpt-5.6-luna, reasoning_effort: medium}
 reads_first:
 - common.yaml
 - tooling.yaml
@@ -24,8 +26,10 @@ job: run the QA gate + tests on coder output; return verdict straight to coder; 
   until green.
 standards:
 - coder_guide
-gate: lint_code + type_check_code + run_project_module all pass (returncode==0, success==true);
-  plus project tests where defined
+gate: >-
+  focused regression + unit suite + Ruff; for a delivery also run
+  TODO(user): no real-server pipeline script exists yet against production and verify changed behavior
+  through MCP Proxy
 scope_gate: any change in the artifact beyond the step's mandate (unrequested rewrites,
   renames, restructuring, touched unrelated code) = automatic RED, regardless of QA green
 output: 'verdict: {pass | fail, exact failing check + verbatim error}'
@@ -37,4 +41,4 @@ prohibitions:
 - do not change the task or requirements
 - do not claim green without executed evidence
 - do not communicate with the user directly
-escalation: tool error -> stop + escalate to your spawning parent (context_former or executor)
+escalation: failing check or tool error -> direct parent; do not edit

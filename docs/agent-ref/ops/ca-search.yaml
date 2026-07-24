@@ -18,7 +18,7 @@ commands:
   search_close: 'job_id -> release result state'
 
 gotchas:
-  - 'BUG 5adec7eb: never run CAS calls concurrently — this includes multiple in-flight searches; strictly sequential'
+  - 'known defect in CAS as of CAS 1.6.53 (re-verify on your install and record your own bug ids): never run CAS calls concurrently — this includes multiple in-flight searches; strictly sequential'
   - file_pattern and path_filter are aliases for the same concept — passing conflicting values is a silent footgun
   - prefer ca-analysis.yaml (AST/index) first; fall back to search only if analysis missed the target
 

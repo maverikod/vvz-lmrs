@@ -1,9 +1,12 @@
 role: executor
-# Runtime execution coordinator for a FROZEN plan. Added 2026-07-17 by the L1
-# orchestrator under the user's standing order to execute the lmrs plan: the
-# original role set predates the planmgr runtime work layer (execution
-# attempts, review results, prompt verification), so no earlier role owned it.
-model: sonnet
+# Runtime execution coordinator for a frozen plan. Owns the plan-manager
+# runtime-record surface (execution attempts, review results, prompt
+# verification) that sits on top of a frozen plan — a layer the original
+# role set predates, so no earlier role owned it.
+requested_model_by_scope:
+  GS: {model: gpt-5.6-terra, reasoning_effort: xhigh}
+  TS: {model: gpt-5.6-terra, reasoning_effort: medium}
+  refactor_repair: {model: gpt-5.5, reasoning_effort: medium}
 reads_first:
 - common.yaml
 - laws.yaml
@@ -24,7 +27,6 @@ may_use:
 - planmgr_execution_attempt_report
 - planmgr_step_prompt_verify
 - ca_read_only
-- ca_search
 permissions:
 - read frozen GS/TS/AS content and assembled branch prompts as the immutable mandate
 - create and report execution attempts anchored to plan steps (never acceptance)
@@ -46,5 +48,5 @@ job: execute atomic steps of a frozen plan exactly as mandated, through
   coder+tester pairs, recording every attempt and verification in the plan
   manager runtime layer, and report once to the orchestrator.
 escalation: infra error or mandate ambiguity -> orchestrator -> user
-spawn: obey common.spawn_protocol; coder model by task complexity (haiku ONLY for
-  mechanical single-shot edits with fully inlined content; sonnet otherwise), tester=sonnet
+spawn: obey common.spawn_protocol and the exact mode/level model mapping; a GS
+  owner spawns TS owners, a TS owner spawns AS executors, and only AS changes code

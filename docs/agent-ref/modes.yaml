@@ -1,107 +1,66 @@
-# LMRS — mode -> trigger map. A mode is DECLARED IN THE TASK the orchestrator issues
-# (aliases below are an example of matching the orchestrator's natural-language task wording
-# in another language — swap in your own team's working language or drop the aliases entirely).
-# A task WITHOUT a declared mode uses only baseline docs/agent-ref/roles/tooling.yaml
-# triggers — modes ADD to that baseline, never replace it.
-# Per tooling.yaml trigger law: before the FIRST use of a triggered tool, the agent
-# MUST read the triggered file at least once.
+# ai-editor operating-mode router. Exactly one mode owns a delegation branch.
 
-header_rule: >-
-  The mode is declared in the task the orchestrator issues. No declared mode -> baseline
-  tooling.yaml triggers only. Before first use of a triggered tool, read the triggered
-  file at least once (tooling.yaml trigger law) — this file only says WHEN, tooling.yaml
-  says HOW.
-
-modes:
-  planning:
-    aliases: [планирование, планов_режим]
-    description: >-
-      Authoring, verifying, freezing, or operating the runtime layer of a plan via planmgr
-      (HRS/MRS/GS/TS/AS, cascade, gate/score, graph, prompts, execution/review records,
-      bugs, todos, project binding, export/import).
-    always_read: [docs/agent-ref/servers/planmgr.yaml]
+router:
+  precedence: [plan_authoring, plan_execution, refactor_repair]
+  plan_authoring:
     triggers:
-      - when: authoring/editing HRS paragraphs, MRS concepts/relations, or GS/TS/AS steps
-        read: [docs/agent-ref/ops/planmgr-authoring.yaml]
-      - when: opening/committing/aborting a cascade, or freezing/unfreezing a step
-        read: [docs/agent-ref/ops/planmgr-cascade.yaml]
-      - when: running or interpreting a gate, score, weak-prompt check, or audit query
-        read: [docs/agent-ref/ops/planmgr-verification.yaml]
-      - when: computing execution order, waves, or step-to-step dependencies
-        read: [docs/agent-ref/ops/planmgr-graph.yaml]
-      - when: assembling an executor/review prompt or compiling a context block
-        read: [docs/agent-ref/ops/planmgr-prompt.yaml]
-      - when: recording an execution attempt, review verdict, escalation, comment, link, or model binding
-        read: [docs/agent-ref/ops/planmgr-runtime.yaml]
-      - when: creating, triaging, fixing, propagating, or closing a bug
-        read: [docs/agent-ref/ops/planmgr-bugs.yaml]
-      - when: creating, resolving, or promoting a todo
-        read: [docs/agent-ref/ops/planmgr-todo.yaml]
-      - when: attaching/detaching a plan-project binding, or managing a project dependency
-        read: [docs/agent-ref/ops/planmgr-project.yaml]
-      - when: exporting, importing, archiving, or diffing a plan
-        read: [docs/agent-ref/ops/planmgr-export.yaml]
-
-  analysis:
-    aliases: [анализ]
-    description: >-
-      Read-only inspection of project code: search, AST/structure/quality, or async job
-      polling on code-analysis-server. No file mutation.
-    always_read: [docs/agent-ref/servers/ca.yaml]
+      - create or change HRS, MRS, GS, TS, or AS
+      - repair plan coverage, decomposition, drift, or cascade state
+    hierarchy:
+      HRS_MRS: {model: gpt-5.6-sol, reasoning_effort: max, spawns: GS}
+      GS: {model: gpt-5.6-terra, reasoning_effort: xhigh, spawns: TS}
+      TS: {model: gpt-5.6-terra, reasoning_effort: medium, spawns: AS}
+      AS: {model: gpt-5.6-luna, reasoning_effort: medium, spawns: null}
+    always_read: [servers/planmgr.yaml]
+    operations:
+      authoring: ops/planmgr-authoring.yaml
+      cascade: ops/planmgr-cascade.yaml
+      verification: ops/planmgr-verification.yaml
+      graph: ops/planmgr-graph.yaml
+      prompts: ops/planmgr-prompt.yaml
+      runtime: ops/planmgr-runtime.yaml
+      bugs: ops/planmgr-bugs.yaml
+      todos: ops/planmgr-todo.yaml
+      projects: ops/planmgr-project.yaml
+      export: ops/planmgr-export.yaml
+  plan_execution:
     triggers:
-      - when: first fulltext/semantic/grep search over project content
-        read: [docs/agent-ref/ops/ca-search.yaml]
-      - when: first AST/entity/quality inspection (structure, entities, complexity, lint, type-check)
-        read: [docs/agent-ref/ops/ca-analysis.yaml]
-      - when: first job_id returned by a queued analysis command
-        read: [docs/agent-ref/ops/ca-jobs-queue.yaml]
-
-  refactoring:
-    aliases: [рефакторинг, исправление, доделка, bugfix, мелкие правки]
-    description: >-
-      Refactoring, bug fixes, and small finishing touches: tracing
-      usages/dependencies/hierarchy and editing project files. The mode works in BOTH
-      file-access profiles (laws.yaml variables.file_access) and MUST NOT collapse that
-      fork: [mcp] edits go through the CA + ai-editor + terminal toolchain on the
-      server-side project; [local / local_ide] edits follow the local profile of
-      laws.yaml (local editor tools / human IDE, local bash, CA = remote repo +
-      analysis, work on the local branch). This mode changes WHO does the work and HOW it is
-      accepted (see scheme), not WHERE files are edited - the profile decides that.
-    scheme: >-
-      TWO-LEVEL: orchestrator + executors, nothing in between. The orchestrator
-      decomposes the task and spawns executors directly (no context-forming layer in
-      this mode); independent edits run as parallel executors. MODEL CHOICE - per
-      executor task the orchestrator picks the model AND its reasoning depth by two
-      criteria, in order: (1) the model must be able to complete the task with low
-      hallucination risk; (2) among the capable ones, the cheapest wins. On executor
-      failure escalate one tier up, once. For this mode's executor tasks this rule
-      refines the default role->model mapping (CLAUDE.md / orchestrator.yaml spawn).
-      ZERO-TRUST ACCEPTANCE - the orchestrator accepts the work with an ADVERSARIAL,
-      negative default: the result is PRESUMED WRONG until verification proves it
-      correct. This is a direct consequence of the model-choice rule: executors run
-      near the edge of their capability (cheapest capable), which is exactly where
-      models hallucinate - so an executor's "done" report is never evidence, and
-      self-reported success carries zero weight. Acceptance = read-only verification
-      of the actual result (diff review, editor QA-gate / lint / test outcomes, live
-      command check when the change touches a running server) under the orchestrator's
-      authority - via an independent read-only verifier it spawns, or directly by the
-      orchestrator only where the user granted it direct tool access. FULL
-      RESPONSIBILITY for accepted work lies with the ORCHESTRATOR: a defect that
-      slips through acceptance is the orchestrator's failure, not the executor's.
-      Unverified work is not delivered.
-    always_read: [docs/agent-ref/servers/ca.yaml, docs/agent-ref/servers/editor.yaml]
+      - execute or continue an existing admitted plan or branch
+      - implement a frozen or ready-for-review GS, TS, or AS scope
+    hierarchy:
+      root: {model: gpt-5.6-sol, reasoning_effort: max, spawns: GS}
+      GS: {model: gpt-5.6-terra, reasoning_effort: xhigh, spawns: TS}
+      TS: {model: gpt-5.6-terra, reasoning_effort: medium, spawns: AS}
+      AS: {model: gpt-5.6-luna, reasoning_effort: medium, spawns: null}
+    entry_gate:
+      - requested scope resolves in Plan Manager
+      - mechanical gate is green
+      - lifecycle status admits execution
+      - dependency order or parallel waves are known
+    always_read: [servers/planmgr.yaml, servers/ca.yaml, servers/editor.yaml]
+    execution_material: [plan_prompt_chain, branch_prompt, graph_order, graph_parallel_map]
+  refactor_repair:
     triggers:
-      - when: first usages/dependencies/class-hierarchy lookup before a refactor
-        read: [docs/agent-ref/ops/ca-refactoring-support.yaml]
-      - when: first open/edit/write/close of a project file
-        read: [docs/agent-ref/ops/editor-edit-lifecycle.yaml]
-      - when: creating a new project file
-        read: [docs/agent-ref/ops/editor-new-file.yaml]
-      - when: editing a non-Python format (addressing/handler differs from .py)
-        read: [docs/agent-ref/ops/editor-formats-addressing.yaml]
-      - when: first git operation on the server-side project
-        read: [docs/agent-ref/ops/ca-git.yaml]
-      - when: first sandbox or host terminal command
-        read: [docs/agent-ref/ops/terminal-sandbox.yaml]
-      - when: a bug is confirmed (found/reported/reproduced) during this mode — bugfix alias
-        read: [docs/agent-ref/roles/laws.yaml]   # `bugfix_acceptance_cycle` law: reproduce -> pipeline red -> root cause -> fix -> deploy -> pipeline green, looped; single authoritative definition, do not restate here
+      - defect diagnosis and localized repair outside an existing plan
+      - behavior-preserving refactoring or small maintenance change
+    roles:
+      researcher: {model: gpt-5.5, reasoning_effort: medium}
+      executor: {model: gpt-5.5, reasoning_effort: medium}
+      tester: {model: gpt-5.5, reasoning_effort: medium}
+    flow:
+      - research when facts are missing
+      - execute only after scope and acceptance are confirmed
+      - independently test every mutation
+    mode_transition: requirements, public contracts, architecture, data migration,
+      or non-localized scope require MODE_TRANSITION_REQUIRED to plan_authoring
+    always_read: [servers/ca.yaml, servers/editor.yaml]
+
+invariants:
+  - never mix modes inside one delegation branch
+  - every non-leaf parent forms common context and child-specific deltas
+  - plan modes use Plan Manager context blocks or prompt-chain selectors
+  - refactor_repair uses task-scoped context files outside the project tree
+  - child self-reported success has zero acceptance weight
+  - a bug confirmed in refactor_repair (or any mode) follows roles/laws.yaml
+    `bugfix_acceptance_cycle` - reproduce -> pipeline red -> root cause -> fix ->
+    deploy -> pipeline green, looped; single authoritative definition, not restated here

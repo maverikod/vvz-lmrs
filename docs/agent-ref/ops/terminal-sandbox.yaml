@@ -34,7 +34,7 @@ gotchas:
   - use_venv prepends /workspace/.venv/bin to PATH
   - only ONE writer session (workspace_write) per project; others must be read_only
   - WAF returns 403 on complex shell (pipes, 2>&1, loops, command -v) — keep commands simple, single-purpose
-  - sandbox venv is bare (no QA tools) unless image_profile=python_dev_3_12 (bundles ruff/pytest/mypy/flake8/black) — the LMRS quality gate runs CAS-side regardless
+  - sandbox venv is bare (no QA tools) unless image_profile=python_dev_3_12 (bundles ruff/pytest/mypy/flake8/black) — the project's quality gate runs CAS-side regardless
 
 errors:
   CLIENT_SESSION_NOT_FOUND: 'session_id was not a valid CA session_create id'

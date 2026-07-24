@@ -16,9 +16,9 @@ gotchas:
   - 'poll by host_run_id only; passing project_id/session_id here is wrong and yields INVALID_PROJECT_ID'
   - 'avoid redirects/heredocs in the command — the forbidden-pattern scan blocks them; use bash -c wrapping for multi-step chains instead'
   - HOST_KEY_ACCESS_FORBIDDEN if the command references ssh key paths directly
-  - 'NEVER run the full generate_certs.sh (rebuilds Root CA, breaks sibling services) — use the per-service helper only (gen_lmrs.sh)'
+  - 'NEVER run the full certificate-generation script that rebuilds the shared Root CA (breaks sibling services) — use a per-service cert helper script only'
   - 'server-side git is NEVER done via host_exec/ssh without the user''s explicit permission — go through CA git_* (see ca-git.yaml)'
-  - "per laws.yaml ssh_repair: server-side ssh repair/deploy decisions are the ORCHESTRATOR's call only, with conscience approval — no other role invokes this without that chain"
+  - "per laws.yaml host_execution: server-side ssh repair/deploy decisions are the ORCHESTRATOR's call only, with conscience approval — no other role invokes this without that chain"
 
 errors:
   INVALID_PROJECT_ID: 'passed project_id/session_id instead of host_run_id when polling — poll by host_run_id only'

@@ -1,13 +1,13 @@
 # plan_manager — always-loaded planning-mode map: identity, full glossary, full methodology,
 # command-family overview, and the block->ops_file pointer table. Read the triggered
 # ops/planmgr-*.yaml before acting on a specific block; command-level gotchas live in
-# docs/agent-ref/roles/tooling-rules.yaml (planmgr_gotchas) — not duplicated here.
+# roles/tooling-rules.yaml (planmgr_gotchas) — not duplicated here.
 
 server:
-  id: planmgr
-  copy_number: 1
-  product: plan_manager v0.1.44
-  adapter_min: '>=8.10.20'
+  id: 'planmgr'   # LIVE registry id — verify with list_servers
+  copy_number: 1   # copy_number can flip after a backend service restart — verify with list_servers
+  product: plan_manager v0.1.44   # fill in your installed version; keep in sync with the known-defect notes below
+  adapter_min: '>=8.10.20'   # your adapter's minimum compatible version, if applicable
 
 essence: |
   Authoritative server for plan truth (HRS/MRS/GS/TS/AS), its verification gates, and the
@@ -174,34 +174,34 @@ command_families:
 # ---------------------------------------------------------------------------
 blocks:
   authoring:
-    ops_file: docs/agent-ref/ops/planmgr-authoring.yaml
+    ops_file: ops/planmgr-authoring.yaml
     trigger: 'authoring/editing HRS paragraphs, MRS concepts/relations, or GS/TS/AS steps'
     commands: [para_list, para_get, para_label_assign, para_mark_non_binding, para_insert, para_update, para_delete,
       concept_get, concept_list, concept_add, concept_update, concept_remove, relation_list, relation_add,
       relation_remove, relation_update, concept_coverage, step_get, step_tree, step_create, step_update, step_move,
       step_delete, step_list, step_search, files_report, step_xref]
   cascade:
-    ops_file: docs/agent-ref/ops/planmgr-cascade.yaml
+    ops_file: ops/planmgr-cascade.yaml
     trigger: 'opening/committing/aborting a cascade, or transitioning a step freeze status'
     commands: [cascade_begin, cascade_preview, cascade_commit, cascade_abort, plan_unfreeze, step_set_status,
       step_transition]
   verification:
-    ops_file: docs/agent-ref/ops/planmgr-verification.yaml
+    ops_file: ops/planmgr-verification.yaml
     trigger: 'gate/scoring/verify: running or interpreting a gate, score, weak-prompt check, or audit query'
     commands: [plan_validate, plan_score, branch_weak, step_prompt_verify, audit_list]
   graph:
-    ops_file: docs/agent-ref/ops/planmgr-graph.yaml
+    ops_file: ops/planmgr-graph.yaml
     trigger: 'execution order/waves/dependencies between steps'
     commands: [graph_deps, graph_order, graph_parallel_map, graph_impact, graph_dependents, step_dependency_list,
       step_dependency_add, step_dependency_remove, step_dependency_set, step_dependency_clear,
       step_dependency_preview, step_dependency_apply]
   prompt:
-    ops_file: docs/agent-ref/ops/planmgr-prompt.yaml
+    ops_file: ops/planmgr-prompt.yaml
     trigger: 'assembling executor/review prompts or compiling context blocks'
     commands: [branch_prompt, plan_prompt_chain, context_compile, context_common, context_specific, context_bundle,
       block_get, block_list, branch_dump]
   runtime:
-    ops_file: docs/agent-ref/ops/planmgr-runtime.yaml
+    ops_file: ops/planmgr-runtime.yaml
     trigger: 'recording execution/review/escalation/comment/link/model-binding facts'
     commands: [execution_attempt_create, execution_attempt_report, execution_attempt_get, execution_attempt_list,
       review_result_create, review_result_get, review_result_list, escalation_create, escalation_resolve,
@@ -209,25 +209,25 @@ blocks:
       comment_delete, runtime_link_add, runtime_link_list, runtime_link_remove, model_binding_set, model_binding_get,
       model_binding_list, model_binding_remove, model_binding_resolve, model_binding_update]
   bugs:
-    ops_file: docs/agent-ref/ops/planmgr-bugs.yaml
+    ops_file: ops/planmgr-bugs.yaml
     trigger: 'bug tracking/closure: create/triage/fix/propagate/close a bug'
     commands: [bug_create, bug_get, bug_list, bug_update, bug_reanchor, bug_triage, bug_confirm, bug_reject,
       bug_mark_duplicate, bug_reopen, bug_close, bug_impact_add, bug_impact_update, bug_impact_list,
       bug_impact_discover, bug_fix_create, bug_fix_update, bug_fix_list, bug_fix_verify, bug_propagation_create,
       bug_propagation_list, bug_propagation_update, bug_propagation_generate_todos]
   todo:
-    ops_file: docs/agent-ref/ops/planmgr-todo.yaml
+    ops_file: ops/planmgr-todo.yaml
     trigger: 'TODO/work-queue: create/resolve/promote a todo'
     commands: [todo_create, todo_get, todo_list, todo_update, todo_reanchor, todo_resolve, todo_close, todo_delete,
       todo_link_add, todo_link_remove, todo_queue, todo_promote_to_cascade_request]
   project:
-    ops_file: docs/agent-ref/ops/planmgr-project.yaml
+    ops_file: ops/planmgr-project.yaml
     trigger: 'project binding/dependency: attach/detach a plan-project binding, or manage a project dependency'
     commands: [plan_project_attach, plan_project_detach, plan_project_set_primary, plan_project_clear_primary,
       plan_project_list, project_dependency_add, project_dependency_remove, project_dependency_update,
       project_dependency_confirm, project_dependency_list, project_dependency_discover, project_dependents]
   export:
-    ops_file: docs/agent-ref/ops/planmgr-export.yaml
+    ops_file: ops/planmgr-export.yaml
     trigger: 'export/import/snapshot: exporting, importing, archiving, or diffing a plan'
     commands: [plan_export, plan_snapshot, plan_import, export_upload_save, export_read, export_archive, hrs_import,
       hrs_export, export_cleanup, srt_snapshot_create, srt_snapshot_list, srt_diff, export_runtime_overlay,
@@ -239,5 +239,5 @@ not_separately_routed: >-
 
 gotchas_pointer: >-
   Command-level gotchas (hrs_import dry_run default, step_update concepts placement, bug_list filter semantics,
-  weak anchor validation) live in docs/agent-ref/roles/tooling-rules.yaml under planmgr_gotchas — read there,
+  weak anchor validation) live in roles/tooling-rules.yaml under planmgr_gotchas — read there,
   do not duplicate here. Per-block gotchas live in the matching ops/planmgr-*.yaml.

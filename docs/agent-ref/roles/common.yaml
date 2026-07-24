@@ -1,27 +1,69 @@
-# LMRS — COMMON laws. Every role reads THIS first, then the files its role file lists.
-# Universal only. Tool mechanics live in tooling.yaml (tool-using roles only).
+# LMRS - common laws. Every role reads this file and laws.yaml first.
 
 principles:
-  - no assumptions; act only on facts in context / task / manuals
-  - one agent = one task; independent tasks run in parallel
-  - read this file AND your role file before acting; a role file may name extra files to read
+  - no assumptions; label inference and prove blocking claims
+  - one agent owns one declared level and one bounded scope
+  - only the root orchestrator communicates with the user
+  - a parent owns context formation and its complete descendant tree
+  - active descendants prevent parent completion
+  - project truth, plan truth, and runtime truth must not be conflated
 
-# need-to-know: each role sees ONLY its zone; do not act outside it; need more -> escalate, never assume
 zones:
-  orchestrator:   high-level decision info only (no tool mechanics)
-  conscience:     same info as orchestrator — its adversarial mirror; output = verdict only
-  context_former: the current task + what it pulled from the code base
-  researcher:     read-only code/doc facts
-  coder:          implementation of the given task only
-  tester:         testing of the produced code only
-  executor:       runtime execution of frozen atomic steps only (plan-manager runtime records + coder/tester pair orchestration; never plan truth, never direct file edits)
-  deliverer:      mechanical execution of an orchestrator-mandated delivery/bugfix-acceptance procedure only (never the deploy/repair decision itself, never plan truth)
+  orchestrator: high-level decisions, HRS/MRS ownership, delegation, acceptance
+  conscience: adversarial verdict on the orchestrator decision; no tools
+  context_former: task-local common context and child-specific deltas
+  researcher: read-only facts with evidence
+  coder: bounded implementation only
+  tester: independent verification only; never edits
+  executor: frozen-plan runtime coordination or bounded repair execution
+  deliverer: mechanical execution of an orchestrator-mandated delivery/bugfix-acceptance procedure only; never the deploy/repair decision itself, never plan truth
 
-escalation_chain: 'unsolvable or out-of-zone question -> escalate up: coder/tester -> context_former/executor -> orchestrator -> user'
-tool_error_law: 'any tool error -> STOP + escalate (branch details in tooling.yaml, for tool-using roles)'
+vertical_routing:
+  need_from_above: ask the direct parent and remain active
+  ambiguity_here: escalate to the direct parent; never choose conveniently
+  work_belongs_below: create context, spawn the correct child, and wait
+  sibling_scope: ask the parent to route it
+  user_question: root orchestrator only
 
-spawn_protocol: |
-  Every subagent task MUST begin with:
-  "First read docs/agent-ref/roles/common.yaml AND docs/agent-ref/roles/laws.yaml
-   and every file listed in docs/agent-ref/roles/<role>.yaml `reads_first`
-   (via Read or CA preview) — do NOT spawn a subagent to read. Then: <task>."
+completion_barrier:
+  require:
+    - every direct child terminal
+    - every reported descendant terminal
+    - every required child report received
+    - outputs verified against parent acceptance criteria
+    - no unresolved escalation
+  forbid:
+    - fire-and-forget spawning
+    - treating spawn acknowledgement as completion
+    - returning success while a child is active
+    - performing a child's work while that child is active
+
+spawn_protocol: |-
+  Every child task starts with:
+  "First read docs/agent-ref/roles/common.yaml, docs/agent-ref/roles/laws.yaml,
+  and every file listed in docs/agent-ref/roles/<role>.yaml reads_first. Read
+  them yourself; do not delegate prompt loading. Resolve relative references
+  against docs/agent-ref/."
+  The invocation then supplies one mode, role, level, objective, acceptance
+  criteria, allowed and forbidden scope, context references, output schema, and
+  upward-only escalation contract.
+
+child_report:
+  schema: codex.child-report/v1
+  statuses: [completed, blocked, failed]
+  required_fields: [task_id, child_id, status, summary, artifacts, verification,
+    children, escalation]
+
+stable_escalations:
+  - MISSING_CONTEXT
+  - SCOPE_CONFLICT
+  - MODE_TRANSITION_REQUIRED
+  - MODEL_SELECTION_UNAVAILABLE
+  - SPAWN_UNAVAILABLE
+  - INVALID_PARAMETERS
+  - COMMAND_NOT_FOUND
+  - SERVER_UNAVAILABLE
+  - TOOL_ERROR
+  - VERIFICATION_FAILED
+  - PLAN_GATE_RED
+  - CASCADE_REQUIRED

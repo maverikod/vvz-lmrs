@@ -1,54 +1,56 @@
-# Generic delivery and production acceptance.
+# LMRS delivery and production acceptance.
 
 project:
-  version_sources: ['pyproject.toml (root)', 'debian/changelog']
+  version_sources:
+    - 'pyproject.toml (root), debian/changelog'
   build: './build.sh'
   build_execution: >-
-    LOCAL HOST, run by the model in the delivery chain (orchestrator/executor level),
-    from the LOCAL checkout at the release commit, via local shell — NOT via the MCP
-    proxy, NOT via terminal host-exec, NOT on deploy_host. Script path: ./build.sh
-    (relative to the local checkout root). See laws.yaml `local_mode` HARD RULE: the
-    MCP proxy is used ONLY for CA search/analysis in local development, never to run
-    build/test/deploy scripts.
+    LOCAL host, run by the agent in the delivery chain, from the LOCAL checkout on the
+    active working branch at the release commit, via local shell — never via MCP Proxy,
+    never via the MCP Terminal sandbox/host-exec. Script path: ./build.sh, relative
+    to the local checkout root. Only the subsequent deploy step touches deploy_host.
   deploy_host: 'root@192.168.254.26'
-  live_pipeline: 'TODO(user): no real-server pipeline script exists yet'   # aka "realsrv-test" in laws.yaml `bug_fix_cycle`
+  live_pipeline: 'TODO(user): no real-server pipeline script exists yet'
   production_servers: ['ai-editor-server-vvz', 'code-analysis-server-vvz']
-  deploy_target_excluded_scope: "the doc-store project's database"
+  deploy_target_excluded_scope: 'none'   # e.g. "the doc-store project's database"; use 'none' if nothing is excluded
 
 # Bug-handling trigger/loop framing (reproduce -> pipeline-red -> root-cause -> fix -> deploy ->
-# pipeline-green, looped) is DEFINED ONCE in laws.yaml `bug_fix_cycle` - not restated here.
-# The steps below are its mechanical implementation on this project.
+# pipeline-green, looped) is DEFINED ONCE in roles/laws.yaml `bugfix_acceptance_cycle` - not
+# restated here. The steps below are its mechanical implementation on this project.
 procedure:
-  - reproduce the defect
-  - "extend live_pipeline (realsrv-test, this file) with a covering check and confirm the
-    defect WITH the pipeline - RED - before any mutation (laws.yaml `bug_fix_cycle` step 2);
-    TODO(user): no real-server pipeline script exists yet — this step is blocked until one is written"
-  - find the root cause and prove it with evidence before mutation
+  - reproduce the defect against the relevant current surface
+  - >-
+    when the project is a server, extend TODO(user): no real-server pipeline script exists yet with a covering check and confirm
+    the defect WITH the pipeline - RED - before any mutation (roles/laws.yaml
+    `bugfix_acceptance_cycle`)
+  - identify and prove the root cause before mutation
   - implement the localized repair and focused regression test
-  - run project checks
+  - run focused tests, the unit suite, and Ruff
   - increment and align every version source
-  - build LOCALLY per `build_execution` above, then deploy and run the single live
-    pipeline from the active working branch; deploy_host scope is everything EXCEPT
+  - run ./build.sh LOCALLY from the active working branch (see `build_execution`)
+  - deploy the built artifact to root@192.168.254.26; scope is everything EXCEPT
     deploy_target_excluded_scope - never touch excluded scope
-  - verify registration, health, version, and changed behavior through MCP Proxy; the
-    live_pipeline re-run must go GREEN - if still red, loop back to root-cause (laws.yaml
-    `bug_fix_cycle`)
-  - record and verify the Plan Manager fix before closing the proven bug
-  - merge the verified branch into local main, report the exact commit, and wait
-    for user push confirmation
-  - after confirmation, the opposite site pulls main and merges it into its branch
+  - >-
+    run the single TODO(user): no real-server pipeline script exists yet pipeline against production and require it GREEN -
+    if still red, loop back to root cause (roles/laws.yaml `bugfix_acceptance_cycle`)
+  - verify registration, health, version, and changed behavior through MCP Proxy
+  - create and verify the Plan Manager fix, then close only the proven bug
+  - merge the verified working branch into local main, report the ready commit,
+    and wait for the user to push main
+  - after user confirmation, CAS pulls main, verifies the commit, merges main into
+    cas, and remains on cas
 
 invariants:
-  - exactly one real-server pipeline; extend it instead of adding another
-  - "live_pipeline (realsrv-test) exercises ALL API methods of the server EXCEPT the
-    built-in mcp-proxy-adapter methods; TODO(user): no real-server pipeline script exists yet"
-  - deploy_host scope - everything on deploy_host is a test target EXCEPT the doc-store
-    project's database - NEVER touch it (laws.yaml `bug_fix_cycle`)
+  - exactly one real-server pipeline; extend it instead of adding another (roles/laws.yaml
+    `single_real_server_pipeline`)
+  - 'TODO(user): no real-server pipeline script exists yet exercises ALL API methods of the server EXCEPT the platform''s own
+    built-in adapter methods'
   - a test deploy is cheaper than extended model reasoning - prefer deploy-and-check over
-    analysis when judging "is it fixed" (laws.yaml `bug_fix_cycle` economy principle)
+    analysis when judging "is it fixed" (roles/laws.yaml `bugfix_acceptance_cycle` economy
+    principle)
   - queue handoff is normal; selected client mode determines polling or messages
   - completed queue state is not success until the inner result is checked
   - do not deploy from or edit main before production verification
-  - the model never pushes main
+  - the agent never pushes main
   - build script execution locus is LOCAL (see `build_execution`); only the deploy
     target and production verification touch deploy_host
