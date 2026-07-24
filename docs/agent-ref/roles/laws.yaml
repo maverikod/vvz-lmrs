@@ -1,5 +1,5 @@
 # LMRS — standing LAWS (universal). Referenced from common.yaml spawn protocol;
-# prompts-template: claude-prompts-v1 rev 1.1.0 (2026-07-23)
+# prompts-template: claude-prompts-v1 rev 1.3.0 (2026-07-24)
 # read by EVERY role once per session before acting.
 # `variables` are pre-set per session by the user/orchestrator; defaults apply otherwise.
 
@@ -35,7 +35,18 @@ laws:
     terminal = LOCAL bash, CA = REMOTE REPO with analysis tools - git operations that touch
     the server-side project go through CA git_* commands (pull/push to sync the remote repo),
     and code analysis/search still uses CA tools. Commit a coherent verified task;
-    never push main.
+    never push main. HARD RULE (no exceptions): when the project is developed LOCALLY
+    (variables.file_access=local), EVERY script — build, test, and deploy runners
+    alike, e.g. the command named in docs/agent-ref/ops/delivery-release.yaml `build`
+    — and the EDITOR run with LOCAL tools on the local checkout (local bash for
+    scripts, local Write/Edit for files). The MCP proxy in this profile is used ONLY
+    for code search/analysis (CA) and for server-side git sync (CA git_* commands) —
+    NEVER to execute a build/test/deploy script or to edit a file. Do not infer from
+    mcp_only (the DEFAULT, non-local profile) that delivery/build steps must run
+    remotely via terminal host-exec or the CA/editor servers: mcp_only is superseded
+    by this law whenever file_access=local. The orchestrator's ssh_repair standing
+    grant governs SERVER-SIDE production repair/deploy on the deploy host only — it
+    is not a routing instruction for where the local build script itself executes.
   local_ide_mode: >-
     [active when variables.file_access=local_ide] Files live locally and are edited by
     the HUMAN via the IDE; agents NEVER edit project files - they deliver proposed
@@ -90,22 +101,30 @@ laws:
   ssh_repair: >-
     Server-side repair/deploy to root@192.168.254.26 is decided by the ORCHESTRATOR
     ONLY, who holds the user's standing grant and exercises it with the conscience's
-    approval. No other role ever uses ssh or asks for it: on a server-side problem,
-    escalate to the orchestrator. CARVE-OUT (user, 2026-07-18): GIT operations on the
+    approval; the deploy MECHANICS of an already-decided delivery may be delegated to
+    the deliverer role executing the mandated procedure (docs/agent-ref/roles/deliverer.yaml).
+    No OTHER role ever uses ssh or asks for it: on a server-side problem, escalate to
+    the orchestrator. CARVE-OUT (user, 2026-07-18): GIT operations on the
     server are NEVER done over the console/ssh without the user's explicit permission -
     server-side git goes exclusively through CA git_* commands.
   delivery_checks: >-
     DELIVERY DEFINITION - "work delivered to the user" means, in order: (1) version
-    bump +1 (root pyproject = source of truth); (2) ./build.sh at the project root
-    (local unit tests; docker image build+tag+push when the project ships one; .deb
-    build); (3) client published to PyPI at the same version; (4) deploy to the
-    single testing/production server (method not established earlier -> ASK THE
-    USER first); (5) the ONE real-server test pipeline green against the deployed
-    instance; (6) branch_discipline post-deploy propagation. FULL PROCEDURE,
-    INVARIANTS, AND GOTCHAS: docs/agent-ref/ops/delivery-release.yaml - read it BEFORE the first
+    bump +1 (root pyproject = source of truth); (2) run the build script named in
+    docs/agent-ref/ops/delivery-release.yaml `build` (./build.sh - NOT a fixed "./build.sh
+    at the project root" path assumption; local unit tests; docker image build+tag+push
+    when the project ships one; .deb build); (3) client published to PyPI at the same
+    version; (4) deploy to the single testing/production server (method not established
+    earlier -> ASK THE USER first); (5) the ONE real-server test pipeline green against
+    the deployed instance; (6) branch_discipline post-deploy propagation. BUILD
+    EXECUTION LOCUS: see docs/agent-ref/ops/delivery-release.yaml `build_execution` and
+    local_mode's HARD RULE - the build/test/deploy scripts run on LOCAL host tools
+    from the local checkout; they are never routed through the MCP proxy or remote
+    terminal host-exec. FULL PROCEDURE, INVARIANTS, AND GOTCHAS:
+    docs/agent-ref/ops/delivery-release.yaml - read it BEFORE the first
     release action (tooling.yaml trigger). A task that modified a server is complete
-    only after all steps pass. (Owner: the delivering role - orchestrator/executor
-    level; coders/testers gate their own steps, not delivery.)
+    only after all steps pass. (Owner: the delivery DECISION is orchestrator-level; its
+    MECHANICS are delegated to the deliverer role (docs/agent-ref/roles/deliverer.yaml)
+    executing that decision; coders/testers gate their own steps, not delivery.)
   server_client_law: >-
     A server client wraps mcp-proxy-adapter instead of reimplementing transport. It
     exposes explicit synchronous-emulation and asynchronous/message modes. Sync
@@ -124,7 +143,9 @@ laws:
     directly and skips to step 3); (3) FIND THE CAUSE in code; (4) PROVE
     cause->symptom with concrete evidence; (5) FIX with focused regression tests;
     (6) BUMP the version (pyproject.toml (root); debian/changelog) - always before any deploy;
-    (7) DEPLOY to root@192.168.254.26 - only when the current project is a server;
+    (7) DEPLOY to root@192.168.254.26 - only when the current project is a server
+    (build SCRIPT execution is LOCAL per local_mode's HARD RULE / docs/agent-ref/ops/delivery-release.yaml
+    `build_execution` - only the deploy HOST itself is remote);
     everything on root@192.168.254.26 is a test target EXCEPT
     the doc-store project's database - excluded scope is NEVER touched; (8) RE-RUN
     TODO(user): no real-server pipeline script exists yet and require it GREEN (coverage requirement:
@@ -147,8 +168,8 @@ laws:
     extend the existing pipeline - never create a second one.
   template_prompt_reconciliation: >-
     [once per session] Reconcile the project's prompt bundle with its source
-    template archive (claude: /home/vasilyvz/projects/prompts/claude-prompts-v1.1.0.tar.gz;
-    codex: /home/vasilyvz/projects/prompts/codex-prompts-v1.1.0.tar.gz). The model
+    template archive (claude: /home/vasilyvz/projects/prompts/claude-prompts-v1.3.0.tar.gz;
+    codex: /home/vasilyvz/projects/prompts/codex-prompts-v1.3.0.tar.gz). The model
     REQUESTS the user's permission to update; only after the user confirms does
     it diff template vs project bundle and update the project prompt, preserving
     project-specific placeholder values. Template improvements flow back to the

@@ -15,6 +15,7 @@ zones:
   coder:          implementation of the given task only
   tester:         testing of the produced code only
   executor:       runtime execution of frozen atomic steps only (plan-manager runtime records + coder/tester pair orchestration; never plan truth, never direct file edits)
+  deliverer:      mechanical execution of an orchestrator-mandated delivery/bugfix-acceptance procedure only (never the deploy/repair decision itself, never plan truth)
 
 escalation_chain: 'unsolvable or out-of-zone question -> escalate up: coder/tester -> context_former/executor -> orchestrator -> user'
 tool_error_law: 'any tool error -> STOP + escalate (branch details in tooling.yaml, for tool-using roles)'

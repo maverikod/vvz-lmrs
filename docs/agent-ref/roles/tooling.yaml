@@ -3,6 +3,15 @@
 
 meta:
   file_access: mcp_only            # default; laws.variables.file_access=local flips to the local_mode profile (see laws.yaml)
+  # HARD RULE when file_access=local (laws.yaml local_mode): the `editor` and `terminal`
+  # manuals below, and every ops/*.yaml procedure they trigger, describe the REMOTE/MCP
+  # path used in the DEFAULT (mcp) profile. In local mode, file edits use local
+  # Write/Edit tools directly on the local checkout (skip CA session_create /
+  # universal_file_* entirely) and scripts (build/test/deploy, sandbox/host-exec
+  # substitutes) run via local shell — the proxy is used ONLY for CA search/analysis
+  # and CA git_* sync in that profile. Never read local_mode as "still call
+  # call_server(editor,...) / call_server(term,...) because mcp_only says proxy-only" —
+  # mcp_only is the non-local default and is superseded by local_mode when active.
   call: 'mcp__claude_ai_MCP-Proxy__call_server(server_id, copy_number=1, command, params)'
   path: project-relative POSIX only; no host paths; no ".."
   servers: {ca: code-analysis-server, editor: ai-editor-server, term: mcp-terminal}
@@ -45,7 +54,7 @@ triggers:
   - when: the task declares a mode (planning / analysis / refactoring)
     read: [modes]
   - when: before the first release action of a delivery (version bump, build, publish, deploy, real-server pipeline)
-    read: [delivery]
+    read: [delivery]   # delivery.build_execution + laws.yaml local_mode: build/test/deploy scripts run LOCAL, never via this proxy
 
 # error taxonomy — exactly one branch per failure
 errors:

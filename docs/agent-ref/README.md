@@ -51,11 +51,22 @@ opposite site pulls `main` and merges it into its own branch.
 Keep exactly one real-server acceptance pipeline. The full chain is reproduce,
 prove cause, fix, add focused coverage, run project checks, align versions, build,
 deploy, run the live pipeline, verify registration and changed behavior through
-MCP Proxy, and record a verified Plan Manager fix before closing a bug.
+MCP Proxy, and record a verified Plan Manager fix before closing a bug. Delivery
+mechanics may be delegated to `roles/deliverer.yaml` under an explicit
+orchestrator delivery decision — the deliverer never decides whether or where to
+deploy/repair, it only executes the mandated procedure.
 
 TODO(user): no real-server pipeline script exists yet for LMRS — the delivery
 chain above is blocked at the live-pipeline step until one is written
 (see `ops/delivery-release.yaml`).
+
+**Build execution locus (HARD RULE when the project is developed locally):** the
+build/test/deploy scripts (`ops/delivery-release.yaml` `build`, i.e. `./build.sh`)
+run on the LOCAL host from the LOCAL checkout, using local shell — never through the
+MCP proxy or remote terminal host-exec. Only the deploy TARGET
+(`root@192.168.254.26`) and production verification touch a remote host. The proxy in
+local mode is for CA search/analysis and CA git_* sync only. See
+`roles/laws.yaml` `local_mode` and `ops/delivery-release.yaml` `build_execution`.
 
 ## Validation
 

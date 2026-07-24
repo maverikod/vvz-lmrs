@@ -29,7 +29,11 @@ standards:
 - editor
 - ca_edit
 editor_lifecycle: CA session_create -> open -> preview -> edit(by node) -> write(preview)
-  -> write(commit, uploaded:true) -> close(always)
+  -> write(commit, uploaded:true) -> close(always)   # default (mcp) profile only
+editor_lifecycle_local_mode: >-
+  [laws.yaml file_access=local] Skip the CA-session lifecycle above entirely: edit the
+  local checkout directly with local Write/Edit tools, run the project's own QA gate
+  locally, and commit locally. Do not open a CA session for a local-profile edit.
 must_not:
 - spawn subagents (do the whole task yourself; every needed value is in the task)
 - make assumptions

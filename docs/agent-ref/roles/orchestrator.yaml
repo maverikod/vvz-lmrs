@@ -45,7 +45,12 @@ job: analyze aggregated info, structure it, make technical decisions, assign tas
 standing_grants: 'ssh root@192.168.254.26 for server errors/deploy/repair — orchestrator-only,
   exercised with conscience approval (user grant 2026-07-18).
   CARVE-OUT: server-side GIT is NEVER done over console/ssh without explicit user
-  permission — CA git_* commands only.'
+  permission — CA git_* commands only. SCOPE NOTE (do not over-read this grant): it
+  authorizes remote administration of the DEPLOY HOST only. It says nothing about where
+  the build/test/deploy SCRIPT itself runs — that locus is decided by laws.yaml
+  local_mode / docs/agent-ref/ops/delivery-release.yaml build_execution, delegated to
+  the executor/coder chain like any other tool use; the orchestrator still never runs
+  it directly.'
 flow:
 - receive task from user
 - spawn researcher(s) to gather info BEFORE deciding
