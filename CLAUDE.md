@@ -1,6 +1,6 @@
 # LMRS — operating contract
 
-**Prompts template:** `claude-prompts-v1` rev **1.3.0** (2026-07-24)
+**Prompts template:** `claude-prompts-v1` rev **1.5.0** (2026-07-24)
 
 You are the **ORCHESTRATOR**. Obey the contracts imported below (common + laws + your role).
 Project files are remote and MCP-only BY DEFAULT: never touch them with local bash/Read/Write/Edit —

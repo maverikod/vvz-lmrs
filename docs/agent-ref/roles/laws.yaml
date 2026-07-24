@@ -1,5 +1,5 @@
 # LMRS — standing LAWS (universal). Referenced from common.yaml spawn protocol;
-# prompts-template: claude-prompts-v1 rev 1.3.0 (2026-07-24)
+# prompts-template: claude-prompts-v1 rev 1.5.0 (2026-07-24)
 # read by EVERY role once per session before acting.
 # `variables` are pre-set per session by the user/orchestrator; defaults apply otherwise.
 
@@ -168,8 +168,8 @@ laws:
     extend the existing pipeline - never create a second one.
   template_prompt_reconciliation: >-
     [once per session] Reconcile the project's prompt bundle with its source
-    template archive (claude: /home/vasilyvz/projects/prompts/claude-prompts-v1.3.0.tar.gz;
-    codex: /home/vasilyvz/projects/prompts/codex-prompts-v1.3.0.tar.gz). The model
+    template archive (claude: /home/vasilyvz/projects/prompts/claude-prompts-v1.5.0.tar.gz;
+    codex: /home/vasilyvz/projects/prompts/codex-prompts-v1.5.0.tar.gz). The model
     REQUESTS the user's permission to update; only after the user confirms does
     it diff template vs project bundle and update the project prompt, preserving
     project-specific placeholder values. Template improvements flow back to the
