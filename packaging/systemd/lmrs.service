@@ -1,18 +1,21 @@
 [Unit]
-Description=Local Model Runtime Service (LMRS) container
-Documentation=https://github.com/maverikod/vvz-lmrs
-After=docker.service network-online.target
+Description=LMRS container service
+Documentation=/usr/share/doc/lmrs-container/README.Debian
+After=network-online.target docker.service
 Wants=network-online.target
 Requires=docker.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-User=root
-Group=root
 EnvironmentFile=-/etc/default/lmrs
+User=lmrsuser
+Group=lmrsgrp
+SupplementaryGroups=docker
 ExecStart=/usr/lib/lmrs/bin/lmrs-container start
 ExecStop=/usr/lib/lmrs/bin/lmrs-container stop
+TimeoutStartSec=0
+TimeoutStopSec=120
 
 [Install]
 WantedBy=multi-user.target

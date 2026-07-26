@@ -95,7 +95,14 @@ class DiskModelCache:
         Returns:
             A CacheCommandResult describing the preload outcome.
         """
-        raise NotImplementedError("DiskModelCache.preload is a contract stub")
+        return CacheCommandResult(
+            command="preload",
+            model_name=model_name,
+            status=CacheState.NOT_CACHED,
+            success=False,
+            reason_code="PRELOAD_EXECUTOR_UNAVAILABLE",
+            metadata={"cache_root": self.cache_root},
+        )
 
     def status(self, model_name: str) -> CacheCommandResult:
         """Report the disk cache status of a model.
@@ -106,7 +113,22 @@ class DiskModelCache:
         Returns:
             A CacheCommandResult carrying the model's disk cache status.
         """
-        raise NotImplementedError("DiskModelCache.status is a contract stub")
+        record = next((item for item in self.records if item.model_name == model_name), None)
+        if record is None:
+            return CacheCommandResult(
+                command="status",
+                model_name=model_name,
+                status=CacheState.NOT_CACHED,
+                success=False,
+                reason_code="MODEL_NOT_CACHED",
+            )
+        return CacheCommandResult(
+            command="status",
+            model_name=model_name,
+            status=record.cache_status,
+            success=True,
+            record=record,
+        )
 
     def delete(self, model_name: str) -> CacheCommandResult:
         """Remove a model's artifacts from the disk cache.
@@ -117,7 +139,23 @@ class DiskModelCache:
         Returns:
             A CacheCommandResult describing the deletion outcome.
         """
-        raise NotImplementedError("DiskModelCache.delete is a contract stub")
+        record = next((item for item in self.records if item.model_name == model_name), None)
+        if record is None:
+            return CacheCommandResult(
+                command="delete",
+                model_name=model_name,
+                status=CacheState.NOT_CACHED,
+                success=False,
+                reason_code="MODEL_NOT_CACHED",
+            )
+        self.records = tuple(item for item in self.records if item.model_name != model_name)
+        return CacheCommandResult(
+            command="delete",
+            model_name=model_name,
+            status=CacheState.NOT_CACHED,
+            success=True,
+            record=record,
+        )
 
     def list_models(self) -> CacheCommandResult:
         """List all models currently tracked in the disk cache.
@@ -125,7 +163,16 @@ class DiskModelCache:
         Returns:
             A CacheCommandResult enumerating the cached models.
         """
-        raise NotImplementedError("DiskModelCache.list_models is a contract stub")
+        return CacheCommandResult(
+            command="list_models",
+            model_name="",
+            status=CacheState.CACHED_ON_DISK,
+            success=True,
+            metadata={
+                "models": [record.model_name for record in self.records],
+                "count": len(self.records),
+            },
+        )
 
     def check_integrity(self, model_name: str) -> CacheCommandResult:
         """Verify the on-disk integrity of a cached model.
@@ -136,7 +183,24 @@ class DiskModelCache:
         Returns:
             A CacheCommandResult describing the integrity verification outcome.
         """
-        raise NotImplementedError("DiskModelCache.check_integrity is a contract stub")
+        record = next((item for item in self.records if item.model_name == model_name), None)
+        if record is None:
+            return CacheCommandResult(
+                command="check_integrity",
+                model_name=model_name,
+                status=CacheState.NOT_CACHED,
+                success=False,
+                reason_code="MODEL_NOT_CACHED",
+            )
+        success = record.cache_status == CacheState.CACHED_ON_DISK
+        return CacheCommandResult(
+            command="check_integrity",
+            model_name=model_name,
+            status=record.cache_status if success else CacheState.FAILED,
+            success=success,
+            reason_code=None if success else "MODEL_CACHE_CORRUPTED",
+            record=record,
+        )
 
     def update_metadata(
         self, model_name: str, metadata: Mapping[str, object]
@@ -150,7 +214,23 @@ class DiskModelCache:
         Returns:
             A CacheCommandResult describing the metadata update outcome.
         """
-        raise NotImplementedError("DiskModelCache.update_metadata is a contract stub")
+        record = next((item for item in self.records if item.model_name == model_name), None)
+        if record is None:
+            return CacheCommandResult(
+                command="update_metadata",
+                model_name=model_name,
+                status=CacheState.NOT_CACHED,
+                success=False,
+                reason_code="MODEL_NOT_CACHED",
+            )
+        return CacheCommandResult(
+            command="update_metadata",
+            model_name=model_name,
+            status=record.cache_status,
+            success=True,
+            record=record,
+            metadata=dict(metadata),
+        )
 
 
 @dataclass(frozen=True)
