@@ -181,10 +181,14 @@ def build_queue_entry_request(
             "describe the same request"
         )
     missing = [
-        name for name in _REQUIRED_REQUEST_METADATA if request_metadata.get(name) is None
+        name
+        for name in _REQUIRED_REQUEST_METADATA
+        if request_metadata.get(name) is None
     ]
     missing += [
-        name for name in _REQUIRED_QUEUE_METADATA if queue_metadata.get(name) is None
+        name
+        for name in _REQUIRED_QUEUE_METADATA
+        if queue_metadata.get(name) is None
     ]
     if missing:
         raise ValueError(
