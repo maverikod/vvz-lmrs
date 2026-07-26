@@ -7,7 +7,11 @@ email: vasilyvz@gmail.com
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Any, Callable, Mapping
+
+from lmrs.admission import build_queue_entry_request, decide_admission
+from lmrs.estimation import estimate_request_capacity
+from lmrs.queue import QueueDispatchWorker, QueueEntry, RequestQueue
 
 
 class CommandName:
@@ -401,4 +405,197 @@ class PublicCommandExecutor(PublicCommandContract):
             reason_code=reason_code,
             payload=payload,
             metadata=dict(metadata or {}),
+        )
+
+
+def _queue_entry_from_record(record: Mapping[str, object]) -> QueueEntry:
+    """Build a QueueEntry from an admitted queue record.
+
+    Args:
+        record: Record produced by build_queue_entry_request.
+
+    Returns:
+        The corresponding QueueEntry.
+    """
+    return QueueEntry(
+        request_id=str(record["request_id"]),
+        session_id=str(record["session_id"]),
+        model_name=str(record["model_name"]),
+        required_tokens=int(record["required_tokens"]),  # type: ignore[call-overload]
+        required_dynamic_vram_bytes=int(
+            record["required_dynamic_vram_bytes"]  # type: ignore[call-overload]
+        ),
+        admitted_at=str(record["admitted_at"]),
+        expires_at=str(record["expires_at"]),
+        priority=int(record["priority"]),  # type: ignore[call-overload]
+        status=str(record["status"]),
+    )
+
+
+@dataclass
+class CanonicalChatHandler:
+    """Canonical handler composing the estimate and chat command paths.
+
+    Composes the canonical producers and owns none of their algorithms. The
+    capacity estimate comes only from estimate_request_capacity, the verdict
+    only from decide_admission, and the admitted queue record only from
+    build_queue_entry_request; queue state is held by RequestQueue.
+
+    The dry-run path neither queues nor executes and yields would_execute,
+    would_queue or would_reject. The chat path yields executed, queued or
+    rejected: a rejected verdict carries the stable admission reason code and
+    never reaches the runtime, a queued verdict records the entry and returns
+    queue state without reaching the runtime, and only an admitted execute
+    verdict invokes the runtime.
+
+    Launching a request that is already queued is delegated to
+    QueueDispatchWorker, which owns the largest_fit_scheduler then
+    launch_recheck then executor ordering and the capacity recheck required
+    before a queued launch. That ordering is deliberately not reimplemented
+    here: a second dispatch path in this module would duplicate the worker.
+
+    Registering adapter command classes belongs to the adapter layer and is
+    absent from this module by design.
+
+    Attributes:
+        executor: Translator producing the stable CommandResult outcomes.
+    """
+
+    executor: PublicCommandExecutor = field(default_factory=PublicCommandExecutor)
+
+    def _estimate_and_admit(
+        self,
+        *,
+        request_id: str,
+        model_name: str,
+        token_breakdown: Any,
+        declared_context_window: int,
+        capacity: Any,
+        kv_bytes_per_token: int,
+        per_request_overhead_bytes: int,
+        runtime_batch_overhead_bytes: int,
+        cache_hit_confirmed: bool = False,
+        cache_adjusted_dynamic_vram_bytes: int | None = None,
+    ) -> tuple[Any, Any]:
+        """Produce the capacity estimate and admission verdict for a request.
+
+        Returns:
+            The RequestCapacityEstimate and the AdmissionVerdict.
+        """
+        estimate = estimate_request_capacity(
+            request_id=request_id,
+            model_name=model_name,
+            token_breakdown=token_breakdown,
+            declared_context_window=declared_context_window,
+            usable_dynamic_vram_bytes=capacity.usable_dynamic_vram_bytes,
+            kv_bytes_per_token=kv_bytes_per_token,
+            per_request_overhead_bytes=per_request_overhead_bytes,
+            runtime_batch_overhead_bytes=runtime_batch_overhead_bytes,
+        )
+        verdict = decide_admission(
+            estimate,
+            capacity,
+            cache_hit_confirmed=cache_hit_confirmed,
+            cache_adjusted_dynamic_vram_bytes=cache_adjusted_dynamic_vram_bytes,
+        )
+        return estimate, verdict
+
+    def estimate(self, **request: Any) -> CommandResult:
+        """Run the dry-run estimate path without queueing or executing.
+
+        Args:
+            **request: The estimate inputs accepted by _estimate_and_admit.
+
+        Returns:
+            A CommandResult with a would_execute, would_queue or would_reject
+            outcome carrying the reason code, token breakdown and capacity
+            snapshot.
+        """
+        estimate, verdict = self._estimate_and_admit(**request)
+        return self.executor.estimate_result(
+            verdict.decision,
+            reason_code=verdict.reason_code,
+            token_breakdown=estimate.token_breakdown,
+            capacity_snapshot=request["capacity"],
+        )
+
+    def chat(
+        self,
+        *,
+        queue: RequestQueue,
+        request_metadata: Mapping[str, object],
+        queue_metadata: Mapping[str, object],
+        runtime_client: Any = None,
+        runtime_profile: Any = None,
+        admitted_request: Any = None,
+        **request: Any,
+    ) -> CommandResult:
+        """Run the chat path, executing, queueing or rejecting the request.
+
+        Args:
+            queue: Current request queue holding admitted-but-waiting entries.
+            request_metadata: Request-side facts for the queue record.
+            queue_metadata: Queue-side facts for the queue record.
+            runtime_client: Client whose execute runs an admitted request.
+            runtime_profile: Runtime profile passed to the runtime client.
+            admitted_request: Payload handed to the runtime on execution.
+            **request: The estimate inputs accepted by _estimate_and_admit.
+
+        Returns:
+            A CommandResult with an executed, queued or rejected outcome.
+        """
+        estimate, verdict = self._estimate_and_admit(**request)
+        decision = _canonical_decision(verdict.decision)
+        capacity = request["capacity"]
+        if decision == "reject":
+            return self.executor.chat_result(
+                verdict.decision,
+                reason_code=verdict.reason_code,
+                token_breakdown=estimate.token_breakdown,
+                capacity_snapshot=capacity,
+            )
+        if decision == "queue":
+            record = build_queue_entry_request(
+                verdict, estimate, request_metadata, queue_metadata
+            )
+            updated = queue.add(_queue_entry_from_record(record))
+            return self.executor.chat_result(
+                verdict.decision,
+                reason_code=verdict.reason_code,
+                token_breakdown=estimate.token_breakdown,
+                capacity_snapshot=capacity,
+                queue_state=updated.snapshot(),
+                payload=record,
+            )
+        runtime_result = runtime_client.execute(admitted_request, runtime_profile)
+        return self.executor.chat_result(
+            verdict.decision,
+            reason_code=verdict.reason_code,
+            token_breakdown=estimate.token_breakdown,
+            capacity_snapshot=capacity,
+            payload=runtime_result,
+        )
+
+    def launch_queued(
+        self,
+        queue: RequestQueue,
+        capacity_provider: Callable[[], int],
+        executor: Callable[[QueueEntry], object],
+    ) -> QueueEntry | None:
+        """Launch one queued request through the canonical dispatch worker.
+
+        The worker owns the largest_fit_scheduler then launch_recheck then
+        executor ordering, including the capacity recheck required before a
+        queued launch.
+
+        Args:
+            queue: Queue to select a waiting request from.
+            capacity_provider: Returns current usable dynamic VRAM in bytes.
+            executor: Receives the selected request on a successful recheck.
+
+        Returns:
+            The dispatched QueueEntry, or None when nothing was dispatched.
+        """
+        return QueueDispatchWorker(executor=executor).dispatch(
+            queue, capacity_provider
         )
