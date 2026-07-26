@@ -22,7 +22,7 @@ commands:
 gotchas:
   - "long_task/job_status is a SEPARATE in-memory store from the queuemgr queue_* family — NEVER cross-poll one store's job_id against the other's command"
   - queue 'completed' != command success — always inspect the inner result/exit code before reporting success
-  - 'BUG 5adec7eb: do not poll multiple job_ids concurrently — CAS calls are strictly sequential'
+  - 'known defect in CAS as of CAS 1.6.53 (re-verify on your install and record your own bug ids): do not poll multiple job_ids concurrently — CAS calls are strictly sequential'
 
 errors:
   VALIDATION_ERROR: 'wrong job_id / wrong store — confirm which store issued the job_id, cmd_help(cmdname)'

@@ -1,32 +1,24 @@
-# ops: ai-editor-server — creating a brand-new file, and handling unsupported formats (.toml).
-
-purpose: create a file that does not yet exist on the server, or work around formats the editor cannot parse natively.
+# Creating a brand-new file through ai-editor.
 
 procedure:
-  new_file: |
-    1. universal_file_open(project_id, file_path, session_id, create=true, initial_content?)
-       # pure local draft — zero CA calls until first commit; .py REQUIRES initial_content on create
-    2. edit locally as needed (same edit ops as an existing file, see editor-edit-lifecycle.yaml)
-    3. universal_file_write(write_mode=commit) -> first commit locks + registers the file atomically on CA
-    4. universal_file_close
-  unsupported_format_toml: |
-    1. universal_file_open(create=true, file_path='*.txt') -> author content as text
-    2. universal_file_write(commit) the .txt
-    3. universal_file_close
-    4. terminal: mv the committed .txt to the real .toml path (see terminal-sandbox.yaml)
-    5. remove the orphan '<name>.toml.txt.lock' left behind, if present
+  - create a CA session
+  - call universal_file_open with create=true and initial_content
+  - use the native handler selected by the target extension
+  - preview and edit the draft as needed
+  - inspect write_mode=preview
+  - commit with verify_after_upload=true; the first commit atomically creates,
+    registers, and locks the CA file
+  - close the editor file and delete the CA session
 
-commands:
-  universal_file_open: 'create=true -> pure local draft; no CA calls until first commit'
-  universal_file_write: 'commit on a create=true session performs the atomic lock+register'
+native_structured_formats: [.json, .yaml, .yml, .ini, .cfg, .toml]
 
 gotchas:
-  - .toml is unsupported natively — always go through the .txt-then-mv workaround
-  - unknown extension needs an explicit format_group override or you get UNKNOWN_FORMAT
-  - .py create MUST pass initial_content or open fails
-  - after mv in terminal, remember to remove the orphan .txt.lock file — it is not cleaned up automatically
+  - Python create requires parseable initial_content
+  - unknown extensions need an explicit supported format_group
+  - do not create TOML through a temporary .txt file; TOML is natively supported
+  - closing a modified uncommitted draft is rejected to prevent silent data loss
 
 errors:
-  UNKNOWN_FORMAT: 'unknown extension — pass format_group explicitly or use the .txt workaround'
-  OPEN_ERROR: 'create failed — check file_path validity and initial_content presence for .py'
-  VALIDATION_ERROR: 'schema/param problem — cmd_help(cmdname), fix, retry once'
+  UNKNOWN_FORMAT: select a supported extension or explicit format_group
+  OPEN_ERROR: verify project-relative path and initial content
+  VALIDATION_ERROR: obtain command-specific help and retry once

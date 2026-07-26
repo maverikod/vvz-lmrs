@@ -1,76 +1,66 @@
-# LMRS — mode -> trigger map. A mode is DECLARED IN THE TASK the orchestrator issues
-# (russian aliases below match the orchestrator's natural-language task wording).
-# A task WITHOUT a declared mode uses only baseline docs/agent-ref/roles/tooling.yaml
-# triggers — modes ADD to that baseline, never replace it.
-# Per tooling.yaml trigger law: before the FIRST use of a triggered tool, the agent
-# MUST read the triggered file at least once.
+# ai-editor operating-mode router. Exactly one mode owns a delegation branch.
 
-header_rule: >-
-  The mode is declared in the task the orchestrator issues. No declared mode -> baseline
-  tooling.yaml triggers only. Before first use of a triggered tool, read the triggered
-  file at least once (tooling.yaml trigger law) — this file only says WHEN, tooling.yaml
-  says HOW.
-
-modes:
-  planning:
-    aliases: [планирование, планов_режим]
-    description: >-
-      Authoring, verifying, freezing, or operating the runtime layer of a plan via planmgr
-      (HRS/MRS/GS/TS/AS, cascade, gate/score, graph, prompts, execution/review records,
-      bugs, todos, project binding, export/import).
+router:
+  precedence: [plan_authoring, plan_execution, refactor_repair]
+  plan_authoring:
+    triggers:
+      - create or change HRS, MRS, GS, TS, or AS
+      - repair plan coverage, decomposition, drift, or cascade state
+    hierarchy:
+      HRS_MRS: {model: gpt-5.6-sol, reasoning_effort: max, spawns: GS}
+      GS: {model: gpt-5.6-terra, reasoning_effort: xhigh, spawns: TS}
+      TS: {model: gpt-5.6-terra, reasoning_effort: medium, spawns: AS}
+      AS: {model: gpt-5.6-luna, reasoning_effort: medium, spawns: null}
     always_read: [servers/planmgr.yaml]
+    operations:
+      authoring: ops/planmgr-authoring.yaml
+      cascade: ops/planmgr-cascade.yaml
+      verification: ops/planmgr-verification.yaml
+      graph: ops/planmgr-graph.yaml
+      prompts: ops/planmgr-prompt.yaml
+      runtime: ops/planmgr-runtime.yaml
+      bugs: ops/planmgr-bugs.yaml
+      todos: ops/planmgr-todo.yaml
+      projects: ops/planmgr-project.yaml
+      export: ops/planmgr-export.yaml
+  plan_execution:
     triggers:
-      - when: authoring/editing HRS paragraphs, MRS concepts/relations, or GS/TS/AS steps
-        read: [ops/planmgr-authoring.yaml]
-      - when: opening/committing/aborting a cascade, or freezing/unfreezing a step
-        read: [ops/planmgr-cascade.yaml]
-      - when: running or interpreting a gate, score, weak-prompt check, or audit query
-        read: [ops/planmgr-verification.yaml]
-      - when: computing execution order, waves, or step-to-step dependencies
-        read: [ops/planmgr-graph.yaml]
-      - when: assembling an executor/review prompt or compiling a context block
-        read: [ops/planmgr-prompt.yaml]
-      - when: recording an execution attempt, review verdict, escalation, comment, link, or model binding
-        read: [ops/planmgr-runtime.yaml]
-      - when: creating, triaging, fixing, propagating, or closing a bug
-        read: [ops/planmgr-bugs.yaml]
-      - when: creating, resolving, or promoting a todo
-        read: [ops/planmgr-todo.yaml]
-      - when: attaching/detaching a plan-project binding, or managing a project dependency
-        read: [ops/planmgr-project.yaml]
-      - when: exporting, importing, archiving, or diffing a plan
-        read: [ops/planmgr-export.yaml]
-
-  analysis:
-    aliases: [анализ]
-    description: >-
-      Read-only inspection of project code: search, AST/structure/quality, or async job
-      polling on code-analysis-server. No file mutation.
-    always_read: [servers/ca.yaml]
+      - execute or continue an existing admitted plan or branch
+      - implement a frozen or ready-for-review GS, TS, or AS scope
+    hierarchy:
+      root: {model: gpt-5.6-sol, reasoning_effort: max, spawns: GS}
+      GS: {model: gpt-5.6-terra, reasoning_effort: xhigh, spawns: TS}
+      TS: {model: gpt-5.6-terra, reasoning_effort: medium, spawns: AS}
+      AS: {model: gpt-5.6-luna, reasoning_effort: medium, spawns: null}
+    entry_gate:
+      - requested scope resolves in Plan Manager
+      - mechanical gate is green
+      - lifecycle status admits execution
+      - dependency order or parallel waves are known
+    always_read: [servers/planmgr.yaml, servers/ca.yaml, servers/editor.yaml]
+    execution_material: [plan_prompt_chain, branch_prompt, graph_order, graph_parallel_map]
+  refactor_repair:
     triggers:
-      - when: first fulltext/semantic/grep search over project content
-        read: [ops/ca-search.yaml]
-      - when: first AST/entity/quality inspection (structure, entities, complexity, lint, type-check)
-        read: [ops/ca-analysis.yaml]
-      - when: first job_id returned by a queued analysis command
-        read: [ops/ca-jobs-queue.yaml]
-
-  refactoring:
-    aliases: [рефакторинг]
-    description: >-
-      Tracing usages/dependencies/hierarchy and editing project files through the CA +
-      ai-editor + terminal toolchain.
+      - defect diagnosis and localized repair outside an existing plan
+      - behavior-preserving refactoring or small maintenance change
+    roles:
+      researcher: {model: gpt-5.5, reasoning_effort: medium}
+      executor: {model: gpt-5.5, reasoning_effort: medium}
+      tester: {model: gpt-5.5, reasoning_effort: medium}
+    flow:
+      - research when facts are missing
+      - execute only after scope and acceptance are confirmed
+      - independently test every mutation
+    mode_transition: requirements, public contracts, architecture, data migration,
+      or non-localized scope require MODE_TRANSITION_REQUIRED to plan_authoring
     always_read: [servers/ca.yaml, servers/editor.yaml]
-    triggers:
-      - when: first usages/dependencies/class-hierarchy lookup before a refactor
-        read: [ops/ca-refactoring-support.yaml]
-      - when: first open/edit/write/close of a project file
-        read: [ops/editor-edit-lifecycle.yaml]
-      - when: creating a new project file
-        read: [ops/editor-new-file.yaml]
-      - when: editing a non-Python format (addressing/handler differs from .py)
-        read: [ops/editor-formats-addressing.yaml]
-      - when: first git operation on the server-side project
-        read: [ops/ca-git.yaml]
-      - when: first sandbox or host terminal command
-        read: [ops/terminal-sandbox.yaml]
+
+invariants:
+  - never mix modes inside one delegation branch
+  - every non-leaf parent forms common context and child-specific deltas
+  - plan modes use Plan Manager context blocks or prompt-chain selectors
+  - refactor_repair uses task-scoped context files outside the project tree
+  - child self-reported success has zero acceptance weight
+  - a bug confirmed in refactor_repair (or any mode) follows roles/laws.yaml
+    `bugfix_acceptance_cycle` - reproduce -> pipeline red -> root cause -> fix ->
+    deploy -> pipeline green, looped; single authoritative definition, not restated here

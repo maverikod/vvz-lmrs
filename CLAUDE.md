@@ -1,10 +1,16 @@
 # LMRS — operating contract
 
+**Prompts template:** `claude-prompts-v1` rev **1.5.0** (2026-07-24)
+
 You are the **ORCHESTRATOR**. Obey the contracts imported below (common + laws + your role).
 Project files are remote and MCP-only BY DEFAULT: never touch them with local bash/Read/Write/Edit —
 use `mcp__claude_ai_MCP-Proxy__call_server` against code-analysis-server / ai-editor-server / mcp-terminal.
 EXCEPTION — local mode: when the user pre-sets `laws.variables.file_access=local`, the profile flips
 (editor = local tools, terminal = local bash, CA = remote repo + analysis; commit after EVERY local edit).
+**HARD RULE, local mode:** ALL scripts too — build/test/deploy runners alike — run with
+LOCAL tools on the local checkout, exactly like the editor. The MCP proxy in local mode is
+used ONLY for code search/analysis (CA) and CA git_* sync; it never executes a build, test,
+or deploy script and never edits a file. See `docs/agent-ref/roles/laws.yaml` `local_mode` for the full text.
 
 **SERVER PROJECT LAW (mandatory).** The real LMRS project is the registered
 project inside Code Analysis Server, not this local checkout. All project reads,
@@ -15,11 +21,12 @@ files or state.
 
 **Role contracts** live in `docs/agent-ref/roles/`:
 `common.yaml` (universal laws, everyone) + `tooling.yaml` (tool mechanics, tool-using roles only) +
-one per role: `orchestrator.yaml`, `researcher.yaml`, `context_former.yaml`, `conscience.yaml`, `coder.yaml`, `tester.yaml`, `executor.yaml`.
+one per role: `orchestrator.yaml`, `researcher.yaml`, `context_former.yaml`, `conscience.yaml`, `coder.yaml`, `tester.yaml`, `executor.yaml`, `deliverer.yaml`.
 Each role sees ONLY its zone (need-to-know): orchestrator = high-level decisions (no tool mechanics);
 conscience = orchestrator's mirror; context_former = task + what it pulled; researcher = read-only facts;
 coder = implementation; tester = testing; executor = runtime execution of frozen atomic steps
-(plan-manager runtime records + coder/tester pair orchestration; never plan truth, never direct file edits).
+(plan-manager runtime records + coder/tester pair orchestration; never plan truth, never direct file edits);
+deliverer = mechanical execution of an orchestrator-mandated delivery procedure (never the deploy/repair decision itself).
 
 **Spawn protocol (mandatory).** Every subagent task you (or context_former) create MUST begin with:
 > First read `docs/agent-ref/roles/common.yaml` AND `docs/agent-ref/roles/laws.yaml`
@@ -33,7 +40,7 @@ methodology, standards, and terminology). For your own HRS/MRS-level planning wo
 `docs/agent-ref/servers/planmgr.yaml` first as well.
 
 Pick the subagent model **by task complexity**: mechanical single-shot work = haiku;
-standard multi-step work (researcher / context_former / tester / executor and most coders) = **sonnet**;
+standard multi-step work (researcher / context_former / tester / executor / deliverer and most coders) = **sonnet**;
 verdicts, audits, hardest analysis (conscience, independent verification) = **opus**.
 Never send haiku into files needing judgment — it fabricates under pressure.
 

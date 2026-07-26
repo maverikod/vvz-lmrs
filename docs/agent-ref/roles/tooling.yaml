@@ -1,45 +1,72 @@
-# LMRS — TOOLING mechanics. Read ONLY by tool-using roles (researcher, context_former, coder, tester).
-# Orchestrator and conscience do NOT use tools and do NOT read this file.
+# Tool routing for tool-using roles. Live server help remains authoritative.
 
 meta:
-  file_access: mcp_only            # default; laws.variables.file_access=local flips to the local_mode profile (see laws.yaml)
-  call: 'mcp__claude_ai_MCP-Proxy__call_server(server_id, copy_number=1, command, params)'
-  path: project-relative POSIX only; no host paths; no ".."
-  servers: {ca: code-analysis-server, editor: ai-editor-server, term: mcp-terminal}
+  # HARD RULE (laws.yaml local_mode, default profile): the ca/editor/terminal proxy
+  # routing below covers the CAS-authoritative path and CA search/analysis. In the
+  # default local profile, project file edits and ALL build/test/deploy script
+  # execution use LOCAL tools directly on the local checkout and are NOT routed
+  # through proxy_call — the proxy is for CA search/analysis and CAS git sync only.
+  # The `terminal` trigger rows below (CAS capability gap / authorized real-host
+  # incident) are narrow exceptions, not the default path for routine local builds.
+  proxy_call: mcp__codex_apps__mcp_proxy_call_server
+  proxy_server_ids:
+    ca: 'code-analysis-server-vvz'
+    editor: 'ai-editor-server-vvz'
+    terminal: 'mcp-terminal-vvz'
+    planmgr: 'planmgr'
+  prepared_manifest: /home/vasilyvz/.codex/prompts/tool-routing/manifest.yaml
+  path_rule: use project-relative POSIX paths for server project commands
 
-# Source of truth. Read on trigger; do not paraphrase from memory.
-manuals:
-  rules:       docs/agent-ref/roles/tooling-rules.yaml
-  editor:      'call_server(editor,"info")'
-  terminal:    'call_server(term,"info")'
-  ca_search:   docs/standards/code_analysis_search_instructions.yaml
-  ca_fs:       docs/standards/code_analysis_fs_instructions.yaml
-  ca_edit:     docs/standards/code_analysis_universal_editing_instructions.yaml
-  coder_guide: docs/agent-ref/mcp_coder_guide.yaml
-  cmd_help:    'call_server(<server>,"help",{cmdname:<command>})'
-  modes:       docs/agent-ref/modes.yaml
+mandatory_first_tool_flow:
+  - read prepared_manifest
+  - select the highest-precedence matching trigger
+  - read that trigger file and only its referenced short help packs
+  - verify the trigger match; ambiguity goes to the parent
+  - use only commands admitted by loaded cards or fresh command-specific help
 
-# condition -> MUST read manual(s) BEFORE the first matching action
+package_manuals:
+  rules: roles/tooling-rules.yaml
+  coder_guide: roles/coder-guide.yaml
+  modes: modes.yaml
+  ca: servers/ca.yaml
+  editor: servers/editor.yaml
+  terminal: servers/terminal.yaml
+  planmgr: servers/planmgr.yaml
+  delivery: ops/delivery-release.yaml
+
 triggers:
-  - when: always — before the first tool call of the task
+  - when: before the first task tool call
     read: [rules]
-  - when: before first open/edit/write/close of a project file
-    read: [editor, ca_edit]
-  - when: before first fs move/copy/remove or text-file create
-    read: [ca_fs]
-  - when: code analysis or code search
-    read: [ca_search]
-    order: {1_ast_and_code_analysis: first, 2_cross_search: only_if_step1_missed}
-  - when: before first sandbox or host terminal command
-    read: [terminal]
-  - when: before first git operation on the server-side project
-    read: [rules]   # cas_rules.git_via_ca — git ONLY through CA git_* commands
-  - when: the task declares a mode (planning / analysis / refactoring)
-    read: [modes]
+  - when: project search, AST, structure, dependencies, or quality analysis
+    read: [ca, ops/ca-analysis.yaml, ops/ca-search.yaml]
+  - when: project content mutation
+    read: [editor, ops/editor-edit-lifecycle.yaml, ops/editor-formats-addressing.yaml]
+  - when: new project file
+    read: [editor, ops/editor-new-file.yaml]
+  - when: project file discovery, copy, move, remove, history, transfer, or Git
+    read: [ca, ops/ca-fs-sandbox.yaml, ops/ca-git.yaml]
+  - when: plan read, authoring, verification, prompts, graph, or runtime state
+    read: [planmgr, modes]
+  - when: a CAS capability gap requires unsupported project execution
+    read: [terminal, ops/terminal-sandbox.yaml]
+  - when: authorized real-host incident or deployment
+    read: [terminal, ops/terminal-host-exec.yaml]
+  - when: release, deploy, or production acceptance
+    read: [delivery]   # delivery.build_execution + laws.yaml local_mode: build/test/deploy scripts run LOCAL, never via proxy_call
 
-# error taxonomy — exactly one branch per failure
-errors:
-  misuse:   'wrong/unknown params or bad usage (VALIDATION_ERROR-style) -> MANDATORY call_server(<same server>,"help",{cmdname:<failing command>}); fix to schema; retry once; still bad -> escalate.'
-  tool_5xx: 'HTTP 500 / internal server error = the TOOL failed -> STOP; escalate to user; no retry, no workaround.'
-  infra:    'transport/session/proxy down, timeout, conn refused, 502, WAF 403, -32602 -> STOP on first occurrence; escalate {exact_call, verbatim_error, question}.'
-  law:      'Any tool error -> stop + escalate. Only "misuse" is self-fixable, only via cmd_help.'
+server_error_recovery:
+  invalid_parameter:
+    call: 'help({cmdname: failing_command}) on the same downstream server'
+    retry: once with the returned schema
+  command_not_found:
+    call: 'help({}) on the same downstream server, then command-specific help'
+    forbidden: guessing or reusing a remembered legacy command
+  server_unavailable:
+    checks: [proxy health, list_servers registration, downstream health]
+    failure: escalate exact transport and health evidence
+
+queue_rule: >-
+  A queued handoff is a valid state transition. Poll the queue when the selected
+  client mode is synchronous emulation; return or consume messages when the selected
+  mode is asynchronous. A queue status of completed is not command success until the
+  inner terminal result is checked.
