@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import sys
 import urllib.error
 import urllib.request
 from typing import Any, Mapping

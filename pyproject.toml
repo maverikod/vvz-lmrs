@@ -28,3 +28,25 @@ lmrsmgr = "lmrs.manager:main"
 [tool.setuptools.packages.find]
 include = ["lmrs*"]
 namespaces = false
+
+[tool.ruff]
+# Same limit the project already enforces through .flake8, so the two linters
+# cannot contradict each other on the same line.
+line-length = 220
+# Matches requires-python above.
+target-version = "py312"
+# Same exclusions as .flake8.
+extend-exclude = [".venv", "venv", "old_code"]
+
+[tool.ruff.lint]
+# Pinned explicitly. Without a selection ruff applies its own defaults, and
+# those change between releases: upgrading 0.15 -> 0.16 turned this project's
+# verdict from clean into 84 findings without a single line of code changing.
+# An unpinned linter makes the quality gate non-deterministic, so the rule set
+# is stated here rather than inherited.
+select = ["E", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Mirrors the per-file-ignores already declared in .flake8.
+"tools/plan_audit.py" = ["E401"]
+"tools/plan_locate.py" = ["E401", "F401"]
