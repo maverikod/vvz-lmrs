@@ -120,6 +120,7 @@ debian/lmrs-docker-image
 debian/lmrs/
 debian/lmrs-container/
 debian/.debhelper/
+debian/*.debhelper
 debian/files
 debian/*.substvars
 debian/debhelper-build-stamp
