@@ -212,3 +212,193 @@ class PublicCommandContract:
             A description of the CommandResult shape for the command.
         """
         return self.result_shapes[command]
+
+
+_ADMISSION_DECISIONS: tuple[str, ...] = ("execute", "queue", "reject")
+
+_DRY_RUN_OUTCOMES: Mapping[str, str] = {
+    "execute": CommandOutcome.WOULD_EXECUTE,
+    "queue": CommandOutcome.WOULD_QUEUE,
+    "reject": CommandOutcome.WOULD_REJECT,
+}
+
+_EXECUTION_OUTCOMES: Mapping[str, str] = {
+    "execute": CommandOutcome.EXECUTED,
+    "queue": CommandOutcome.QUEUED,
+    "reject": CommandOutcome.REJECTED,
+}
+
+
+def _canonical_decision(decision: str) -> str:
+    """Return the canonical admission decision behind a verdict value.
+
+    The canonical admission vocabulary is ``execute``, ``queue`` and
+    ``reject``. A ``would_``-prefixed spelling is accepted and normalized so a
+    verdict produced by the current admission implementation, which emits the
+    dry-run spelling for a live decision, still classifies correctly; that
+    spelling is a recorded defect of the admission layer and is tolerated here
+    only so the two contracts can be corrected independently.
+
+    Args:
+        decision: Decision value carried by an admission verdict.
+
+    Returns:
+        One of ``execute``, ``queue`` or ``reject``.
+
+    Raises:
+        ValueError: If the value is not a recognized admission decision.
+    """
+    canonical = decision[6:] if decision.startswith("would_") else decision
+    if canonical not in _ADMISSION_DECISIONS:
+        raise ValueError(f"unknown admission decision: {decision!r}")
+    return canonical
+
+
+@dataclass
+class PublicCommandExecutor(PublicCommandContract):
+    """Deterministic domain-level executor for the public command surface.
+
+    Implements PublicCommandContract by inheriting its declared command
+    categories and result shapes, and adds the translation from the typed
+    results produced by the canonical domain services into the stable
+    CommandResult public outcome shape.
+
+    It is a translator, not a pipeline. Callers supply the already-produced
+    artifacts - the capacity estimate from estimate_request_capacity, the
+    verdict from decide_admission, the queue-entry request from
+    build_queue_entry_request, request-queue state from RequestQueue with
+    largest_fit_scheduler and launch_recheck, and the normalized result from
+    RuntimeClient.execute - and this object only classifies the outcome and
+    carries stable structured reason data. It reimplements no token
+    accounting, estimation, admission, queue, scheduler, launch-recheck or
+    runtime algorithm, performs no routing, and is not the canonical chat
+    handler: composing those services for the estimate and chat commands
+    belongs to that handler. Adapter command classes and their registration
+    through register_lmrs_commands(registry) belong to the adapter layer and
+    are deliberately absent here.
+    """
+
+    def dry_run_outcome(self, decision: str) -> str:
+        """Return the dry-run outcome for an admission decision.
+
+        Args:
+            decision: Decision value carried by an admission verdict.
+
+        Returns:
+            One of the ``would_*`` CommandOutcome values.
+        """
+        return _DRY_RUN_OUTCOMES[_canonical_decision(decision)]
+
+    def execution_outcome(self, decision: str) -> str:
+        """Return the execution outcome for an admission decision.
+
+        Args:
+            decision: Decision value carried by an admission verdict.
+
+        Returns:
+            One of the executed, queued or rejected CommandOutcome values.
+        """
+        return _EXECUTION_OUTCOMES[_canonical_decision(decision)]
+
+    def estimate_result(
+        self,
+        decision: str,
+        *,
+        reason_code: str | None = None,
+        token_breakdown: object | None = None,
+        capacity_snapshot: object | None = None,
+        payload: object | None = None,
+        metadata: Mapping[str, object] | None = None,
+    ) -> CommandResult:
+        """Build the dry-run estimate result for an admission decision.
+
+        Args:
+            decision: Decision value carried by an admission verdict.
+            reason_code: Stable reason code carried by that verdict, if any.
+            token_breakdown: Token accounting artifact to carry, if any.
+            capacity_snapshot: Capacity snapshot artifact to carry, if any.
+            payload: Command-specific payload to carry, if any.
+            metadata: Additional result metadata.
+
+        Returns:
+            A CommandResult for the estimate command with a ``would_*``
+            outcome; success is False only for a would_reject decision.
+        """
+        outcome = self.dry_run_outcome(decision)
+        return CommandResult(
+            command=CommandName.ESTIMATE,
+            outcome=outcome,
+            success=outcome != CommandOutcome.WOULD_REJECT,
+            reason_code=reason_code,
+            token_breakdown=token_breakdown,
+            capacity_snapshot=capacity_snapshot,
+            payload=payload,
+            metadata=dict(metadata or {}),
+        )
+
+    def chat_result(
+        self,
+        decision: str,
+        *,
+        reason_code: str | None = None,
+        token_breakdown: object | None = None,
+        capacity_snapshot: object | None = None,
+        queue_state: object | None = None,
+        payload: object | None = None,
+        metadata: Mapping[str, object] | None = None,
+    ) -> CommandResult:
+        """Build the chat execution result for an admission decision.
+
+        Args:
+            decision: Decision value carried by an admission verdict.
+            reason_code: Stable reason code carried by that verdict, if any.
+            token_breakdown: Token accounting artifact to carry, if any.
+            capacity_snapshot: Capacity snapshot artifact to carry, if any.
+            queue_state: Request-queue state artifact to carry, if any.
+            payload: Runtime result payload to carry, if any.
+            metadata: Additional result metadata.
+
+        Returns:
+            A CommandResult for the chat command with an executed, queued or
+            rejected outcome; success is False only for a rejected decision.
+        """
+        outcome = self.execution_outcome(decision)
+        return CommandResult(
+            command=CommandName.CHAT,
+            outcome=outcome,
+            success=outcome != CommandOutcome.REJECTED,
+            reason_code=reason_code,
+            token_breakdown=token_breakdown,
+            capacity_snapshot=capacity_snapshot,
+            queue_state=queue_state,
+            payload=payload,
+            metadata=dict(metadata or {}),
+        )
+
+    def failure_result(
+        self,
+        command: str,
+        reason_code: str,
+        *,
+        payload: object | None = None,
+        metadata: Mapping[str, object] | None = None,
+    ) -> CommandResult:
+        """Build a rejection result for a domain failure signal.
+
+        Args:
+            command: The command the failure belongs to.
+            reason_code: Stable ErrorCode value describing the failure.
+            payload: Command-specific payload to carry, if any.
+            metadata: Additional result metadata.
+
+        Returns:
+            A CommandResult carrying the rejected outcome and reason code.
+        """
+        return CommandResult(
+            command=command,
+            outcome=CommandOutcome.REJECTED,
+            success=False,
+            reason_code=reason_code,
+            payload=payload,
+            metadata=dict(metadata or {}),
+        )
