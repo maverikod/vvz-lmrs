@@ -138,26 +138,68 @@ def decide_admission(
     )
 
 
+_REQUIRED_REQUEST_METADATA: tuple[str, ...] = ("session_id",)
+_REQUIRED_QUEUE_METADATA: tuple[str, ...] = ("admitted_at", "expires_at")
+
+
 def build_queue_entry_request(
     verdict: AdmissionVerdict,
     estimate: Any,
+    request_metadata: Mapping[str, object],
+    queue_metadata: Mapping[str, object],
 ) -> dict[str, object]:
-    """Convert a queueable verdict and estimate into a structured queue input.
+    """Convert a queueable verdict into a complete structured queue input.
+
+    The admission and expiration timestamps are supplied by the caller through
+    queue_metadata rather than generated or placeheld here, so the recorded
+    admission time is the actual one.
 
     Args:
-        verdict: Admission verdict that must have queueable set to True.
-        estimate: Request capacity estimate with identity and requirement facts.
+        verdict: Admission verdict; must have queueable set to True.
+        estimate: Request capacity estimate carrying the request identity and
+            requirement facts.
+        request_metadata: Request-side facts. Requires session_id.
+        queue_metadata: Queue-side facts. Requires admitted_at and expires_at;
+            priority defaults to 0 and status defaults to queued.
 
     Returns:
-        A structured dictionary suitable for queue entry creation.
+        A structured dictionary carrying request and session identity, the
+        capacity values, the actual admission and expiration timestamps,
+        priority, status, and the stable reason code, suitable for queue entry
+        creation.
+
+    Raises:
+        ValueError: If the verdict is not queueable, if the verdict and
+            estimate describe different requests, or if a required metadata
+            field is missing.
     """
     if not verdict.queueable:
         raise ValueError("build_queue_entry_request requires a queueable verdict")
+    if estimate.request_id != verdict.request_id:
+        raise ValueError(
+            "build_queue_entry_request requires the verdict and estimate to "
+            "describe the same request"
+        )
+    missing = [
+        name for name in _REQUIRED_REQUEST_METADATA if request_metadata.get(name) is None
+    ]
+    missing += [
+        name for name in _REQUIRED_QUEUE_METADATA if queue_metadata.get(name) is None
+    ]
+    if missing:
+        raise ValueError(
+            "build_queue_entry_request is missing required metadata: "
+            + ", ".join(missing)
+        )
     return {
         "request_id": verdict.request_id,
+        "session_id": request_metadata["session_id"],
         "model_name": verdict.model_name,
         "required_tokens": verdict.required_tokens,
         "required_dynamic_vram_bytes": verdict.required_dynamic_vram_bytes,
+        "admitted_at": queue_metadata["admitted_at"],
+        "expires_at": queue_metadata["expires_at"],
+        "priority": queue_metadata.get("priority", 0),
+        "status": queue_metadata.get("status", "queued"),
         "reason_code": verdict.reason_code,
-        "admitted_at": None,
     }
