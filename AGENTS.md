@@ -1,6 +1,6 @@
 # lmrs - Codex operating contract
 
-**Prompts template:** `codex-prompts-v1` rev **1.6.1** (2026-07-26)
+**Prompts template:** `codex-prompts-v1` rev **1.6.2** (2026-07-26)
 
 This file is the Codex entrypoint. The root must read these files itself at the
 start of a task:

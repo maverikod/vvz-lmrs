@@ -31,6 +31,16 @@ laws:
   editor_gate_no_bypass: >-
     If validation or quality gates fail after an edit, fix the underlying issue or report the
     blocker; do not bypass the gate just to force a write-through.
+  bugfix_acceptance_cycle: >-
+    [TRIGGER: any bug fix] The mandatory bug-fix algorithm is, in order: (1) REPRODUCE the
+    defect on the real failing path; (2) ADD a covering check for that defect to the project's
+    test pipeline and confirm it fails before further changes; (3) FIND the root cause in code;
+    (4) PROVE the cause-to-symptom link with concrete evidence; (5) FIX the defect with focused
+    regression coverage; (6) BUMP the project version by exactly +1 before any deployment; (7)
+    DEPLOY via ssh to `root@192.168.254.26` and, if the project ships a client, publish that
+    client to PyPI at the same version; (8) RUN the test pipeline against the real deployed
+    server and SMOKE-TEST the original bug path on the live system. This cycle is mandatory, not
+    advisory. Work is not accepted until every applicable step passes.
   verify_before_delivery: >-
     Run the smallest relevant checks for the touched area. If verification cannot run, say so plainly.
   exact_failure_reporting: >-
