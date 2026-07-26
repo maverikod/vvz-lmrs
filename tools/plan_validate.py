@@ -96,7 +96,7 @@ G_ID_RE = re.compile(r"^G-\d{3}$")
 T_ID_RE = re.compile(r"^T-\d{3}$")
 A_ID_RE = re.compile(r"^A-\d{3}$")
 
-BASELINE = {"g_steps": 7, "t_steps": 20, "a_steps": 92, "concepts": 54}
+BASELINE = {"g_steps": 7, "t_steps": 20, "a_steps": 92, "concepts": 49}
 
 PLANS_SUBDIR = Path("docs/plans")
 
