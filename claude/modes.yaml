@@ -1,4 +1,4 @@
-# lmrs — mode -> trigger map for Codex
+# lmrs — mode -> trigger map for Claude
 
 header_rule: >-
   The active mode determines which operational manuals must be read before the first
@@ -29,7 +29,7 @@ modes:
     triggers:
       - when: first repository-wide search or file inventory
         read: [ops/local-tools.yaml]
-      - when: delegating bounded helper work or choosing a model tier
+      - when: delegating any work to a subagent or choosing a model tier
         read: [ops/model-selection.yaml]
 
   refactoring:
@@ -45,5 +45,5 @@ modes:
         read: [ops/editing.yaml]
       - when: first relevant test or lint run
         read: [ops/testing.yaml]
-      - when: delegating bounded helper work or choosing a model tier
+      - when: delegating any work to a subagent or choosing a model tier
         read: [ops/model-selection.yaml]

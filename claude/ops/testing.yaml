@@ -1,4 +1,4 @@
-# Codex testing rules
+# Claude testing rules
 
 rules:
   - run verification through the project `pipeline` CLI, never through a hand-rolled command list

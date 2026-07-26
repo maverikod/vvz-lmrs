@@ -1,0 +1,45 @@
+# lmrs — common laws for every role stage
+
+template_version: v1.6.3
+
+principles:
+  - no assumptions; act on observed repository facts and explicit user intent
+  - inspect before editing
+  - one task at a time unless independent work can be parallelized safely
+  - report exact uncertainty or failure instead of masking it
+  - before acting in a stage, read this file, the stage file, and every file listed in that stage file's `reads_first`
+
+stage_model:
+  note: >-
+    In Claude, these roles are workflow stages executed by one agent, not separate spawned agents.
+  stages:
+    orchestrator: task framing, sequencing, user-facing synthesis
+    researcher: read-only fact gathering
+    context_former: task-local context assembly
+    coder: implementation
+    tester: verification
+    conscience: final adversarial review
+
+subagent_policy:
+  default: >-
+    Run every stage in the main session. Claude Code subagents are an optimization, not part
+    of this contract, and they do not inherit the stage the caller was in.
+  allowed: >-
+    A read-only Explore or general-purpose subagent may be used for broad fan-out search during
+    the `researcher` stage when only the conclusion is needed, not the file dumps.
+  model_tier: >-
+    Outside `planning` mode, run a subagent at the cheapest tier that can carry its task, and
+    treat everything it returns as an unverified claim. See `ops/model-selection.yaml`.
+  forbidden:
+    - delegating the `coder`, `tester`, or `conscience` stage to a subagent
+    - treating a subagent report as verified fact without checking the cited files
+  requirement: >-
+    A subagent prompt must restate the relevant laws itself; the subagent does not see this file.
+
+context_discipline:
+  - keep the plan visible with the task/todo tools on multi-step work
+  - state the mode and stage in the working narrative so a compacted context can recover them
+  - re-read a contract file after context compaction instead of recalling it from memory
+
+escalation_chain: "blocked or ambiguous -> state the blocker clearly -> ask the user only if local evidence cannot resolve it safely"
+tool_error_law: "any tool error -> stop, classify it, and follow tooling-rules before continuing or escalating"

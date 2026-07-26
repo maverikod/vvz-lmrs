@@ -12,6 +12,10 @@ principles:
 stage_model:
   note: >-
     In Codex, these roles are workflow stages executed by one agent, not separate spawned agents.
+  model_tier: >-
+    Outside `planning` mode, use the cheapest model tier that can plausibly carry the bounded
+    work, and treat everything it returns as an unverified claim until checked against repository
+    evidence. See `ops/model-selection.yaml`.
   stages:
     orchestrator: task framing, sequencing, user-facing synthesis
     researcher: read-only fact gathering

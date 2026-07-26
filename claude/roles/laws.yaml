@@ -1,4 +1,4 @@
-# lmrs — standing laws for Codex
+# lmrs — standing laws for Claude
 
 variables:
   workspace_truth: local
@@ -54,22 +54,23 @@ laws:
     added to this pipeline as a new named check. A project without this CLI has a gap that must
     be closed before the work is accepted.
   cheapest_capable_model: >-
-    [TRIGGER: any delegation, helper-model use, or model choice outside `planning` mode] Push
-    the work down to the cheapest model tier that can plausibly carry it, and never to a tier
-    that cannot. Lower effort before raising the tier. State what the task requires before
-    choosing; do not pick a higher tier by habit. On failure, move up exactly one tier once,
-    then escalate; never loop on the same cheap attempt. `planning` mode is exempt: task
-    framing, mode routing, acceptance structure, and architectural decisions stay at the session
-    tier, because a cheap model must not choose the plan. See `ops/model-selection.yaml`.
+    [TRIGGER: any delegation or model choice outside `planning` mode] Push work down to the
+    cheapest model tier that can plausibly carry it, and never to a tier that cannot. Tier order
+    is `claude-haiku-4-5` -> `claude-sonnet-5` -> `claude-opus-5` -> `claude-fable-5`; within a
+    tier, lower `effort` before raising the tier. State what the task requires before choosing;
+    do not pick a tier by habit. On failure, move up exactly one tier once, then escalate — never
+    re-run the same tier on the same failure. `planning` mode is exempt: task framing, mode
+    routing, acceptance structure, and architectural decisions run at the session tier, because a
+    cheap model must not choose the plan. See `ops/model-selection.yaml`.
   zero_trust_cheap_output: >-
-    [TRIGGER: any result produced by a cheaper tier] Output from a cheaper tier is a claim, not
-    a fact, and the stage that used it owns the verification. Read the files a result cites
-    before repeating its conclusion; re-run any command reported as passing; treat "found
+    [TRIGGER: any result produced by a cheaper tier] Output from a cheaper tier is a claim, not a
+    fact, and the stage that delegated the work owns the verification. Read the files a result
+    cites before repeating its conclusion; re-run any command reported as passing; treat "found
     nothing" as unverified until the search is reproduced; never forward a cheap-tier summary to
     the user as an established finding. The `tester` verdict, the `conscience` review, every
     acceptance gate, and the definition of the task itself are never delegated downward. If
-    verifying costs more attention than doing the work at the higher tier, the cheap tier was
-    the wrong choice; say so and move up instead of skipping verification.
+    verifying costs more attention than doing the work at the higher tier, the cheap tier was the
+    wrong choice — say so and move up rather than skipping verification.
   verify_before_delivery: >-
     Verify through the `pipeline` CLI. Run the narrowest covering check first
     (`pipeline <check-name>`), then full `pipeline` before delivery. If verification cannot run,

@@ -10,7 +10,7 @@ Package version: `v1.6.2`
 - `modes.yaml`: mode router.
 - `roles/common.yaml`, `roles/laws.yaml`, `roles/orchestrator.yaml`: mandatory core read.
 - `roles/*.yaml`: stage contracts.
-- `ops/*.yaml`: lazily loaded operating cards.
+- `ops/*.yaml`: lazily loaded operating cards, including cheapest-capable model selection.
 - `VERSION`: bundle version marker.
 
 ## Project bindings
