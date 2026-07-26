@@ -3,33 +3,26 @@
 Author: Vasiliy Zdanovskiy
 email: vasilyvz@gmail.com
 """
-
-from __future__ import annotations
+from __future__ import annotations  # noqa: I001 (project-wide false positive)
 
 from collections.abc import Callable, Iterable, Mapping, MutableSequence
 from copy import deepcopy
 from dataclasses import asdict, is_dataclass
-from typing import Any, ClassVar
+import os
+from typing import Any, ClassVar, cast
 
 from lmrs.commands import CommandName
 from lmrs.model_cache import DiskModelCache
 from lmrs.model_lifecycle import ModelMemoryLifecycle
 from lmrs.runtime_client import VLLMOpenAIClient
-
-try:  # Optional server extra; base installs keep this module importable.
-    from mcp_proxy_adapter.commands.base import Command as _AdapterCommand
-    from mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult
-    from mcp_proxy_adapter.commands.hooks import (
-        register_custom_commands_hook as _adapter_register_custom_commands_hook,
-    )
-except Exception:  # pragma: no cover - depends on optional adapter package layout.
-    _AdapterCommand = object
-    ErrorResult = None  # type: ignore[assignment]
-    SuccessResult = None  # type: ignore[assignment]
-    _adapter_register_custom_commands_hook = None
+from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.hooks import (
+    register_custom_commands_hook as _adapter_register_custom_commands_hook,
+)
+from mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult
 
 
-class ThinAdapterCommand(_AdapterCommand):  # type: ignore[misc, valid-type]
+class ThinAdapterCommand(Command):
     """Base contract for adapter-facing LMRS command wrappers.
 
     Concrete subclasses expose a stable ``name``, may set ``use_queue`` for
@@ -47,7 +40,7 @@ class ThinAdapterCommand(_AdapterCommand):  # type: ignore[misc, valid-type]
         "properties": {},
         "additionalProperties": True,
     }
-    executor: ClassVar[Callable[[Mapping[str, Any]], Any] | None] = None
+    executor: ClassVar[staticmethod[[Mapping[str, Any]], Any] | None] = None
 
     @classmethod
     def get_schema(cls) -> dict[str, Any]:
@@ -66,13 +59,14 @@ class ThinAdapterCommand(_AdapterCommand):  # type: ignore[misc, valid-type]
 
     def delegate(self, params: Mapping[str, Any]) -> Any:
         """Call the configured domain executor or service."""
-        if self.executor is None:
+        executor = self.executor
+        if executor is None:
             raise RuntimeError(f"{type(self).__name__} has no domain executor")
-        return self.executor(params)
+        return executor(params)
 
     def _result_payload(self, payload: Any) -> dict[str, Any]:
         """Normalize domain return values into adapter result data."""
-        if is_dataclass(payload):
+        if is_dataclass(payload) and not isinstance(payload, type):
             payload = asdict(payload)
         elif hasattr(payload, "to_dict") and callable(payload.to_dict):
             payload = payload.to_dict()
@@ -80,36 +74,36 @@ class ThinAdapterCommand(_AdapterCommand):  # type: ignore[misc, valid-type]
             payload = dict(payload)
         return {"command": self.name, "payload": payload}
 
-    def success_result(self, payload: Any) -> object:
-        """Return a native adapter success result when available."""
-        data = self._result_payload(payload)
-        if SuccessResult is not None:
-            return SuccessResult(data=data)
-        return {"success": True, "data": data}
+    def success_result(self, payload: Any) -> CommandResult:
+        """Return a native adapter success result for a successful delegate call."""
+        result = SuccessResult(data=self._result_payload(payload))
+        return cast(CommandResult, result)
 
-    def error_result(self, code: str, message: str) -> object:
-        """Return a native adapter error result when available."""
+    def error_result(self, code: str, message: str) -> CommandResult:
+        """Return a native adapter error result for a failed delegate call."""
         details = {"code": code, "command": self.name}
-        if ErrorResult is not None:
-            return ErrorResult(message=message, details=details)
-        return {"success": False, "error": {"code": code, "message": message}, "details": details}
+        result = ErrorResult(message=message, details=details)
+        return cast(CommandResult, result)
 
-    async def execute(self, **kwargs: Any) -> object:
+    async def execute(self, **kwargs: Any) -> CommandResult:
         """Validate, delegate to the domain service, and return a result."""
         params: Mapping[str, Any] = kwargs
         try:
             self.validate(params)
             return self.success_result(self.delegate(params))
-        except Exception as exc:  # Adapter wrappers translate exceptions only.
+        except Exception as exc:  # noqa: BLE001
             return self.error_result(type(exc).__name__, str(exc))
 
 
-import os
-
-
-_CACHE = DiskModelCache(cache_root=os.environ.get("LMRS_MODEL_CACHE_ROOT", "/var/lmrs/hf-cache"))
-_VLLM_CLIENT = VLLMOpenAIClient(base_url=os.environ.get("VLLM_BASE_URL", "http://127.0.0.1:8000"))
-_LIFECYCLE = ModelMemoryLifecycle(runtime_backend="vllm", model_probe=_VLLM_CLIENT.is_model_served)
+_CACHE = DiskModelCache(
+    cache_root=os.environ.get("LMRS_MODEL_CACHE_ROOT", "/var/lmrs/hf-cache"),
+)
+_VLLM_CLIENT = VLLMOpenAIClient(
+    base_url=os.environ.get("VLLM_BASE_URL", "http://127.0.0.1:8000"),
+)
+_LIFECYCLE = ModelMemoryLifecycle(
+    runtime_backend="vllm", model_probe=_VLLM_CLIENT.is_model_served
+)
 
 
 def _param(params: Mapping[str, Any], name: str) -> str:
@@ -267,7 +261,7 @@ LMRS_PUBLIC_COMMAND_CLASSES: tuple[type[ThinAdapterCommand], ...] = (
 _REGISTERED_HOOKS: list[Callable[[object], None]] = []
 
 
-def _command_name(command_class: type[Any]) -> str:
+def _command_name(command_class: type[ThinAdapterCommand]) -> str:
     return str(
         getattr(command_class, "name", "")
         or getattr(command_class, "command_name", "")
@@ -276,7 +270,11 @@ def _command_name(command_class: type[Any]) -> str:
 
 def _iter_lmrs_command_classes() -> Iterable[type[ThinAdapterCommand]]:
     seen: set[type[ThinAdapterCommand]] = set()
-    for command_class in (*LMRS_PUBLIC_COMMAND_CLASSES, *ThinAdapterCommand.__subclasses__()):
+    candidates = cast(
+        "tuple[type[ThinAdapterCommand], ...]",
+        (*LMRS_PUBLIC_COMMAND_CLASSES, *ThinAdapterCommand.__subclasses__()),
+    )
+    for command_class in candidates:
         if command_class in seen or not _command_name(command_class):
             continue
         seen.add(command_class)
@@ -304,7 +302,9 @@ def _registered_command_names(registry: object) -> set[str]:
     return {name for name in names if name}
 
 
-def _is_registered(registry: object, command_class: type[Any]) -> bool:
+def _is_registered(
+    registry: object, command_class: type[ThinAdapterCommand]
+) -> bool:
     name = _command_name(command_class)
     for method_name in ("is_registered", "has_command", "contains"):
         method = getattr(registry, method_name, None)
@@ -353,6 +353,7 @@ def register_custom_commands_hook(
     raise TypeError("hook registry cannot accept custom command hooks")
 
 
-register_lmrs_commands.__auto_import_modules__ = ["lmrs.adapter.registration"]
-if _adapter_register_custom_commands_hook is not None:
-    _adapter_register_custom_commands_hook(register_lmrs_commands)
+register_lmrs_commands.__auto_import_modules__ = [  # type: ignore[attr-defined]
+    "lmrs.adapter.registration"
+]
+_adapter_register_custom_commands_hook(register_lmrs_commands)
