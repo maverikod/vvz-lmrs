@@ -1,49 +1,49 @@
-# syntax=docker/dockerfile:1
-#
-# LMRS image: vLLM (+ LMCache) model server bundled with the LMRS
-# mcp_proxy_adapter server. Only the LMRS server is exposed; vLLM listens on
-# loopback inside the container and is reachable only by LMRS.
-#
-# Author: Vasiliy Zdanovskiy
-# email: vasilyvz@gmail.com
-
 ARG VLLM_BASE=vllm/vllm-openai:latest
 FROM ${VLLM_BASE}
 
-ARG VERSION=dev
-LABEL org.opencontainers.image.title="lmrs" \
-      org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.description="Local Model Runtime Service (LMRS): mcp_proxy_adapter server bundled with vLLM + LMCache" \
-      org.opencontainers.image.authors="Vasiliy Zdanovskiy <vasilyvz@gmail.com>"
+ARG LMRS_UID=42424
+ARG LMRS_GID=42424
 
-# LMCache: KV-cache offloading/sharing layer for vLLM.
-RUN pip install --no-cache-dir lmcache
-
-# LMRS package (the [server] extra pulls mcp-proxy-adapter).
-WORKDIR /opt/lmrs
-COPY pyproject.toml README.md LICENSE ./
-COPY lmrs ./lmrs
-# blinker is pre-installed via distutils in the base image; pip cannot uninstall
-# it to satisfy the flask>=blinker 1.9 requirement, so force a clean install first.
-RUN pip install --no-cache-dir --ignore-installed blinker \
-    && pip install --no-cache-dir ".[server]"
-
-# In-container defaults (overridden by /etc/default/lmrs via --env-file and by
-# the mounted /etc/lmrs/config.json).
-ENV LMRS_CONFIG=/etc/lmrs/config.json \
-    LMRS_RUN_DIR=/var/lmrs \
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    LMRS_CONFIG=/etc/lmrs/config.json \
     LMRS_LOG_DIR=/var/log/lmrs \
-    LMRS_PORT=8012 \
-    VLLM_HOST=127.0.0.1 \
-    VLLM_PORT=8000 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    HF_HOME=/var/lmrs/hf-cache \
+    HUGGINGFACE_HUB_CACHE=/var/lmrs/hf-cache/hub \
+    TRANSFORMERS_CACHE=/var/lmrs/hf-cache/transformers \
+    XDG_CACHE_HOME=/var/lmrs/cache \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+RUN set -eux; \
+    groupadd --system --gid "${LMRS_GID}" lmrsgrp; \
+    useradd --system --uid "${LMRS_UID}" --gid lmrsgrp --home-dir /var/lmrs --shell /usr/sbin/nologin lmrsuser; \
+    mkdir -p /etc/lmrs/certs /var/lmrs/cache /var/lmrs/hf-cache /var/log/lmrs; \
+    chown -R lmrsuser:lmrsgrp /var/lmrs /var/log/lmrs; \
+    chgrp -R lmrsgrp /etc/lmrs; \
+    chmod 0750 /etc/lmrs /etc/lmrs/certs /var/lmrs /var/log/lmrs
+
+RUN python3 -m pip install --upgrade pip \
+    && python3 -m pip install "lmcache"
+
+WORKDIR /opt/lmrs
+COPY pyproject.toml README.md ./
+COPY lmrs ./lmrs
+COPY tools ./tools
+RUN python3 -m pip install --ignore-installed "fastapi[standard]==0.136.3" "typer>=0.20,<0.26" ".[server]" \
+    && python3 - <<"PYVERIFY"
+from importlib.metadata import version
+from packaging.version import Version
+fastapi_version = Version(version("fastapi"))
+typer_version = Version(version("typer"))
+assert Version("0.133.0") <= fastapi_version < Version("0.137.0"), fastapi_version
+assert Version("0.20.0") <= typer_version < Version("0.26.0"), typer_version
+PYVERIFY
+RUN chown -R lmrsuser:lmrsgrp /opt/lmrs && chmod -R u=rwX,g=rX,o= /opt/lmrs
 
 COPY docker/lmrs/docker-entrypoint.sh /usr/local/bin/lmrs-entrypoint
-RUN chmod 0755 /usr/local/bin/lmrs-entrypoint \
-    && mkdir -p /etc/lmrs /var/lmrs /var/log/lmrs
+RUN chmod 0755 /usr/local/bin/lmrs-entrypoint
 
-# Only the LMRS adapter port is exposed; vLLM stays on loopback (not exposed).
+USER lmrsuser:lmrsgrp
 EXPOSE 8012
-
 ENTRYPOINT ["/usr/local/bin/lmrs-entrypoint"]

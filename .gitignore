@@ -118,6 +118,7 @@ mtls-certs/
 
 debian/lmrs-docker-image
 debian/lmrs/
+debian/lmrs-container/
 debian/.debhelper/
 debian/files
 debian/*.substvars

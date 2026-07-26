@@ -1,79 +1,79 @@
-#!/usr/bin/env bash
-# postinst for lmrs: create user/group + layout, install templates, pull image
-# and create the container, then enable/start the service.
-#
-# Author: Vasiliy Zdanovskiy
-# email: vasilyvz@gmail.com
+#!/bin/sh
 set -e
 
-LMRS_USER="lmrsuser"
-LMRS_GROUP="lmrsgrp"
-ETC_DIR="/etc/lmrs"
-CERT_DIR="/etc/lmrs/certs"
-VAR_DIR="/var/lmrs"
-LOG_DIR="/var/log/lmrs"
-DEFAULT_FILE="/etc/default/lmrs"
-CONFIG="/etc/lmrs/config.json"
-SHARE="/usr/share/lmrs"
-BIN="/usr/lib/lmrs/bin"
-
-create_user() {
-    if ! getent group "${LMRS_GROUP}" >/dev/null; then
-        addgroup --system "${LMRS_GROUP}"
-    fi
-    if ! getent passwd "${LMRS_USER}" >/dev/null; then
-        adduser --system --ingroup "${LMRS_GROUP}" --no-create-home \
-            --home "${VAR_DIR}" "${LMRS_USER}"
-    fi
-}
-
-create_layout() {
-    install -d -o root -g "${LMRS_GROUP}" -m 0750 "${ETC_DIR}" "${CERT_DIR}"
-    install -d -o "${LMRS_USER}" -g "${LMRS_GROUP}" -m 0750 \
-        "${VAR_DIR}" "${VAR_DIR}/hf-cache" "${LOG_DIR}"
-    if [ ! -f "${CONFIG}" ] && [ -f "${SHARE}/config.json.template" ]; then
-        install -o root -g "${LMRS_GROUP}" -m 0640 \
-            "${SHARE}/config.json.template" "${CONFIG}"
-    fi
-    if [ ! -f "${DEFAULT_FILE}" ] && [ -f "${SHARE}/lmrs.default.template" ]; then
-        install -o root -g "${LMRS_GROUP}" -m 0640 \
-            "${SHARE}/lmrs.default.template" "${DEFAULT_FILE}"
-    fi
-    if [ -f "${SHARE}/docker-image" ]; then
-        install -o root -g "${LMRS_GROUP}" -m 0644 \
-            "${SHARE}/docker-image" "${VAR_DIR}/docker-image"
-    fi
-}
-
-setup_container() {
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "lmrs: docker not found; skipping image pull and container creation." >&2
-        return 0
-    fi
-    "${BIN}/lmrs-container" pull || true
-    "${BIN}/lmrs-container" recreate || true
-}
-
-certs_present() {
-    [ -f "${CERT_DIR}/lmrs.crt" ] && [ -f "${CERT_DIR}/lmrs.key" ]
-}
+LMRS_USER=lmrsuser
+LMRS_GROUP=lmrsgrp
+LMRS_UID=42424
+LMRS_GID=42424
+ETC_DIR=/etc/lmrs
+CERT_DIR=/etc/lmrs/certs
+DATA_DIR=/var/lmrs
+LOG_DIR=/var/log/lmrs
+DEFAULT_FILE=/etc/default/lmrs
+IMAGE_FILE=/var/lmrs/docker-image
 
 case "$1" in
-    configure)
-        create_user
-        create_layout
-        setup_container
-        systemctl daemon-reload || true
-        systemctl enable lmrs.service || true
-        if command -v docker >/dev/null 2>&1; then
-            if certs_present; then
-                systemctl start lmrs.service || true
-            else
-                echo "lmrs: TLS certs missing in ${CERT_DIR} (need lmrs.crt + lmrs.key)."
-                echo "lmrs: deploy certs, set LMRS_MODEL in ${DEFAULT_FILE}, then: systemctl start lmrs"
-            fi
-        fi
-        ;;
+  configure)
+    if getent group "$LMRS_GID" >/dev/null && [ "$(getent group "$LMRS_GID" | cut -d: -f1)" != "$LMRS_GROUP" ]; then
+      echo "lmrs: gid $LMRS_GID is already used by another group" >&2
+      exit 1
+    fi
+    if getent passwd "$LMRS_UID" >/dev/null && [ "$(getent passwd "$LMRS_UID" | cut -d: -f1)" != "$LMRS_USER" ]; then
+      echo "lmrs: uid $LMRS_UID is already used by another user" >&2
+      exit 1
+    fi
+    if ! getent group "$LMRS_GROUP" >/dev/null; then
+      addgroup --system --gid "$LMRS_GID" "$LMRS_GROUP"
+    elif [ "$(getent group "$LMRS_GROUP" | cut -d: -f3)" != "$LMRS_GID" ]; then
+      groupmod -g "$LMRS_GID" "$LMRS_GROUP"
+    fi
+    if ! id "$LMRS_USER" >/dev/null 2>&1; then
+      adduser --system --uid "$LMRS_UID" --ingroup "$LMRS_GROUP" --no-create-home --home "$DATA_DIR" "$LMRS_USER"
+    else
+      if [ "$(id -u "$LMRS_USER")" != "$LMRS_UID" ]; then usermod -u "$LMRS_UID" "$LMRS_USER"; fi
+      if [ "$(id -g "$LMRS_USER")" != "$LMRS_GID" ]; then usermod -g "$LMRS_GID" "$LMRS_USER"; fi
+    fi
+    if getent group docker >/dev/null; then
+      adduser "$LMRS_USER" docker >/dev/null || true
+    fi
+
+    install -d -o root -g "$LMRS_GROUP" -m 0750 "$ETC_DIR" "$CERT_DIR"
+    chgrp -R "$LMRS_GROUP" "$ETC_DIR"
+    install -d -o "$LMRS_USER" -g "$LMRS_GROUP" -m 0750 "$DATA_DIR" "$DATA_DIR/cache" "$DATA_DIR/hf-cache" "$LOG_DIR"
+    chown -R "$LMRS_USER:$LMRS_GROUP" "$DATA_DIR" "$LOG_DIR"
+
+    if [ ! -f "$ETC_DIR/config.json" ]; then
+      install -o root -g "$LMRS_GROUP" -m 0640 /usr/share/lmrs/config.json.template "$ETC_DIR/config.json"
+    fi
+    if [ -d "$ETC_DIR/lmcache.yaml" ]; then
+      rm -rf "$ETC_DIR/lmcache.yaml"
+    fi
+    if [ ! -f "$ETC_DIR/lmcache.yaml" ]; then
+      install -o root -g "$LMRS_GROUP" -m 0640 /usr/share/lmrs/lmcache.yaml.template "$ETC_DIR/lmcache.yaml"
+    fi
+    if [ ! -f "$DEFAULT_FILE" ]; then
+      install -o root -g "$LMRS_GROUP" -m 0640 /usr/share/lmrs/lmrs.default.template "$DEFAULT_FILE"
+    else
+      chgrp "$LMRS_GROUP" "$DEFAULT_FILE"
+      chmod 0640 "$DEFAULT_FILE"
+    fi
+
+    install -o "$LMRS_USER" -g "$LMRS_GROUP" -m 0644 /usr/share/lmrs/docker-image "$IMAGE_FILE"
+    IMAGE_REF=$(cat "$IMAGE_FILE")
+    if grep -q ^LMRS_IMAGE= "$DEFAULT_FILE"; then
+      sed -i "s|^LMRS_IMAGE=.*|LMRS_IMAGE=$IMAGE_REF|" "$DEFAULT_FILE"
+    else
+      echo "LMRS_IMAGE=$IMAGE_REF" >> "$DEFAULT_FILE"
+    fi
+
+    systemctl daemon-reload || true
+    if [ -s "$ETC_DIR/config.json" ]; then
+      systemctl enable lmrs.service >/dev/null || true
+      systemctl restart lmrs.service || true
+    else
+      echo "LMRS config is empty; edit $ETC_DIR/config.json and run: systemctl start lmrs" >&2
+    fi
+    ;;
 esac
 
 #DEBHELPER#

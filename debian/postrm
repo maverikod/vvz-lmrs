@@ -1,27 +1,10 @@
-#!/usr/bin/env bash
-# postrm for lmrs: on purge, remove the Docker image. Host data in /var/lmrs
-# and config in /etc/lmrs are intentionally left in place.
-#
-# Author: Vasiliy Zdanovskiy
-# email: vasilyvz@gmail.com
+#!/bin/sh
 set -e
 
 case "$1" in
-    purge)
-        if command -v docker >/dev/null 2>&1; then
-            img=""
-            if [ -f /var/lmrs/docker-image ]; then
-                img="$(cat /var/lmrs/docker-image)"
-            fi
-            if [ -z "${img}" ] && [ -f /usr/share/lmrs/docker-image ]; then
-                img="$(cat /usr/share/lmrs/docker-image)"
-            fi
-            if [ -n "${img}" ]; then
-                docker rmi "${img}" >/dev/null 2>&1 || true
-            fi
-        fi
-        echo "lmrs: /var/lmrs and /etc/lmrs were left in place; remove manually if desired."
-        ;;
+  purge)
+    rm -f /var/lmrs/docker-image
+    ;;
 esac
 
 #DEBHELPER#
