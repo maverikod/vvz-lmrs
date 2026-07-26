@@ -1,28 +1,32 @@
-# /etc/default/lmrs — LMRS container configuration.
-# Read by the lmrs systemd unit and the lmrs-container helper, and passed into
-# the container via `docker run --env-file`. After editing: systemctl restart lmrs
+# LMRS container image published on Docker Hub.
+LMRS_IMAGE=vasilyvz/lmrs:latest
+LMRS_CONTAINER_NAME=lmrs
 
-# --- Docker image (overrides /usr/share/lmrs/docker-image when set) ---
-#LMRS_IMAGE=vasilyvz/lmrs:0.1.0
+# Host identity. The Debian package creates this user/group and the container runs
+# with the same numeric ids.
+LMRS_USER=lmrsuser
+LMRS_GROUP=lmrsgrp
+LMRS_UID=42424
+LMRS_GID=42424
 
-# --- External exposure (only the LMRS server is published) ---
-LMRS_PORT=8012
-# Bind address on the host: 127.0.0.1 = host-only, 0.0.0.0 = expose on network.
+# Public listener for LMRS. vLLM stays internal to the same container.
 LMRS_BIND=127.0.0.1
+LMRS_PORT=8012
 
-# --- GPU (passed to `docker run --gpus`; empty disables GPU) ---
+# Mounted host surface: settings, certificates, data, logs.
+LMRS_CONFIG=/etc/lmrs/config.json
+LMRS_CERT_DIR=/etc/lmrs/certs
+LMRS_DATA_DIR=/var/lmrs
+LMRS_LOG_DIR=/var/log/lmrs
+LMRS_ENV_FILE=/etc/default/lmrs
+
+# GPU access for vLLM inside the container. Use a comma-separated GPU list or all.
 LMRS_GPUS=all
+NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-# --- vLLM model server (internal/loopback only, not published) ---
-# HuggingFace model id or local path. Empty = run LMRS only, no in-container vLLM.
+# vLLM/LMCache runtime inside the LMRS container.
 LMRS_MODEL=
 VLLM_HOST=127.0.0.1
 VLLM_PORT=8000
-# Extra args appended to `vllm serve` (LMCache connector, tensor-parallel, dtype, ...).
-VLLM_EXTRA_ARGS=
-
-# --- Paths (host side; bind-mounted into the container) ---
-LMRS_CONFIG=/etc/lmrs/config.json
-LMRS_RUN_DIR=/var/lmrs
-LMRS_LOG_DIR=/var/log/lmrs
-LMRS_HF_CACHE=/var/lmrs/hf-cache
+VLLM_EXTRA_ARGS="--gpu-memory-utilization 0.80"
+LMCACHE_CONFIG_FILE=/etc/lmrs/lmcache.yaml

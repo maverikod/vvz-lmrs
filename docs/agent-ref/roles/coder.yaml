@@ -1,5 +1,8 @@
 role: coder
-model: haiku
+requested_model_by_mode:
+  plan_authoring_AS: {model: gpt-5.6-luna, reasoning_effort: medium}
+  plan_execution_AS: {model: gpt-5.6-luna, reasoning_effort: medium}
+  refactor_repair: {model: gpt-5.5, reasoning_effort: medium}
 reads_first:
 - common.yaml
 - tooling.yaml
@@ -14,7 +17,6 @@ scope:
   - testing ownership
 may_use:
 - ca_read_only
-- ca_search
 - ca_analysis
 - editor_lifecycle
 permissions:
@@ -27,11 +29,15 @@ job: implement the given task via the editor lifecycle; loop directly with teste
 standards:
 - coder_guide
 - editor
-- ca_edit
 editor_lifecycle: CA session_create -> open -> preview -> edit(by node) -> write(preview)
-  -> write(commit, uploaded:true) -> close(always)
+  -> write(commit, uploaded:true) -> close(always)   # cas_mode (server-side) profile
+editor_lifecycle_local_mode: >-
+  [laws.yaml file_access=local, the DEFAULT profile] Skip the CA-session lifecycle
+  above entirely: edit the local checkout directly with local file tools, run the
+  project's own QA gate locally, and commit locally. Do not open a CA session for a
+  local-profile edit; the CA session lifecycle applies only under cas_mode.
 must_not:
-- spawn subagents (do the whole task yourself; every needed value is in the task)
+- spawn subagents when acting as an AS leaf
 - make assumptions
 - fall back to local bash for project files (never reaches CA)
 - read anything beyond common + this + the manuals named in the task
@@ -41,4 +47,4 @@ prohibitions:
 - do not make top-level architecture or plan decisions
 - do not communicate with the user directly
 loop: implement -> tester verdict -> fix -> ... (direct messages)
-escalation: unsolvable or tool error -> STOP + escalate to your spawning parent (context_former or executor)
+escalation: ambiguity, scope conflict, or tool error -> direct parent; remain active

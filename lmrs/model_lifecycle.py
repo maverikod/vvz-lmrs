@@ -7,7 +7,8 @@ email: vasilyvz@gmail.com
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Mapping
+from datetime import UTC, datetime
+from typing import Callable, Mapping
 
 
 class LifecycleState:
@@ -100,6 +101,8 @@ class ModelMemoryLifecycle:
     """
 
     current_residency: ModelResidency | None = None
+    runtime_backend: str = "vllm"
+    model_probe: Callable[[str], object] | None = None
 
     def load_model(
         self, model_name: str, allow_preload: bool = False
@@ -113,8 +116,63 @@ class ModelMemoryLifecycle:
         Returns:
             A LifecycleCommandResult describing the load outcome.
         """
-        msg = "ModelMemoryLifecycle.load_model is a contract stub"
-        raise NotImplementedError(msg)
+        if self.current_residency and self.current_residency.model_name == model_name:
+            return LifecycleCommandResult(
+                command="load_model",
+                model_name=model_name,
+                state=self.current_residency.state,
+                success=True,
+                reason_code="MODEL_ALREADY_LOADED",
+                measured_model_static_vram_bytes=self.current_residency.measured_model_static_vram_bytes,
+                model_loaded_free_vram_bytes=self.current_residency.model_loaded_free_vram_bytes,
+                metadata=dict(self.current_residency.metadata),
+            )
+        if self.current_residency and not allow_preload:
+            return LifecycleCommandResult(
+                command="load_model",
+                model_name=model_name,
+                state=self.current_residency.state,
+                success=False,
+                reason_code="MODEL_ALREADY_LOADED",
+                metadata={"resident_model": self.current_residency.model_name},
+            )
+        probe_metadata: dict[str, object] = {"allow_preload": allow_preload}
+        if self.model_probe is not None:
+            probe_result = self.model_probe(model_name)
+            ok = bool(getattr(probe_result, "ok", False))
+            served_models = tuple(getattr(probe_result, "served_models", ()) or ())
+            probe_metadata.update({
+                "runtime_probe": "vllm_openai_models",
+                "served_models": list(served_models),
+            })
+            metadata = getattr(probe_result, "metadata", None)
+            if isinstance(metadata, Mapping):
+                probe_metadata.update(dict(metadata))
+            if not ok:
+                error = getattr(probe_result, "error", None)
+                return LifecycleCommandResult(
+                    command="load_model",
+                    model_name=model_name,
+                    state=LifecycleState.FAILED,
+                    success=False,
+                    reason_code="MODEL_NOT_SERVED_BY_VLLM",
+                    metadata={**probe_metadata, "error": str(error or "model is not served by vLLM")},
+                )
+        self.current_residency = ModelResidency(
+            model_name=model_name,
+            runtime_backend=self.runtime_backend,
+            state=LifecycleState.LOADED,
+            keep_loaded=True,
+            loaded_at=datetime.now(UTC).isoformat(),
+            metadata=probe_metadata,
+        )
+        return LifecycleCommandResult(
+            command="load_model",
+            model_name=model_name,
+            state=LifecycleState.LOADED,
+            success=True,
+            metadata=probe_metadata,
+        )
 
     def unload_model(
         self, model_name: str
@@ -127,8 +185,35 @@ class ModelMemoryLifecycle:
         Returns:
             A LifecycleCommandResult describing the unload outcome.
         """
-        msg = "ModelMemoryLifecycle.unload_model is a contract stub"
-        raise NotImplementedError(msg)
+        if not self.current_residency or self.current_residency.model_name != model_name:
+            return LifecycleCommandResult(
+                command="unload_model",
+                model_name=model_name,
+                state=LifecycleState.NOT_LOADED,
+                success=False,
+                reason_code="MODEL_NOT_LOADED",
+            )
+        previous = self.current_residency
+        if self.model_probe is not None:
+            return LifecycleCommandResult(
+                command="unload_model",
+                model_name=model_name,
+                state=previous.state,
+                success=False,
+                reason_code="VLLM_DYNAMIC_UNLOAD_UNSUPPORTED",
+                measured_model_static_vram_bytes=previous.measured_model_static_vram_bytes,
+                model_loaded_free_vram_bytes=previous.model_loaded_free_vram_bytes,
+                metadata={"resident_model": previous.model_name, "runtime_backend": previous.runtime_backend},
+            )
+        self.current_residency = None
+        return LifecycleCommandResult(
+            command="unload_model",
+            model_name=model_name,
+            state=LifecycleState.NOT_LOADED,
+            success=True,
+            measured_model_static_vram_bytes=previous.measured_model_static_vram_bytes,
+            model_loaded_free_vram_bytes=previous.model_loaded_free_vram_bytes,
+        )
 
     def reload_model(
         self, model_name: str
@@ -141,8 +226,28 @@ class ModelMemoryLifecycle:
         Returns:
             A LifecycleCommandResult describing the reload outcome.
         """
-        msg = "ModelMemoryLifecycle.reload_model is a contract stub"
-        raise NotImplementedError(msg)
+        if not self.current_residency or self.current_residency.model_name != model_name:
+            return self.load_model(model_name, allow_preload=True)
+        previous = self.current_residency
+        self.current_residency = ModelResidency(
+            model_name=model_name,
+            runtime_backend=previous.runtime_backend,
+            state=LifecycleState.LOADED,
+            keep_loaded=previous.keep_loaded,
+            measured_model_static_vram_bytes=previous.measured_model_static_vram_bytes,
+            model_loaded_free_vram_bytes=previous.model_loaded_free_vram_bytes,
+            loaded_at=previous.loaded_at,
+            metadata=dict(previous.metadata),
+        )
+        return LifecycleCommandResult(
+            command="reload_model",
+            model_name=model_name,
+            state=LifecycleState.LOADED,
+            success=True,
+            measured_model_static_vram_bytes=previous.measured_model_static_vram_bytes,
+            model_loaded_free_vram_bytes=previous.model_loaded_free_vram_bytes,
+            metadata={"reloaded": True},
+        )
 
     def model_status(
         self, model_name: str
@@ -155,8 +260,23 @@ class ModelMemoryLifecycle:
         Returns:
             A LifecycleCommandResult carrying the model's residency state.
         """
-        msg = "ModelMemoryLifecycle.model_status is a contract stub"
-        raise NotImplementedError(msg)
+        if not self.current_residency or self.current_residency.model_name != model_name:
+            return LifecycleCommandResult(
+                command="model_status",
+                model_name=model_name,
+                state=LifecycleState.NOT_LOADED,
+                success=False,
+                reason_code="MODEL_NOT_LOADED",
+            )
+        return LifecycleCommandResult(
+            command="model_status",
+            model_name=model_name,
+            state=self.current_residency.state,
+            success=True,
+            measured_model_static_vram_bytes=self.current_residency.measured_model_static_vram_bytes,
+            model_loaded_free_vram_bytes=self.current_residency.model_loaded_free_vram_bytes,
+            metadata=dict(self.current_residency.metadata),
+        )
 
     def model_lifecycle_status(self) -> LifecycleCommandResult:
         """Report the overall model memory lifecycle status.
@@ -164,8 +284,23 @@ class ModelMemoryLifecycle:
         Returns:
             A LifecycleCommandResult describing current residency.
         """
-        msg = "ModelMemoryLifecycle.model_lifecycle_status is a contract stub"
-        raise NotImplementedError(msg)
+        if self.current_residency is None:
+            return LifecycleCommandResult(
+                command="model_lifecycle_status",
+                model_name="",
+                state=LifecycleState.NOT_LOADED,
+                success=True,
+                metadata={"resident_model": None},
+            )
+        return LifecycleCommandResult(
+            command="model_lifecycle_status",
+            model_name=self.current_residency.model_name,
+            state=self.current_residency.state,
+            success=True,
+            measured_model_static_vram_bytes=self.current_residency.measured_model_static_vram_bytes,
+            model_loaded_free_vram_bytes=self.current_residency.model_loaded_free_vram_bytes,
+            metadata={"resident_model": self.current_residency.model_name},
+        )
 
 
 @dataclass(frozen=True)

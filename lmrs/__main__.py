@@ -46,6 +46,9 @@ def main(argv: Optional[List[str]] = None) -> None:
     """
     args = list(sys.argv[1:] if argv is None else argv)
     config_path = _config_path_from_args(args)
+
+    # Importing this module installs the adapter custom-command hook.
+    import lmrs.adapter.registration  # noqa: F401
     from mcp_proxy_adapter.core.app_factory import create_and_run_server
 
     asyncio.run(create_and_run_server(config_path=config_path))
