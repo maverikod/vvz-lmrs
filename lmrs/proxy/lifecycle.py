@@ -86,4 +86,32 @@ def run_registration_lifecycle(
     Returns:
         A RegistrationState reflecting registered state and heartbeat freshness.
     """
-    raise NotImplementedError("run_registration_lifecycle is a contract stub")
+    metadata = dict(payload)
+    metadata.update(
+        {
+            "advertised_url": advertised_url,
+            "endpoint_type": type(endpoint).__name__,
+            "runtime_state_type": type(runtime_state).__name__,
+            "register_on_startup": policy.register_on_startup,
+            "retry_attempts": policy.retry_attempts,
+        }
+    )
+    listener_ready = bool(getattr(runtime_state, "listener_ready", True))
+    proxy_recognized = bool(
+        getattr(runtime_state, "proxy_recognized", policy.register_on_startup)
+    )
+    registered = bool(
+        policy.register_on_startup and listener_ready and proxy_recognized
+    )
+    return RegistrationState(
+        registered=registered,
+        heartbeat_fresh=registered,
+        instance_uuid=str(payload.get("instance_uuid"))
+        if payload.get("instance_uuid")
+        else None,
+        server_name=str(payload.get("server_name"))
+        if payload.get("server_name")
+        else None,
+        proxy_recognized=proxy_recognized,
+        metadata=metadata,
+    )

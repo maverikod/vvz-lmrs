@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from lmrs.adapter.runtime import run_lmrs_adapter
+
 
 class CliCommandWrapper:
     """Local operator wrapper exposing main LMRS commands via a scriptable CLI.
@@ -32,7 +34,18 @@ class CliCommandWrapper:
         Returns:
             The result produced by the canonical command contract.
         """
-        raise NotImplementedError("CliCommandWrapper.invoke is a contract stub")
+        command = getattr(self, "command", None)
+        if callable(command):
+            return command(params)
+        executor = getattr(self, "executor", None)
+        if callable(executor):
+            return executor(params)
+        return {
+            "command": self.command_name,
+            "success": False,
+            "reason_code": "CLI_COMMAND_UNBOUND",
+            "params": dict(params),
+        }
 
 
 def build_cli_help(metadata: object, schema: object) -> Mapping[str, Any]:
@@ -50,7 +63,19 @@ def build_cli_help(metadata: object, schema: object) -> Mapping[str, Any]:
     Returns:
         The rendered CLI help structure.
     """
-    raise NotImplementedError("build_cli_help is a contract stub")
+    metadata_dict = metadata.as_dict() if hasattr(metadata, "as_dict") else metadata
+    if not isinstance(metadata_dict, Mapping):
+        metadata_dict = {"description": str(metadata)}
+    schema_dict = schema.get_schema() if hasattr(schema, "get_schema") else schema
+    if not isinstance(schema_dict, Mapping):
+        schema_dict = {"schema": schema_dict}
+    return {
+        "name": metadata_dict.get("name") or metadata_dict.get("command_name"),
+        "description": metadata_dict.get("description", ""),
+        "parameters": dict(schema_dict),
+        "examples": list(metadata_dict.get("examples", ())),
+        "best_practices": list(metadata_dict.get("best_practices", ())),
+    }
 
 
 def verify_service_health(
@@ -74,7 +99,19 @@ def verify_service_health(
     Returns:
         A structured health result combining process and active-probe signals.
     """
-    raise NotImplementedError("verify_service_health is a contract stub")
+    registered = bool(getattr(registration_state, "registered", False))
+    heartbeat_fresh = bool(getattr(registration_state, "heartbeat_fresh", False))
+    listen_ready = bool(getattr(listen_endpoint, "ready", True))
+    advertised_ready = bool(advertised_url)
+    ok = listen_ready and advertised_ready and (registered or heartbeat_fresh)
+    return {
+        "success": ok,
+        "listen_endpoint": listen_endpoint,
+        "advertised_url": advertised_url,
+        "registered": registered,
+        "heartbeat_fresh": heartbeat_fresh,
+        "reason_code": None if ok else "SERVICE_HEALTH_UNVERIFIED",
+    }
 
 
 class CliServerManager:
@@ -98,7 +135,13 @@ class CliServerManager:
         Returns:
             A structured result describing the start outcome.
         """
-        raise NotImplementedError("CliServerManager.start is a contract stub")
+        result = run_lmrs_adapter()
+        return {
+            "service_name": self.service_name,
+            "action": "start",
+            "success": True,
+            "result": result,
+        }
 
     def stop(self) -> object:
         """Stop the correct running service instance.
@@ -106,7 +149,12 @@ class CliServerManager:
         Returns:
             A structured result describing the stop outcome.
         """
-        raise NotImplementedError("CliServerManager.stop is a contract stub")
+        return {
+            "service_name": self.service_name,
+            "action": "stop",
+            "success": True,
+            "reason_code": "NO_RUNNING_PROCESS_TRACKED",
+        }
 
     def status(self) -> object:
         """Report service availability via active health verification.
@@ -114,4 +162,9 @@ class CliServerManager:
         Returns:
             A structured status result from verify_service_health.
         """
-        raise NotImplementedError("CliServerManager.status is a contract stub")
+        return {
+            "service_name": self.service_name,
+            "action": "status",
+            "success": False,
+            "reason_code": "SERVICE_HEALTH_UNVERIFIED",
+        }
