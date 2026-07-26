@@ -7,7 +7,7 @@ email: vasilyvz@gmail.com
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Callable, Mapping
 
 
 @dataclass(frozen=True)
@@ -133,3 +133,55 @@ def launch_recheck(entry: QueueEntry, usable_dynamic_vram_bytes: int) -> bool:
         True if the entry still fits current usable VRAM, False otherwise.
     """
     return entry.required_dynamic_vram_bytes <= usable_dynamic_vram_bytes
+
+
+@dataclass(frozen=True)
+class QueueDispatchWorker:
+    """Queue worker dispatching at most one queued request per trigger.
+
+    Consumes a RequestQueue together with capacity-release and recheck
+    triggers and hands a dispatch-eligible request to an externally supplied
+    admitted-request executor. Selection and launch eligibility are delegated
+    to largest_fit_scheduler and launch_recheck; this worker owns only the
+    dispatch ordering and the at-most-once handoff. It implements no
+    admission, runtime, or execution algorithm of its own. Starting the worker
+    is owned by the adapter runtime wiring, not by this module.
+
+    Attributes:
+        executor: External admitted-request executor supplied by the caller.
+    """
+
+    executor: Callable[[QueueEntry], object]
+
+    def dispatch(
+        self,
+        queue: RequestQueue,
+        capacity_provider: Callable[[], int],
+    ) -> QueueEntry | None:
+        """Dispatch at most one queued request for a single trigger.
+
+        Invoked once per eligible trigger, whether that trigger is a capacity
+        release or a recheck. Selects a request with largest_fit_scheduler,
+        re-checks it with launch_recheck, and only on success hands that same
+        request to the supplied executor exactly once.
+
+        The capacity provider is queried twice: once for selection and once
+        again immediately before launch. The second reading is what makes the
+        recheck meaningful, because usable dynamic VRAM can change between
+        selection and launch.
+
+        Args:
+            queue: Queue whose entries are candidates for dispatch.
+            capacity_provider: Returns current usable dynamic VRAM in bytes.
+
+        Returns:
+            The dispatched QueueEntry, or None when no request was selected or
+            the launch recheck failed.
+        """
+        selected = largest_fit_scheduler(queue.entries, capacity_provider())
+        if selected is None:
+            return None
+        if not launch_recheck(selected, capacity_provider()):
+            return None
+        self.executor(selected)
+        return selected
