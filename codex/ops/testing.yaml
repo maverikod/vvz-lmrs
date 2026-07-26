@@ -1,0 +1,11 @@
+# Codex testing rules
+
+rules:
+  - start with the most local check that covers the change
+  - widen scope only when required by the failure or dependency graph
+  - include exact commands in the final report when verification matters
+
+verdict:
+  pass: all chosen checks completed successfully
+  fail: at least one relevant check failed
+  blocked: verification could not run; report why

@@ -1,0 +1,39 @@
+# lmrs — standing laws for Codex
+
+variables:
+  workspace_truth: local
+  verification: required
+
+laws:
+  local_workspace_truth: >-
+    The local checkout is the default source of truth. Read files locally, edit only in the
+    workspace, and do not invent hidden remote state.
+  branch_discipline: >-
+    Keep a clear working-branch policy for local changes, avoid direct history rewrites on shared
+    branches, and document how verified work is promoted. If the project has no formal branch
+    contract yet, define one here instead of silently omitting the law.
+  no_assumption_policy: >-
+    Do not claim behavior, architecture intent, or test status without repository evidence.
+  inspect_before_edit: >-
+    Before changing a file, read the relevant sections and understand nearby code and local diffs.
+  patch_only_manual_edits: >-
+    Manual source edits should use patch-based updates so the change boundary stays explicit.
+  preserve_user_work: >-
+    Never overwrite or revert unrelated changes you did not make unless the user explicitly asks.
+  non_destructive_git: >-
+    Avoid destructive git commands unless the user explicitly requests them and the risk is clear.
+  escalation_first_error: >-
+    Stop on the first infrastructure or transport failure, capture the exact failing command and
+    error text, and escalate instead of retrying blindly.
+  reproduce_before_claiming: >-
+    Do not declare tooling broken from a single flaky run; first inspect usage and reproduce
+    cleanly unless the failure is already a hard infrastructure blocker.
+  editor_gate_no_bypass: >-
+    If validation or quality gates fail after an edit, fix the underlying issue or report the
+    blocker; do not bypass the gate just to force a write-through.
+  verify_before_delivery: >-
+    Run the smallest relevant checks for the touched area. If verification cannot run, say so plainly.
+  exact_failure_reporting: >-
+    When a command or test fails, report the exact failing command and the important error details.
+  artifact_language: >-
+    Keep prompts, code comments, and repository artifacts in English unless the project requires another language.

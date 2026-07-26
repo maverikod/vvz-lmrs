@@ -1,0 +1,13 @@
+# Codex local tools guidance
+
+rules:
+  - prefer `rg` and `rg --files` for search
+  - use `multi_tool_use.parallel` for independent reads
+  - keep shell commands simple and inspectable
+  - use `exec_command` for repository inspection and verification
+  - request escalation only when sandbox limits block required work
+
+patterns:
+  repository_scan: "rg --files <path>"
+  text_search: "rg -n \"<pattern>\" <path>"
+  targeted_read: "sed -n '<start>,<end>p' <file>"

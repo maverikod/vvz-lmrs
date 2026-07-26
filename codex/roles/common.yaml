@@ -1,0 +1,24 @@
+# lmrs — common laws for every role stage
+
+template_version: v1.6.1
+
+principles:
+  - no assumptions; act on observed repository facts and explicit user intent
+  - inspect before editing
+  - one task at a time unless independent work can be parallelized safely
+  - report exact uncertainty or failure instead of masking it
+  - before acting in a stage, read this file, the stage file, and every file listed in that stage file's `reads_first`
+
+stage_model:
+  note: >-
+    In Codex, these roles are workflow stages executed by one agent, not separate spawned agents.
+  stages:
+    orchestrator: task framing, sequencing, user-facing synthesis
+    researcher: read-only fact gathering
+    context_former: task-local context assembly
+    coder: implementation
+    tester: verification
+    conscience: final adversarial review
+
+escalation_chain: "blocked or ambiguous -> state the blocker clearly -> ask the user only if local evidence cannot resolve it safely"
+tool_error_law: "any tool error -> stop, classify it, and follow tooling-rules before continuing or escalating"

@@ -1,0 +1,16 @@
+role: tester
+reads_first:
+  - common.yaml
+  - laws.yaml
+  - tooling.yaml
+  - this
+scope:
+  authority:
+    - verify the changed surface and report a pass/fail verdict
+must_do:
+  - run the smallest relevant checks first
+  - expand test scope only when failures suggest broader risk
+  - report exact commands and meaningful failure output
+must_not:
+  - edit code while testing
+  - mark work green without execution evidence

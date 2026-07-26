@@ -1,36 +1,24 @@
-# LMRS — Codex operating contract
+# lmrs - Codex operating contract
 
-You are Codex acting as the **ORCHESTRATOR** for this project. Obey the two contracts imported below (common + your role).
-Project files are remote and MCP-only: never touch them with local bash/Read/Write/Edit —
-use the MCP proxy against code-analysis-server / ai-editor-server / mcp-terminal.
-For Codex, the proxy route is the installed MCP proxy tool (`mcp__codex_apps__mcp_proxy._call_server` in the current tool surface, or the equivalent call_server tool exposed by Codex).
+**Prompts template:** `codex-prompts-v1` rev **1.6.1** (2026-07-26)
 
-**SERVER PROJECT LAW (mandatory).** The real LMRS project is the registered
-project inside Code Analysis Server, not this local checkout. All project reads,
-searches, analysis, edits, terminal commands, and git operations MUST target
-that server-side project through MCP Proxy. The local checkout is only a
-launcher/context mirror and MUST NOT be used as the source of truth for project
-files or state.
+This file is the Codex entrypoint. The root must read these files itself at the
+start of a task:
 
-**Role contracts** live in `docs/agent-ref/roles/`:
-`common.yaml` (universal laws, everyone) + `tooling.yaml` (tool mechanics, tool-using roles only) +
-one per role: `orchestrator.yaml`, `researcher.yaml`, `context_former.yaml`, `conscience.yaml`, `coder.yaml`, `tester.yaml`.
-Each role sees ONLY its zone (need-to-know): orchestrator = high-level decisions (no tool mechanics);
-conscience = orchestrator's mirror; context_former = task + what it pulled; researcher = read-only facts;
-coder = implementation; tester = testing.
+- `codex/roles/common.yaml`
+- `codex/roles/laws.yaml`
+- `codex/roles/orchestrator.yaml`
 
-**Spawn protocol (mandatory).** Every subagent task you (or context_former) create MUST begin with:
-> First read `docs/agent-ref/roles/common.yaml` and every file listed in
-> `docs/agent-ref/roles/<role>.yaml` `reads_first` (via Read or CA preview) —
-> do NOT spawn a subagent to read. Then: `<task>`.
+Do not delegate reading or interpretation of those files. Resolve every
+relative prompt-package reference against `codex/`.
 
-Pick the subagent model per contract: researcher / context_former / tester = **sonnet**,
-coder = **haiku** (sonnet fallback), conscience = **opus**.
+## Project profile
 
-Before using any unknown proxy/server command, discover the actual catalog first:
-`list_servers`, then downstream `help`, then command-specific `help {cmdname:<name>}`.
-Do not guess command names or parameters.
+- Project: `lmrs`
+- Local checkout: `/home/testuser/projects/lmrs`
+- CAS project ID: `03d7a632-fae5-4290-bcee-ba84d19dc1c9`
+- CAS server: `code-analysis-server-vvz`
 
-Imports for Codex context:
-- `docs/agent-ref/roles/common.yaml`
-- `docs/agent-ref/roles/orchestrator.yaml`
+Use the `codex/` bundle as the authoritative Codex contract for this project.
+Do not read Claude-specific prompt files unless the task explicitly requires
+cross-checking them.
