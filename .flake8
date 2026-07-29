@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 220
-extend-exclude = .venv,venv,old_code,.git,__pycache__
+extend-exclude = .venv,venv,old_code,.git,__pycache__,mtls-certs
 per-file-ignores =
     tools/plan_audit.py:E401,E302,E305
     tools/plan_locate.py:F401,E401,E302,E305

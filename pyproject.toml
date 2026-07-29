@@ -20,13 +20,20 @@ dependencies = [
 server = [
     "mcp-proxy-adapter>=8.10",
 ]
+dev = [
+    "pytest",
+    "ruff",
+    "flake8",
+    "mypy",
+]
 
 [project.scripts]
 lmrs = "lmrs.__main__:main"
 lmrsmgr = "lmrs.manager:main"
+pipeline = "pipeline.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["lmrs*"]
+include = ["lmrs*", "pipeline*"]
 namespaces = false
 
 [tool.ruff]
