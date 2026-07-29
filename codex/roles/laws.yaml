@@ -1,0 +1,80 @@
+# lmrs — standing laws for Codex
+
+variables:
+  workspace_truth: local
+  verification: required
+
+laws:
+  local_workspace_truth: >-
+    The local checkout is the default source of truth. Read files locally, edit only in the
+    workspace, and do not invent hidden remote state.
+  branch_discipline: >-
+    Keep a clear working-branch policy for local changes, avoid direct history rewrites on shared
+    branches, and document how verified work is promoted. If the project has no formal branch
+    contract yet, define one here instead of silently omitting the law.
+  no_assumption_policy: >-
+    Do not claim behavior, architecture intent, or test status without repository evidence.
+  inspect_before_edit: >-
+    Before changing a file, read the relevant sections and understand nearby code and local diffs.
+  patch_only_manual_edits: >-
+    Manual source edits should use patch-based updates so the change boundary stays explicit.
+  preserve_user_work: >-
+    Never overwrite or revert unrelated changes you did not make unless the user explicitly asks.
+  non_destructive_git: >-
+    Avoid destructive git commands unless the user explicitly requests them and the risk is clear.
+  escalation_first_error: >-
+    Stop on the first infrastructure or transport failure, capture the exact failing command and
+    error text, and escalate instead of retrying blindly.
+  reproduce_before_claiming: >-
+    Do not declare tooling broken from a single flaky run; first inspect usage and reproduce
+    cleanly unless the failure is already a hard infrastructure blocker.
+  editor_gate_no_bypass: >-
+    If validation or quality gates fail after an edit, fix the underlying issue or report the
+    blocker; do not bypass the gate just to force a write-through.
+  bugfix_acceptance_cycle: >-
+    [TRIGGER: any bug fix] The mandatory bug-fix algorithm is, in order: (1) REPRODUCE the
+    defect on the real failing path; (2) ADD a covering check for that defect to the project's
+    `pipeline` CLI as a named check and confirm it fails before further changes; (3) FIND the
+    root cause in code; (4) PROVE the cause-to-symptom link with concrete evidence; (5) FIX the
+    defect with focused regression coverage; (6) BUMP the project version by exactly +1 before
+    any deployment; (7) DEPLOY via ssh to `root@192.168.254.26` and, if the project ships a
+    client, publish that client to PyPI at the same version; (8) RUN `pipeline` against the real
+    deployed server and SMOKE-TEST the original bug path on the live system. This cycle is
+    mandatory, not advisory. Work is not accepted until every applicable step passes.
+  pipeline_cli_contract: >-
+    [TRIGGER: any verification, deploy, or server start] The project MUST ship a pipeline
+    package that becomes a plain CLI application after `pip install -e .`. The command is named
+    `pipeline` in every project without exception, so one invocation works across the whole
+    fleet. `pipeline` with no arguments runs the ENTIRE suite: every test and every check.
+    `pipeline <check-name>` runs ONLY that check, and `pipeline --list` enumerates the available
+    check names. This one command is the single verification entrypoint in every context: local
+    verification before delivery, the mandatory run against the real deployed server after any
+    deploy, and the smoke run after a normal server start. Never hand-roll a second runner, a
+    parallel script, or an ad-hoc command list for any of those contexts; a missing check is
+    added to this pipeline as a new named check. A project without this CLI has a gap that must
+    be closed before the work is accepted.
+  cheapest_capable_model: >-
+    [TRIGGER: any delegation, helper-model use, or model choice outside `planning` mode] Push
+    the work down to the cheapest model tier that can plausibly carry it, and never to a tier
+    that cannot. Lower effort before raising the tier. State what the task requires before
+    choosing; do not pick a higher tier by habit. On failure, move up exactly one tier once,
+    then escalate; never loop on the same cheap attempt. `planning` mode is exempt: task
+    framing, mode routing, acceptance structure, and architectural decisions stay at the session
+    tier, because a cheap model must not choose the plan. See `ops/model-selection.yaml`.
+  zero_trust_cheap_output: >-
+    [TRIGGER: any result produced by a cheaper tier] Output from a cheaper tier is a claim, not
+    a fact, and the stage that used it owns the verification. Read the files a result cites
+    before repeating its conclusion; re-run any command reported as passing; treat "found
+    nothing" as unverified until the search is reproduced; never forward a cheap-tier summary to
+    the user as an established finding. The `tester` verdict, the `conscience` review, every
+    acceptance gate, and the definition of the task itself are never delegated downward. If
+    verifying costs more attention than doing the work at the higher tier, the cheap tier was
+    the wrong choice; say so and move up instead of skipping verification.
+  verify_before_delivery: >-
+    Verify through the `pipeline` CLI. Run the narrowest covering check first
+    (`pipeline <check-name>`), then full `pipeline` before delivery. If verification cannot run,
+    say so plainly.
+  exact_failure_reporting: >-
+    When a command or test fails, report the exact failing command and the important error details.
+  artifact_language: >-
+    Keep prompts, code comments, and repository artifacts in English unless the project requires another language.

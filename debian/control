@@ -1,22 +1,19 @@
-Source: lmrs
-Section: net
+Source: lmrs-container
+Section: utils
 Priority: optional
 Maintainer: Vasiliy Zdanovskiy <vasilyvz@gmail.com>
-Build-Depends: debhelper-compat (= 13), python3
 Standards-Version: 4.6.2
-Homepage: https://github.com/maverikod/vvz-lmrs
+Build-Depends: debhelper-compat (= 13)
+Rules-Requires-Root: no
 
-Package: lmrs
+Package: lmrs-container
 Architecture: all
-Depends: ${misc:Depends},
-         docker.io | docker-ce,
-         systemd,
-         adduser,
-         openssl,
-         ca-certificates
-Description: Local Model Runtime Service (LMRS) container deployment
- Installs and runs LMRS as a systemd-managed Docker container. The image
- bundles a vLLM (+ LMCache) model server with the LMRS mcp_proxy_adapter
- server; only the LMRS server is exposed externally, while vLLM stays on
- loopback inside the container. Host directories /etc/lmrs, /var/lmrs and
- /var/log/lmrs are bind-mounted into the container.
+Conflicts: lmrs
+Replaces: lmrs
+Breaks: lmrs
+Depends: ${misc:Depends}, docker.io | docker-ce, systemd, adduser, passwd, ca-certificates, nvidia-container-toolkit | nvidia-container-runtime
+Description: LMRS container runner with bundled vLLM and LMCache
+ Installs the host-side contract for running LMRS from a Docker Hub image.
+ The image contains the LMRS server, vLLM, and LMCache. The host keeps only
+ settings, certificates, data, and logs mounted into the container. The package
+ creates lmrsuser:lmrsgrp, pulls the configured image, and starts the service.

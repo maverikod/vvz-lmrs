@@ -4,7 +4,7 @@
 # the Debian package that ships a systemd-managed container of that image.
 # Version comes from pyproject.toml (or an explicit argument).
 #
-# Image: ${LMRS_DOCKER_REGISTRY:-vasilyvz}/${LMRS_DOCKER_IMAGE_NAME:-lmrs}:<VERSION>
+# Image: ${LMRS_DOCKERHUB_REPO:-<docker-login-user>/lmrs}:<VERSION>
 #
 # Usage:
 #   ./build.sh                              # full: build + push + deb
@@ -20,13 +20,21 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
+if [[ -f "${ROOT}/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "${ROOT}/.env"
+    set +a
+fi
+
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 error() { echo -e "${RED}ERROR:${NC} $1" >&2; exit 1; }
 info()  { echo -e "${GREEN}INFO:${NC} $1"; }
 warn()  { echo -e "${YELLOW}WARN:${NC} $1"; }
 
-REGISTRY="${LMRS_DOCKER_REGISTRY:-vasilyvz}"
-IMAGE_NAME="${LMRS_DOCKER_IMAGE_NAME:-lmrs}"
+# shellcheck source=scripts/dockerhub_repo.sh
+source "${ROOT}/scripts/dockerhub_repo.sh"
+DOCKERHUB_REPO="$(dockerhub_repo_default)"
 VLLM_BASE="${LMRS_VLLM_BASE:-vllm/vllm-openai:latest}"
 
 VERSION=""
@@ -61,7 +69,8 @@ fi
 [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.+~]+)?$ ]] \
     || error "VERSION must look like a semver release tag (got: ${VERSION})"
 
-FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
+FULL_IMAGE="${DOCKERHUB_REPO}:${VERSION}"
+LATEST_IMAGE="${DOCKERHUB_REPO}:latest"
 command -v docker >/dev/null 2>&1 || error "docker not found"
 
 if (( DO_DOCKER )); then
@@ -71,14 +80,25 @@ if (( DO_DOCKER )); then
         --build-arg VERSION="${VERSION}" \
         --build-arg VLLM_BASE="${VLLM_BASE}" \
         -t "${FULL_IMAGE}" \
+        -t "${LATEST_IMAGE}" \
         .
     if (( SKIP_PUSH )); then
         warn "skipping docker push (--skip-push)"
     else
-        docker info 2>/dev/null | grep -qi "Username:" \
-            || warn "no docker login detected; if push fails run: docker login"
+        if [[ -n "${LMRS_DOCKERHUB_USERNAME:-}" && -n "${LMRS_DOCKERHUB_TOKEN:-}" ]]; then
+            info "docker login ${LMRS_DOCKERHUB_USERNAME}"
+            echo "${LMRS_DOCKERHUB_TOKEN}" | docker login -u "${LMRS_DOCKERHUB_USERNAME}" --password-stdin
+        fi
+        REPO_USER="${DOCKERHUB_REPO%%/*}"
+        DOCKER_USER="$(dockerhub_logged_in_user)"
+        [[ -n "${DOCKER_USER}" ]] \
+            || error "not logged in to Docker Hub; run: docker login -u ${REPO_USER} (or set LMRS_DOCKERHUB_USERNAME/LMRS_DOCKERHUB_TOKEN)"
+        [[ "${REPO_USER}" == "${DOCKER_USER}" ]] \
+            || error "cannot push ${DOCKERHUB_REPO}: logged in as ${DOCKER_USER}; set LMRS_DOCKERHUB_REPO=${DOCKER_USER}/lmrs or login as ${REPO_USER}"
         info "docker push ${FULL_IMAGE}"
         docker push "${FULL_IMAGE}"
+        info "docker push ${LATEST_IMAGE}"
+        docker push "${LATEST_IMAGE}"
     fi
 fi
 
@@ -103,7 +123,7 @@ command -v dpkg-buildpackage >/dev/null 2>&1 \
 
 info "generating debian/changelog (${VERSION}-1)"
 cat > debian/changelog <<EOF
-lmrs (${VERSION}-1) unstable; urgency=medium
+lmrs-container (${VERSION}-1) unstable; urgency=medium
 
   * Release ${VERSION}: containerized LMRS (vLLM + LMCache + adapter server).
 

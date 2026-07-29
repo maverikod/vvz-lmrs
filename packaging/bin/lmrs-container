@@ -1,98 +1,89 @@
-#!/usr/bin/env bash
-#
-# Manage the LMRS Docker container (pull / recreate / start / stop / remove).
-# Configuration comes from the environment (systemd EnvironmentFile
-# /etc/default/lmrs). Only the LMRS port is published; vLLM stays internal.
-#
-# Author: Vasiliy Zdanovskiy
-# email: vasilyvz@gmail.com
-set -euo pipefail
+#!/bin/sh
+set -eu
 
-# systemd passes these via EnvironmentFile, but also source it here so a direct
-# `lmrs-container recreate` (outside systemd) honours LMRS_BIND and friends.
-if [ -f /etc/default/lmrs ]; then
-    set -a
-    # shellcheck source=/dev/null
-    . /etc/default/lmrs
-    set +a
-fi
+NAME=${LMRS_CONTAINER_NAME:-lmrs}
+IMAGE=${LMRS_IMAGE:-vasilyvz/lmrs:latest}
+LMRS_USER=${LMRS_USER:-lmrsuser}
+LMRS_GROUP=${LMRS_GROUP:-lmrsgrp}
+LMRS_UID=${LMRS_UID:-42424}
+LMRS_GID=${LMRS_GID:-42424}
+CONFIG=${LMRS_CONFIG:-/etc/lmrs/config.json}
+CERT_DIR=${LMRS_CERT_DIR:-/etc/lmrs/certs}
+DATA_DIR=${LMRS_DATA_DIR:-/var/lmrs}
+LOG_DIR=${LMRS_LOG_DIR:-/var/log/lmrs}
+LMCACHE_CONFIG=${LMCACHE_CONFIG_FILE:-/etc/lmrs/lmcache.yaml}
+PORT=${LMRS_PORT:-8012}
+BIND=${LMRS_BIND:-127.0.0.1}
+GPUS=${LMRS_GPUS:-all}
+ENV_FILE=${LMRS_ENV_FILE:-/etc/default/lmrs}
 
-CONTAINER_NAME="${LMRS_CONTAINER_NAME:-lmrs}"
-ETC_DIR="${LMRS_ETC:-/etc/lmrs}"
-VAR_DIR="${LMRS_RUN_DIR:-/var/lmrs}"
-LOG_DIR="${LMRS_LOG_DIR:-/var/log/lmrs}"
-PORT="${LMRS_PORT:-8012}"
-BIND="${LMRS_BIND:-127.0.0.1}"
-GPUS="${LMRS_GPUS:-all}"
-HF_CACHE="${LMRS_HF_CACHE:-/var/lmrs/hf-cache}"
-ENV_FILE="${LMRS_ENV_FILE:-/etc/default/lmrs}"
-# Shared mesh network: join it so peers (and the proxy) are reachable by Docker's
-# embedded DNS name instead of a fixed IP.
-NETWORK="${LMRS_NETWORK:-smart-assistant}"
-
-image_ref() {
-    if [ -n "${LMRS_IMAGE:-}" ]; then
-        printf '%s\n' "${LMRS_IMAGE}"
-    elif [ -f /var/lmrs/docker-image ]; then
-        cat /var/lmrs/docker-image
-    elif [ -f /usr/share/lmrs/docker-image ]; then
-        cat /usr/share/lmrs/docker-image
-    else
-        printf 'vasilyvz/lmrs:latest\n'
-    fi
+ensure_layout() {
+  mkdir -p "$(dirname "$CONFIG")" "$CERT_DIR" "$DATA_DIR" "$DATA_DIR/cache" "$DATA_DIR/hf-cache" "$LOG_DIR"
+  chown -R "${LMRS_UID}:${LMRS_GID}" "$DATA_DIR" "$LOG_DIR" 2>/dev/null || true
 }
 
-cmd_pull() {
-    docker pull "$(image_ref)"
+container_exists() {
+  docker ps -a --format '{{.Names}}' | grep -Fxq "$NAME"
 }
 
-cmd_recreate() {
-    local img
-    img="$(image_ref)"
-    docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
-    mkdir -p "${HF_CACHE}"
-    local gpu_args=()
-    [ -n "${GPUS}" ] && gpu_args=(--gpus "${GPUS}")
-    local env_args=()
-    [ -f "${ENV_FILE}" ] && env_args=(--env-file "${ENV_FILE}")
-    docker network inspect "${NETWORK}" >/dev/null 2>&1 || docker network create "${NETWORK}"
-    docker run -d \
-        --name "${CONTAINER_NAME}" \
-        --restart unless-stopped \
-        --network "${NETWORK}" \
-        --network-alias "${CONTAINER_NAME}" \
-        --network-alias "${CONTAINER_NAME}.techsup.od.ua" \
-        "${gpu_args[@]}" \
-        "${env_args[@]}" \
-        -p "${BIND}:${PORT}:8012" \
-        -v "${ETC_DIR}:/etc/lmrs:ro" \
-        -v "${VAR_DIR}:/var/lmrs" \
-        -v "${LOG_DIR}:/var/log/lmrs" \
-        -v "${HF_CACHE}:/root/.cache/huggingface" \
-        "${img}"
+pull_image() {
+  docker pull "$IMAGE"
 }
 
-cmd_start() {
-    if docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
-        docker start "${CONTAINER_NAME}"
-    else
-        cmd_recreate
-    fi
+start_container() {
+  ensure_layout
+  if container_exists; then
+    docker rm -f "$NAME" >/dev/null
+  fi
+
+  docker run -d \
+    --name "$NAME" \
+    --restart unless-stopped \
+    --user "${LMRS_UID}:${LMRS_GID}" \
+    --gpus "$GPUS" \
+    -e NVIDIA_VISIBLE_DEVICES="$GPUS" \
+    -e NVIDIA_DRIVER_CAPABILITIES="${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}" \
+    -e LMRS_MODEL="${LMRS_MODEL:-}" \
+    -e VLLM_HOST="${VLLM_HOST:-127.0.0.1}" \
+    -e VLLM_PORT="${VLLM_PORT:-8000}" \
+    -e VLLM_EXTRA_ARGS="${VLLM_EXTRA_ARGS:-}" \
+    -e LMCACHE_CONFIG_FILE="${LMCACHE_CONFIG_FILE:-/etc/lmrs/lmcache.yaml}" \
+    -e LMRS_LOG_DIR="${LMRS_LOG_DIR:-/var/log/lmrs}" \
+    -p "${BIND}:${PORT}:8012" \
+    -v "${CONFIG}:/etc/lmrs/config.json:ro" \
+    -v "${CERT_DIR}:/etc/lmrs/certs:ro" \
+    -v "${LMCACHE_CONFIG}:/etc/lmrs/lmcache.yaml:ro" \
+    -v "${DATA_DIR}:/var/lmrs" \
+    -v "${LOG_DIR}:/var/log/lmrs" \
+    "$IMAGE"
 }
 
-cmd_stop() {
-    docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+stop_container() {
+  if container_exists; then
+    docker rm -f "$NAME" >/dev/null
+  fi
 }
 
-cmd_remove() {
-    docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+status_container() {
+  docker ps -a --filter "name=^/${NAME}$"
 }
 
-case "${1:-}" in
-    pull) cmd_pull ;;
-    recreate) cmd_recreate ;;
-    start) cmd_start ;;
-    stop) cmd_stop ;;
-    remove) cmd_remove ;;
-    *) echo "usage: $0 {pull|recreate|start|stop|remove}" >&2; exit 2 ;;
+case "${1:-start}" in
+  pull)
+    pull_image
+    ;;
+  start|restart)
+    pull_image
+    start_container
+    ;;
+  stop)
+    stop_container
+    ;;
+  status)
+    status_container
+    ;;
+  *)
+    echo "Usage: $0 {pull|start|restart|stop|status}" >&2
+    exit 2
+    ;;
 esac

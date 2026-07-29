@@ -1,56 +1,57 @@
-#!/usr/bin/env bash
-#
-# LMRS container entrypoint: starts the internal vLLM model server (loopback
-# only) and the LMRS mcp_proxy_adapter server, and supervises both — if either
-# exits, the other is stopped and the container exits so Docker can restart it.
-#
-# Configuration comes from environment (see /etc/default/lmrs) and the mounted
-# /etc/lmrs/config.json. Only LMRS is published externally; vLLM binds loopback.
-#
-# Author: Vasiliy Zdanovskiy
-# email: vasilyvz@gmail.com
+#!/bin/bash
 set -euo pipefail
 
-LMRS_CONFIG="${LMRS_CONFIG:-/etc/lmrs/config.json}"
-LMRS_RUN_DIR="${LMRS_RUN_DIR:-/var/lmrs}"
-LMRS_LOG_DIR="${LMRS_LOG_DIR:-/var/log/lmrs}"
-VLLM_HOST="${VLLM_HOST:-127.0.0.1}"
-VLLM_PORT="${VLLM_PORT:-8000}"
-LMRS_MODEL="${LMRS_MODEL:-}"
-VLLM_EXTRA_ARGS="${VLLM_EXTRA_ARGS:-}"
-
-mkdir -p "${LMRS_RUN_DIR}" "${LMRS_LOG_DIR}"
-
-if [ ! -f "${LMRS_CONFIG}" ]; then
-    echo "lmrs-entrypoint: FATAL: config not found at ${LMRS_CONFIG} (mount /etc/lmrs)" >&2
-    exit 1
+if [ "$(id -un)" != "lmrsuser" ] || [ "$(id -gn)" != "lmrsgrp" ]; then
+  echo "LMRS container must run as lmrsuser:lmrsgrp" >&2
+  exit 64
 fi
 
-VLLM_PID=""
-LMRS_PID=""
+: "${LMRS_CONFIG:=/etc/lmrs/config.json}"
+: "${LMRS_LOG_DIR:=/var/log/lmrs}"
+: "${LMRS_MODEL:=}"
+: "${VLLM_HOST:=127.0.0.1}"
+: "${VLLM_PORT:=8000}"
+: "${VLLM_EXTRA_ARGS:=}"
+: "${LMCACHE_CONFIG_FILE:=/etc/lmrs/lmcache.yaml}"
+: "${NVIDIA_VISIBLE_DEVICES:=all}"
+: "${NVIDIA_DRIVER_CAPABILITIES:=compute,utility}"
 
-terminate() {
-    [ -n "${VLLM_PID}" ] && kill "${VLLM_PID}" 2>/dev/null || true
-    [ -n "${LMRS_PID}" ] && kill "${LMRS_PID}" 2>/dev/null || true
+mkdir -p /var/lmrs/cache /var/lmrs/hf-cache "$LMRS_LOG_DIR"
+
+if [ ! -r "$LMRS_CONFIG" ]; then
+  echo "LMRS config is not readable: $LMRS_CONFIG" >&2
+  exit 66
+fi
+
+pids=()
+shutdown() {
+  for pid in "${pids[@]:-}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+    fi
+  done
+  wait || true
 }
-trap terminate TERM INT
+trap shutdown TERM INT EXIT
 
-# vLLM model server — loopback only, never exposed outside the container.
-if [ -n "${LMRS_MODEL}" ]; then
-    echo "lmrs-entrypoint: starting vLLM model=${LMRS_MODEL} on ${VLLM_HOST}:${VLLM_PORT}"
-    # shellcheck disable=SC2086
-    vllm serve "${LMRS_MODEL}" --host "${VLLM_HOST}" --port "${VLLM_PORT}" ${VLLM_EXTRA_ARGS} &
-    VLLM_PID=$!
-else
-    echo "lmrs-entrypoint: LMRS_MODEL not set; starting LMRS without an in-container vLLM"
+if [ -n "$LMRS_MODEL" ]; then
+  lmcache_args=()
+  if [ -r "$LMCACHE_CONFIG_FILE" ]; then
+    export LMCACHE_CONFIG_FILE
+    lmcache_args=(--kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}')
+  fi
+
+  # vLLM stays inside the LMRS container and receives GPU resources from docker run --gpus.
+  vllm serve "$LMRS_MODEL" \
+    --host "$VLLM_HOST" \
+    --port "$VLLM_PORT" \
+    "${lmcache_args[@]}" \
+    ${VLLM_EXTRA_ARGS} &
+  pids+=("$!")
 fi
 
-# LMRS adapter server — the only externally published service.
-echo "lmrs-entrypoint: starting LMRS adapter with config ${LMRS_CONFIG}"
-python3 -m lmrs --config "${LMRS_CONFIG}" &
-LMRS_PID=$!
+python3 -m lmrs --config "$LMRS_CONFIG" &
+pids+=("$!")
 
-# Exit as soon as either supervised process exits; stop the survivor first.
-wait -n
-terminate
-wait
+wait -n "${pids[@]}"
+exit $?

@@ -1,5 +1,5 @@
-lmrs (0.1.1-1) unstable; urgency=medium
+lmrs-container (0.1.4-1) unstable; urgency=medium
 
-  * Release 0.1.1: containerized LMRS (vLLM + LMCache + adapter server).
+  * Release 0.1.4: containerized LMRS (vLLM + LMCache + adapter server).
 
- -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Tue, 30 Jun 2026 21:47:59 +0300
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Sun, 26 Jul 2026 21:53:24 +0300

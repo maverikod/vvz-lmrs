@@ -18,3 +18,7 @@ __pycache__
 *.tree
 .lmrs-verify
 debian
+
+!tools/
+
+!tools/lmrs_model_check.py

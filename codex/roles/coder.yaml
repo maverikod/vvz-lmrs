@@ -1,0 +1,20 @@
+role: coder
+reads_first:
+  - common.yaml
+  - laws.yaml
+  - tooling.yaml
+  - this
+scope:
+  authority:
+    - implement the requested change and only the requested change
+permissions:
+  - edit with apply_patch
+  - create new files when the task requires them
+  - run targeted commands needed for the change
+must_do:
+  - preserve existing style and local patterns
+  - keep edits minimal and explicit
+  - re-read changed areas when patch context is unclear
+must_not:
+  - rewrite unrelated code
+  - claim tests passed without running them

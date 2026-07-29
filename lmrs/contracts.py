@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from collections.abc import Mapping, Sequence
 
+from lmrs.commands import CommandName
+
 
 @dataclass(frozen=True)
 class AdapterExposure:
@@ -130,11 +132,14 @@ def build_default_service_boundary() -> ServiceBoundary:
     """
     exposure = AdapterExposure(
         command_surface=(
-            "load_model",
-            "infer",
-            "unload_model",
-            "healthcheck",
-            "get_metadata",
+            CommandName.HEALTHCHECK,
+            CommandName.LOCAL_MODEL_CACHE_PRELOAD,
+            CommandName.LOCAL_MODEL_CACHE_STATUS,
+            CommandName.LOCAL_MODEL_CACHE_DELETE,
+            CommandName.CHAT,
+            CommandName.LOCAL_MODEL_LOAD,
+            CommandName.LOCAL_MODEL_UNLOAD,
+            CommandName.LOCAL_MODEL_RELOAD,
         ),
         requires_schemas=True,
         requires_metadata=True,
@@ -147,6 +152,8 @@ def build_default_service_boundary() -> ServiceBoundary:
             "local_model_runtime",
             "capacity_proof",
             "adapter_command_exposure",
+            "local_model_disk_cache",
+            "model_memory_lifecycle",
         ),
         excluded_capabilities=(
             "universal_provider_gateway",
@@ -156,7 +163,12 @@ def build_default_service_boundary() -> ServiceBoundary:
     )
     return ServiceBoundary(
         service_name="lmrs",
-        owned_responsibilities=("local_model_runtime", "capacity_proof"),
+        owned_responsibilities=(
+            "local_model_runtime",
+            "capacity_proof",
+            "local_model_disk_cache",
+            "model_memory_lifecycle",
+        ),
         delegated_responsibilities=("universal_provider_gateway",),
         adapter_exposure=exposure,
         mvp_scope=scope,
@@ -164,6 +176,7 @@ def build_default_service_boundary() -> ServiceBoundary:
             "All model inference runs locally.",
             "Provider gateway is delegated, never owned.",
             "All adapter commands conform to C-003 exposure requirements.",
+            "The declared command surface matches registered LMRS adapter commands.",
         ),
     )
 
