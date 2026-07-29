@@ -140,6 +140,8 @@ def build_default_service_boundary() -> ServiceBoundary:
             CommandName.LOCAL_MODEL_LOAD,
             CommandName.LOCAL_MODEL_UNLOAD,
             CommandName.LOCAL_MODEL_RELOAD,
+            CommandName.LOCAL_LMCACHE_STATUS,
+            CommandName.LOCAL_LMCACHE_PURGE,
         ),
         requires_schemas=True,
         requires_metadata=True,

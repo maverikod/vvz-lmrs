@@ -6,8 +6,10 @@ email: vasilyvz@gmail.com
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from pathlib import Path
+from typing import Any, Callable, Mapping
 
 
 @dataclass(frozen=True)
@@ -148,3 +150,168 @@ def build_lmcache_telemetry(
         swap_indicators=observations.get("swap_indicators", {}),
         metadata=observations.get("metadata", {}),
     )
+
+
+TelemetrySource = (
+    LMCacheTelemetry
+    | Mapping[str, Any]
+    | Callable[[], "LMCacheTelemetry | Mapping[str, Any]"]
+)
+
+
+def _resolve_telemetry(
+    policy: LMCacheStoragePolicy,
+    telemetry_source: TelemetrySource,
+) -> LMCacheTelemetry:
+    """Normalize a telemetry source into an LMCacheTelemetry record.
+
+    Args:
+        policy: The active LMCache storage policy, used for per-tier limits.
+        telemetry_source: An LMCacheTelemetry record, a mapping of raw runtime
+            observations, or a zero-argument callable returning either.
+
+    Returns:
+        An LMCacheTelemetry record describing the current cache tiers.
+
+    Raises:
+        TypeError: If the source is neither telemetry, a mapping, nor a callable
+            returning one of those.
+    """
+    source = telemetry_source() if callable(telemetry_source) else telemetry_source
+    if isinstance(source, LMCacheTelemetry):
+        return source
+    if isinstance(source, Mapping):
+        return build_lmcache_telemetry(policy, source)
+    raise TypeError("telemetry_source must be LMCacheTelemetry, a mapping of observations, or a callable returning one")
+
+
+def get_lmcache_status(
+    policy: LMCacheStoragePolicy,
+    telemetry_source: TelemetrySource,
+) -> dict[str, Any]:
+    """Report LMCache enablement, per-tier usage and limits, and hit accounting.
+
+    This is a read-only view assembled from the same telemetry facts as
+    ``build_lmcache_telemetry``. It performs no admission-related computation
+    and never consults the disk model cache; per-tier limits are policy facts,
+    so a telemetry record that omits them falls back to the policy values.
+
+    Args:
+        policy: The active LMCache storage policy.
+        telemetry_source: Current telemetry, raw observations, or a callable
+            returning either.
+
+    Returns:
+        A dict with the keys ``enabled``, ``cpu_cache_usage_bytes``,
+        ``cpu_cache_limit_bytes``, ``disk_cache_usage_bytes``,
+        ``disk_cache_limit_bytes``, ``hit_tokens``, ``miss_tokens``,
+        ``hit_quality`` and ``evictions``.
+    """
+    telemetry = _resolve_telemetry(policy, telemetry_source)
+    cpu_limit = telemetry.cpu_cache_limit if telemetry.cpu_cache_limit is not None else policy.cpu_cache_limit_bytes
+    disk_limit = telemetry.disk_cache_limit if telemetry.disk_cache_limit is not None else policy.disk_cache_limit_bytes
+    return {
+        "enabled": policy.enabled,
+        "cpu_cache_usage_bytes": telemetry.cpu_cache_usage,
+        "cpu_cache_limit_bytes": cpu_limit,
+        "disk_cache_usage_bytes": telemetry.disk_cache_usage,
+        "disk_cache_limit_bytes": disk_limit,
+        "hit_tokens": telemetry.hit_tokens,
+        "miss_tokens": telemetry.miss_tokens,
+        "hit_quality": telemetry.hit_quality,
+        "evictions": telemetry.evictions,
+    }
+
+
+def _purge_scope(namespace: str | None, session: str | None) -> str:
+    """Describe the requested purge scope.
+
+    Args:
+        namespace: Namespace binding to scope the purge to, if any.
+        session: Session binding to scope the purge to, if any.
+
+    Returns:
+        ``"global"`` when neither binding is given, otherwise a descriptor
+        naming the bindings that scope the purge.
+    """
+    if namespace is None and session is None:
+        return "global"
+    parts = []
+    if namespace is not None:
+        parts.append(f"namespace:{namespace}")
+    if session is not None:
+        parts.append(f"session:{session}")
+    return "/".join(parts)
+
+
+def _purge_targets(root: Path, namespace: str | None, session: str | None) -> list[Path]:
+    """Resolve the artifact paths a purge request covers.
+
+    Cached artifacts live under ``<root>/<namespace>/<session>/``; artifacts
+    written without a binding sit directly under the root.
+
+    Args:
+        root: The LMCache disk storage root.
+        namespace: Namespace binding to scope the purge to, if any.
+        session: Session binding to scope the purge to, if any.
+
+    Returns:
+        Existing paths to remove; an empty list when nothing matches.
+    """
+    if namespace is None and session is None:
+        return sorted(root.iterdir())
+    if namespace is not None and session is not None:
+        target = root / namespace / session
+        return [target] if target.exists() else []
+    if namespace is not None:
+        target = root / namespace
+        return [target] if target.exists() else []
+    return sorted(child / str(session) for child in root.iterdir() if child.is_dir() and (child / str(session)).exists())
+
+
+def _remove_artifact(target: Path) -> int:
+    """Remove one artifact path and report how many files it held.
+
+    Args:
+        target: File or directory to remove.
+
+    Returns:
+        The number of files removed.
+    """
+    if target.is_dir():
+        removed = sum(1 for path in target.rglob("*") if path.is_file())
+        shutil.rmtree(target)
+        return removed
+    target.unlink()
+    return 1
+
+
+def purge_lmcache(
+    policy: LMCacheStoragePolicy,
+    namespace: str | None = None,
+    session: str | None = None,
+) -> dict[str, Any]:
+    """Remove cached LMCache artifacts globally or for one binding.
+
+    With neither binding given every artifact under
+    ``policy.cache_storage_path`` is removed; with a namespace and/or session
+    only the artifacts bound to them are removed. This touches neither
+    admission control nor the disk model cache, and enabling, disabling or
+    resizing LMCache remains a configuration change.
+
+    Args:
+        policy: The active LMCache storage policy.
+        namespace: Namespace binding to scope the purge to, if any.
+        session: Session binding to scope the purge to, if any.
+
+    Returns:
+        A summary dict with the keys ``scope`` and ``removed_count``.
+    """
+    scope = _purge_scope(namespace, session)
+    if not policy.cache_storage_path:
+        return {"scope": scope, "removed_count": 0}
+    root = Path(policy.cache_storage_path)
+    if not root.is_dir():
+        return {"scope": scope, "removed_count": 0}
+    removed = sum(_remove_artifact(target) for target in _purge_targets(root, namespace, session))
+    return {"scope": scope, "removed_count": removed}

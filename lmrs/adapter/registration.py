@@ -12,6 +12,7 @@ import os
 from typing import Any, ClassVar, cast
 
 from lmrs.commands import CommandName
+from lmrs.lmcache import LMCacheStoragePolicy, get_lmcache_status, purge_lmcache
 from lmrs.model_cache import DiskModelCache
 from lmrs.model_lifecycle import ModelMemoryLifecycle
 from lmrs.runtime_client import VLLMOpenAIClient
@@ -104,6 +105,23 @@ _VLLM_CLIENT = VLLMOpenAIClient(
 _LIFECYCLE = ModelMemoryLifecycle(
     runtime_backend="vllm", model_probe=_VLLM_CLIENT.is_model_served
 )
+_LMCACHE_POLICY = LMCacheStoragePolicy(
+    enabled=os.environ.get("LMRS_LMCACHE_ENABLED", "").lower() in {"1", "true", "yes"},
+    cache_storage_path=os.environ.get("LMRS_LMCACHE_PATH", "/var/lmrs/lmcache"),
+)
+
+
+def _lmcache_observations() -> Mapping[str, Any]:
+    """Return raw LMCache runtime observations for the status command.
+
+    The LMCache backend publishes its counters through the runtime wiring; until
+    that wiring reports them, no observation is available and the status command
+    answers with the policy plus zeroed counters rather than inventing figures.
+
+    Returns:
+        A mapping of raw observations consumed by ``build_lmcache_telemetry``.
+    """
+    return {}
 
 
 def _param(params: Mapping[str, Any], name: str) -> str:
@@ -237,6 +255,43 @@ class LocalModelUnloadCommand(ThinAdapterCommand):
         return _LIFECYCLE.unload_model(_param(params, "model_name"))
 
 
+LMCACHE_PURGE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "namespace": {"type": "string", "minLength": 1},
+        "session": {"type": "string", "minLength": 1},
+    },
+    "additionalProperties": True,
+}
+
+
+class LocalLmcacheStatusCommand(ThinAdapterCommand):
+    """Adapter wrapper for read-only LMCache status."""
+
+    name: ClassVar[str] = CommandName.LOCAL_LMCACHE_STATUS
+    descr: ClassVar[str] = "Report LMCache enablement, per-tier usage and limits, and hit accounting"
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        return get_lmcache_status(_LMCACHE_POLICY, _lmcache_observations)
+
+
+class LocalLmcachePurgeCommand(ThinAdapterCommand):
+    """Adapter wrapper for global or scoped LMCache purge."""
+
+    name: ClassVar[str] = CommandName.LOCAL_LMCACHE_PURGE
+    descr: ClassVar[str] = "Remove cached LMCache artifacts globally or for one namespace/session binding"
+    schema: ClassVar[dict[str, Any]] = LMCACHE_PURGE_SCHEMA
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        namespace = params.get("namespace")
+        session = params.get("session")
+        return purge_lmcache(
+            _LMCACHE_POLICY,
+            namespace=namespace if isinstance(namespace, str) and namespace else None,
+            session=session if isinstance(session, str) and session else None,
+        )
+
+
 class LocalModelReloadCommand(ThinAdapterCommand):
     """Adapter wrapper for model memory reload."""
 
@@ -257,6 +312,8 @@ LMRS_PUBLIC_COMMAND_CLASSES: tuple[type[ThinAdapterCommand], ...] = (
     LocalModelLoadCommand,
     LocalModelUnloadCommand,
     LocalModelReloadCommand,
+    LocalLmcacheStatusCommand,
+    LocalLmcachePurgeCommand,
 )
 _REGISTERED_HOOKS: list[Callable[[object], None]] = []
 

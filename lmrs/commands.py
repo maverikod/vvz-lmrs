@@ -32,6 +32,8 @@ class CommandName:
         LOCAL_MODEL_LOAD: Model memory load command.
         LOCAL_MODEL_UNLOAD: Model memory unload command.
         LOCAL_MODEL_RELOAD: Model memory reload command.
+        LOCAL_LMCACHE_STATUS: LMCache status command.
+        LOCAL_LMCACHE_PURGE: LMCache purge command.
     """
 
     HEALTHCHECK: str = "healthcheck"
@@ -48,6 +50,8 @@ class CommandName:
     LOCAL_MODEL_LOAD: str = "local_model_load"
     LOCAL_MODEL_UNLOAD: str = "local_model_unload"
     LOCAL_MODEL_RELOAD: str = "local_model_reload"
+    LOCAL_LMCACHE_STATUS: str = "local_lmcache_status"
+    LOCAL_LMCACHE_PURGE: str = "local_lmcache_purge"
 
 
 class ErrorCode:
