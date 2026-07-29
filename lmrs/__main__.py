@@ -13,7 +13,6 @@ email: vasilyvz@gmail.com
 from __future__ import annotations
 
 import argparse
-import asyncio
 from typing import List, Optional
 
 DEFAULT_CONFIG_PATH = "/etc/lmrs/config.json"
@@ -52,11 +51,12 @@ def main(argv: Optional[List[str]] = None) -> None:
     args = parse_args(argv)
 
     # Deferred so the entrypoint stays importable without the optional
-    # ``[server]`` extra; importing registration installs the adapter hook.
-    import lmrs.adapter.registration  # noqa: F401
-    from mcp_proxy_adapter.core.app_factory import create_and_run_server
+    # ``[server]`` extra. The startup sequence itself (command registration
+    # plus the adapter factory call) lives in one canonical place, which
+    # run_lmrs_adapter delegates to as well.
+    from lmrs.adapter.runtime import start_adapter_server
 
-    asyncio.run(create_and_run_server(config_path=args.config))
+    start_adapter_server(args.config)
 
 
 if __name__ == "__main__":

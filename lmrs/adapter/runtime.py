@@ -6,9 +6,11 @@ email: vasilyvz@gmail.com
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+import asyncio
+import inspect
+from collections.abc import Callable, Coroutine, Iterable, Mapping
 from copy import deepcopy
-from typing import Any
+from typing import Any, cast
 
 from lmrs.adapter.registration import register_custom_commands_hook
 
@@ -117,6 +119,76 @@ def _load_runtime_config(loader: Callable[[], Mapping[str, Any]] | None) -> Mapp
     return loader()
 
 
+def _default_server_factory() -> Callable[..., Any]:
+    """Resolve the adapter's server factory.
+
+    Imported lazily so this module stays importable without the optional
+    ``[server]`` extra installed.
+
+    Returns:
+        The ``mcp_proxy_adapter`` ``create_and_run_server`` factory.
+    """
+    from mcp_proxy_adapter.core.app_factory import create_and_run_server
+
+    return create_and_run_server
+
+
+def _run_awaitable(awaitable: Any) -> Any:
+    """Run an awaitable server-factory result on a fresh event loop.
+
+    Args:
+        awaitable: The awaitable returned by the server factory.
+
+    Returns:
+        Whatever the awaitable resolves to.
+    """
+    return asyncio.run(cast("Coroutine[Any, Any, Any]", awaitable))
+
+
+def start_adapter_server(
+    config_path: str | None = None,
+    *,
+    config: Mapping[str, Any] | None = None,
+    create_and_run_server: Callable[..., Any] | None = None,
+    runner: Callable[[Any], Any] | None = None,
+    **factory_kwargs: Any,
+) -> Any:
+    """Run the single canonical LMRS server startup sequence.
+
+    This is the one place that installs command registration and hands control
+    to the adapter server factory. Both ``lmrs.__main__`` and
+    ``run_lmrs_adapter`` delegate here rather than repeating the sequence, so
+    exactly one startup seam exists (C-050).
+
+    Args:
+        config_path: Path to the LMRS configuration file, when starting from disk.
+        config: In-memory configuration mapping, when starting from a loaded config.
+        create_and_run_server: Server factory override; the adapter factory is
+            imported when omitted.
+        runner: Callable used to run an awaitable factory result; defaults to
+            ``asyncio.run``.
+        **factory_kwargs: Extra keyword arguments forwarded to the factory.
+
+    Returns:
+        Whatever the server factory returns, after awaiting it when needed.
+    """
+    # Importing registration installs the adapter command hook; it must happen
+    # before control passes to the factory.
+    import lmrs.adapter.registration  # noqa: F401
+
+    factory = create_and_run_server if create_and_run_server is not None else _default_server_factory()
+    kwargs: dict[str, Any] = dict(factory_kwargs)
+    if config_path is not None:
+        kwargs["config_path"] = config_path
+    if config is not None:
+        kwargs["config"] = config
+    result = factory(**kwargs)
+    if inspect.isawaitable(result):
+        run = runner if runner is not None else _run_awaitable
+        return run(result)
+    return result
+
+
 def run_lmrs_adapter(
     *,
     config_loader: Callable[[], Mapping[str, Any]] | None = None,
@@ -124,7 +196,28 @@ def run_lmrs_adapter(
     create_and_run_server: Callable[..., Any] | None = None,
     hook_registry: object | None = None,
 ) -> Any:
-    """Register hooks, validate config, start lifecycle services, run adapter."""
+    """Register hooks, validate config, start lifecycle services, run adapter.
+
+    Owns configuration loading, validation and lifecycle-service startup, then
+    delegates the server start itself to ``start_adapter_server``. Without a
+    server factory it performs those preparation steps and reports them without
+    starting a server, which is the seam the CLI and tests use.
+
+    Args:
+        config_loader: Callable returning the runtime configuration; the
+            generated default configuration is used when omitted.
+        lifecycle_services: Services whose ``start`` is called with the config.
+        create_and_run_server: Server factory override; without it no server is
+            started and the prepared state is returned instead.
+        hook_registry: Registry receiving the custom-commands hook.
+
+    Returns:
+        The prepared startup state when no factory is given, otherwise the
+        result of the canonical startup path.
+
+    Raises:
+        ValueError: If the loaded configuration fails validation.
+    """
     hook = register_custom_commands_hook(hook_registry)
     config = _load_runtime_config(config_loader)
     validation = validate_lmrs_config(config)
@@ -138,8 +231,9 @@ def run_lmrs_adapter(
             "lifecycle_services_started": lifecycle_count,
             "server_result": None,
         }
-    return create_and_run_server(
+    return start_adapter_server(
         config=validation["config"],
+        create_and_run_server=create_and_run_server,
         custom_commands_hook=hook,
         lifecycle_services_started=lifecycle_count,
     )
