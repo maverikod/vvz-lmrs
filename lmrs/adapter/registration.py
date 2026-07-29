@@ -14,7 +14,7 @@ from typing import Any, ClassVar, cast
 from lmrs.commands import CommandName
 from lmrs.lmcache import LMCacheStoragePolicy, get_lmcache_status, purge_lmcache
 from lmrs.model_cache import DiskModelCache
-from lmrs.model_lifecycle import ModelMemoryLifecycle
+from lmrs.model_lifecycle import ModelMemoryLifecycle, switch_model
 from lmrs.runtime_client import VLLMOpenAIClient
 from mcp_proxy_adapter.commands.base import Command, CommandResult
 from mcp_proxy_adapter.commands.hooks import (
@@ -292,6 +292,25 @@ class LocalLmcachePurgeCommand(ThinAdapterCommand):
         )
 
 
+class LocalModelSwitchCommand(ThinAdapterCommand):
+    """Adapter wrapper for the queued full model switch."""
+
+    name: ClassVar[str] = CommandName.LOCAL_MODEL_SWITCH
+    descr: ClassVar[str] = "Switch the resident model to another model in one queued operation"
+    use_queue: ClassVar[bool] = True
+    schema: ClassVar[dict[str, Any]] = MODEL_NAME_SCHEMA
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        stages: list[str] = []
+        result = switch_model(
+            _param(params, "model_name"),
+            stages.append,
+            lifecycle=_LIFECYCLE,
+            cache=_CACHE,
+        )
+        return {**result, "progress": stages}
+
+
 class LocalModelReloadCommand(ThinAdapterCommand):
     """Adapter wrapper for model memory reload."""
 
@@ -312,6 +331,7 @@ LMRS_PUBLIC_COMMAND_CLASSES: tuple[type[ThinAdapterCommand], ...] = (
     LocalModelLoadCommand,
     LocalModelUnloadCommand,
     LocalModelReloadCommand,
+    LocalModelSwitchCommand,
     LocalLmcacheStatusCommand,
     LocalLmcachePurgeCommand,
 )

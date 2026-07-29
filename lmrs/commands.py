@@ -34,6 +34,7 @@ class CommandName:
         LOCAL_MODEL_RELOAD: Model memory reload command.
         LOCAL_LMCACHE_STATUS: LMCache status command.
         LOCAL_LMCACHE_PURGE: LMCache purge command.
+        LOCAL_MODEL_SWITCH: Queued full model switch command.
     """
 
     HEALTHCHECK: str = "healthcheck"
@@ -52,6 +53,7 @@ class CommandName:
     LOCAL_MODEL_RELOAD: str = "local_model_reload"
     LOCAL_LMCACHE_STATUS: str = "local_lmcache_status"
     LOCAL_LMCACHE_PURGE: str = "local_lmcache_purge"
+    LOCAL_MODEL_SWITCH: str = "local_model_switch"
 
 
 class ErrorCode:
@@ -73,6 +75,7 @@ class ErrorCode:
         MODEL_CACHE_CORRUPTED: Disk cache contents are corrupted.
         MODEL_ALREADY_LOADED: Model is already loaded in memory.
         MODEL_UNLOAD_FAILED: Model failed to unload from memory.
+        MODEL_SWITCHING: A model switch is in progress for the target model.
         LMCACHE_UNAVAILABLE: LMCache backend is unavailable.
         LMCACHE_LOOKUP_FAILED: LMCache lookup failed.
         LMCACHE_WRITE_FAILED: LMCache write failed.
@@ -93,6 +96,7 @@ class ErrorCode:
     MODEL_CACHE_CORRUPTED: str = "MODEL_CACHE_CORRUPTED"
     MODEL_ALREADY_LOADED: str = "MODEL_ALREADY_LOADED"
     MODEL_UNLOAD_FAILED: str = "MODEL_UNLOAD_FAILED"
+    MODEL_SWITCHING: str = "MODEL_SWITCHING"
     LMCACHE_UNAVAILABLE: str = "LMCACHE_UNAVAILABLE"
     LMCACHE_LOOKUP_FAILED: str = "LMCACHE_LOOKUP_FAILED"
     LMCACHE_WRITE_FAILED: str = "LMCACHE_WRITE_FAILED"
@@ -461,11 +465,51 @@ class CanonicalChatHandler:
     Registering adapter command classes belongs to the adapter layer and is
     absent from this module by design.
 
+    A model being switched is treated as not loaded: while
+    ``model_switch_in_progress`` reports a switch for the requested model, both
+    entry paths reject immediately with MODEL_SWITCHING and never reach the
+    capacity estimate, admission verdict, queue or runtime. Without a switch in
+    progress admission behaves exactly as before.
+
     Attributes:
         executor: Translator producing the stable CommandResult outcomes.
+        model_switch_in_progress: Predicate answering whether a switch is
+            running for a model name; no switch is assumed when it is absent.
     """
 
     executor: PublicCommandExecutor = field(default_factory=PublicCommandExecutor)
+    model_switch_in_progress: Callable[[str], bool] | None = None
+
+    def _switching(self, model_name: str) -> bool:
+        """Report whether a switch is in progress for the requested model.
+
+        Args:
+            model_name: Name of the model the request targets.
+
+        Returns:
+            True when a switch is running and the request must be rejected.
+        """
+        if self.model_switch_in_progress is None:
+            return False
+        return bool(self.model_switch_in_progress(model_name))
+
+    def _switching_rejection(self, request: Mapping[str, Any], dry_run: bool) -> CommandResult:
+        """Build the immediate MODEL_SWITCHING rejection for a request.
+
+        Args:
+            request: The original request inputs, read for reporting only.
+            dry_run: Whether the estimate path asked for the rejection.
+
+        Returns:
+            A rejected CommandResult carrying the MODEL_SWITCHING reason code.
+        """
+        build = self.executor.estimate_result if dry_run else self.executor.chat_result
+        return build(
+            "reject",
+            reason_code=ErrorCode.MODEL_SWITCHING,
+            token_breakdown=request.get("token_breakdown"),
+            capacity_snapshot=request.get("capacity"),
+        )
 
     def _estimate_and_admit(
         self,
@@ -515,6 +559,8 @@ class CanonicalChatHandler:
             outcome carrying the reason code, token breakdown and capacity
             snapshot.
         """
+        if self._switching(str(request.get("model_name", ""))):
+            return self._switching_rejection(request, dry_run=True)
         estimate, verdict = self._estimate_and_admit(**request)
         return self.executor.estimate_result(
             verdict.decision,
@@ -548,6 +594,8 @@ class CanonicalChatHandler:
         Returns:
             A CommandResult with an executed, queued or rejected outcome.
         """
+        if self._switching(str(request.get("model_name", ""))):
+            return self._switching_rejection(request, dry_run=False)
         estimate, verdict = self._estimate_and_admit(**request)
         decision = _canonical_decision(verdict.decision)
         capacity = request["capacity"]

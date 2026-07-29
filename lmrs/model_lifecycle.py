@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Callable, Mapping
+from typing import Any, Callable, Mapping, Protocol
+
+from lmrs.model_cache import CacheState
 
 
 class LifecycleState:
@@ -328,3 +330,144 @@ class LifecycleCommandResult:
     measured_model_static_vram_bytes: int | None = None
     model_loaded_free_vram_bytes: int | None = None
     metadata: Mapping[str, object] = field(default_factory=dict)
+
+
+class DiskCacheLike(Protocol):
+    """The disk-cache surface a model switch depends on."""
+
+    def status(self, model_name: str) -> Any:
+        """Report the disk cache status of a model."""
+
+    def preload(self, model_name: str) -> Any:
+        """Download and cache a model on disk without loading it."""
+
+
+_SWITCHES_IN_PROGRESS: set[str] = set()
+
+
+def model_switch_in_progress(model_name: str) -> bool:
+    """Report whether a switch to the named model is currently running.
+
+    Admission consults this so a model mid-switch is treated as not loaded and
+    new requests are rejected with a stable reason code instead of reaching a
+    runtime that is being torn down.
+
+    Args:
+        model_name: Name of the model to check.
+
+    Returns:
+        True while a ``switch_model`` call for that model has not finished.
+    """
+    return model_name in _SWITCHES_IN_PROGRESS
+
+
+def _report(progress_callback: Callable[[str], None] | None, stage: str) -> None:
+    """Send one progress stage to the caller's callback, if any.
+
+    Args:
+        progress_callback: Optional callable receiving the stage name.
+        stage: Stage identifier, one of ``preloading``, ``unloading``, ``loading``.
+    """
+    if progress_callback is not None:
+        progress_callback(stage)
+
+
+def _switch_failure(model_name: str, reason_code: str, stage: str) -> dict[str, Any]:
+    """Build the failure result of an aborted switch.
+
+    Args:
+        model_name: Name of the target model.
+        reason_code: Stable machine-readable reason for the failure.
+        stage: Stage the switch stopped at.
+
+    Returns:
+        A result dict with status ``failed`` and the stable reason code.
+    """
+    return {
+        "status": LifecycleState.FAILED,
+        "model_name": model_name,
+        "reason_code": reason_code,
+        "failed_stage": stage,
+        "runtime_facts": {},
+    }
+
+
+def switch_model(
+    target_model_name: str,
+    progress_callback: Callable[[str], None] | None = None,
+    *,
+    lifecycle: ModelMemoryLifecycle | None = None,
+    cache: DiskCacheLike | None = None,
+) -> dict[str, Any]:
+    """Switch the resident model to the target model in one operation.
+
+    Runs, in order: disk-cache preload of the target when it is absent, unload
+    of the currently resident model, then load of the target, which is where
+    engine parameters, LMCache reconfiguration and VRAM re-measurement happen.
+    Each stage is announced through ``progress_callback`` before it runs. On any
+    stage failure the sequence stops and a stable reason code is returned rather
+    than an unstructured exception, leaving residency consistent: the target is
+    never left partially loaded.
+
+    The lifecycle and cache are supplied by the caller on purpose, so a switch
+    always acts on the same residency record the rest of the process uses
+    instead of a second hidden one.
+
+    Args:
+        target_model_name: Name of the model to switch to.
+        progress_callback: Optional callable receiving ``preloading``,
+            ``unloading`` and ``loading`` as the switch proceeds.
+        lifecycle: Owner of the residency state to act on.
+        cache: Disk model cache used to preload an absent target.
+
+    Returns:
+        A result dict carrying ``status`` (``loaded_in_memory`` or ``failed``),
+        ``model_name``, ``reason_code`` when it failed, and ``runtime_facts``
+        recorded by the load.
+
+    Raises:
+        ValueError: If the lifecycle or cache collaborator is missing.
+    """
+    if lifecycle is None or cache is None:
+        raise ValueError("switch_model requires the lifecycle and disk cache owned by the caller")
+
+    _SWITCHES_IN_PROGRESS.add(target_model_name)
+    try:
+        try:
+            cache_status = cache.status(target_model_name)
+            if getattr(cache_status, "status", None) != CacheState.CACHED_ON_DISK:
+                _report(progress_callback, "preloading")
+                preload_result = cache.preload(target_model_name)
+                if not getattr(preload_result, "success", False):
+                    reason = getattr(preload_result, "reason_code", None) or "MODEL_CACHE_PRELOAD_FAILED"
+                    return _switch_failure(target_model_name, reason, "preloading")
+
+            resident = lifecycle.current_residency
+            if resident is not None and resident.model_name != target_model_name:
+                _report(progress_callback, "unloading")
+                unload_result = lifecycle.unload_model(resident.model_name)
+                if not unload_result.success:
+                    reason = unload_result.reason_code or "MODEL_UNLOAD_FAILED"
+                    return _switch_failure(target_model_name, reason, "unloading")
+
+            _report(progress_callback, "loading")
+            load_result = lifecycle.load_model(target_model_name, allow_preload=True)
+            if not load_result.success:
+                reason = load_result.reason_code or "MODEL_LOAD_FAILED"
+                return _switch_failure(target_model_name, reason, "loading")
+        except Exception as error:  # noqa: BLE001 - a switch reports, never propagates
+            return _switch_failure(target_model_name, type(error).__name__, "loading")
+
+        return {
+            "status": CacheState.LOADED_IN_MEMORY,
+            "model_name": target_model_name,
+            "reason_code": load_result.reason_code,
+            "runtime_facts": {
+                "state": load_result.state,
+                "measured_model_static_vram_bytes": load_result.measured_model_static_vram_bytes,
+                "model_loaded_free_vram_bytes": load_result.model_loaded_free_vram_bytes,
+                "metadata": dict(load_result.metadata),
+            },
+        }
+    finally:
+        _SWITCHES_IN_PROGRESS.discard(target_model_name)

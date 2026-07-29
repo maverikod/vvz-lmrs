@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import logging
 from collections.abc import Callable, Coroutine, Iterable, Mapping
 from copy import deepcopy
 from typing import Any, cast
@@ -119,6 +120,105 @@ def _load_runtime_config(loader: Callable[[], Mapping[str, Any]] | None) -> Mapp
     return loader()
 
 
+_LOGGER = logging.getLogger("lmrs.adapter.runtime")
+
+
+def _startup_logger(message: str) -> None:
+    """Record one startup message on the module logger.
+
+    Args:
+        message: The message to record.
+    """
+    _LOGGER.info(message)
+
+
+def _resolve_default_model_name(config: Mapping[str, Any] | None) -> str | None:
+    """Read the configured default model name from a runtime configuration.
+
+    Args:
+        config: Loaded configuration mapping, if one is available.
+
+    Returns:
+        The configured default model name, or None when it is not configured.
+    """
+    if config is None:
+        return None
+    lmrs = _lmrs_config(config)
+    name = lmrs.get("default_model_name")
+    return name if isinstance(name, str) and name else None
+
+
+def autoload_default_model(
+    config: Mapping[str, Any] | None,
+    *,
+    cache: Any = None,
+    lifecycle: Any = None,
+    logger: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    """Preload and load the configured default model without operator action.
+
+    Sequences the existing disk-cache preload and memory load: the target is
+    preloaded only when the cache does not already hold it, then loaded per the
+    configured load policy. A failure is reported and swallowed rather than
+    raised, so a model that cannot be brought up leaves the server running and
+    visible through model status instead of crashing the process.
+
+    Args:
+        config: Loaded runtime configuration carrying ``default_model_name``.
+        cache: Disk model cache; the adapter's cache is used when omitted.
+        lifecycle: Residency owner; the adapter's lifecycle is used when omitted.
+        logger: Receives one structured message describing the outcome.
+
+    Returns:
+        A dict with ``attempted`` plus, when attempted, ``model_name``,
+        ``preloaded``, ``loaded`` and ``reason_code``.
+    """
+    model_name = _resolve_default_model_name(config)
+    if model_name is None:
+        return {"attempted": False, "reason_code": "NO_DEFAULT_MODEL_CONFIGURED"}
+
+    from lmrs.adapter import registration
+    from lmrs.model_cache import CacheState
+
+    active_cache = cache if cache is not None else registration._CACHE
+    active_lifecycle = lifecycle if lifecycle is not None else registration._LIFECYCLE
+    outcome: dict[str, Any] = {"attempted": True, "model_name": model_name, "preloaded": False, "loaded": False}
+    try:
+        status = active_cache.status(model_name)
+        if getattr(status, "status", None) != CacheState.CACHED_ON_DISK:
+            preload = active_cache.preload(model_name)
+            outcome["preloaded"] = bool(getattr(preload, "success", False))
+            if not outcome["preloaded"]:
+                outcome["reason_code"] = getattr(preload, "reason_code", None) or "MODEL_CACHE_PRELOAD_FAILED"
+                _log_autoload(logger, outcome)
+                return outcome
+        load = active_lifecycle.load_model(model_name, allow_preload=True)
+        outcome["loaded"] = bool(load.success)
+        outcome["reason_code"] = load.reason_code
+    except Exception as error:  # noqa: BLE001 - startup must survive an autoload failure
+        outcome["reason_code"] = type(error).__name__
+    _log_autoload(logger, outcome)
+    return outcome
+
+
+def _log_autoload(logger: Callable[[str], None] | None, outcome: Mapping[str, Any]) -> None:
+    """Report the autoload outcome through the supplied logger.
+
+    Args:
+        logger: Receives the message; nothing is reported when it is absent.
+        outcome: The autoload outcome dict.
+    """
+    if logger is None:
+        return
+    if outcome.get("loaded"):
+        logger(f"lmrs: default model {outcome.get('model_name')!r} loaded at startup")
+        return
+    logger(
+        f"lmrs: default model {outcome.get('model_name')!r} not loaded at startup "
+        f"(reason={outcome.get('reason_code')}); the server continues and model status reports the state"
+    )
+
+
 def _default_server_factory() -> Callable[..., Any]:
     """Resolve the adapter's server factory.
 
@@ -176,6 +276,7 @@ def start_adapter_server(
     # before control passes to the factory.
     import lmrs.adapter.registration  # noqa: F401
 
+    autoload_default_model(config, logger=_startup_logger)
     factory = create_and_run_server if create_and_run_server is not None else _default_server_factory()
     kwargs: dict[str, Any] = dict(factory_kwargs)
     if config_path is not None:
