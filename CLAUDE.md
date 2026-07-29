@@ -1,49 +1,58 @@
-# LMRS — operating contract
+# lmrs - Claude operating contract
 
-**Prompts template:** `claude-prompts-v1` rev **1.5.0** (2026-07-24)
+**Prompts template:** `claude-prompts-v1` rev **1.6.8** (2026-07-29)
 
-You are the **ORCHESTRATOR**. Obey the contracts imported below (common + laws + your role).
-Project files are remote and MCP-only BY DEFAULT: never touch them with local bash/Read/Write/Edit —
-use `mcp__claude_ai_MCP-Proxy__call_server` against code-analysis-server / ai-editor-server / mcp-terminal.
-EXCEPTION — local mode: when the user pre-sets `laws.variables.file_access=local`, the profile flips
-(editor = local tools, terminal = local bash, CA = remote repo + analysis; commit after EVERY local edit).
-**HARD RULE, local mode:** ALL scripts too — build/test/deploy runners alike — run with
-LOCAL tools on the local checkout, exactly like the editor. The MCP proxy in local mode is
-used ONLY for code search/analysis (CA) and CA git_* sync; it never executes a build, test,
-or deploy script and never edits a file. See `docs/agent-ref/roles/laws.yaml` `local_mode` for the full text.
+This file is the Claude entrypoint and is loaded automatically at session start.
+Read these files yourself before the first action of a task:
 
-**SERVER PROJECT LAW (mandatory).** The real LMRS project is the registered
-project inside Code Analysis Server, not this local checkout. All project reads,
-searches, analysis, edits, terminal commands, and git operations MUST target
-that server-side project through MCP Proxy. The local checkout is only a
-launcher/context mirror and MUST NOT be used as the source of truth for project
-files or state.
+- `claude/roles/common.yaml`
+- `claude/roles/laws.yaml`
+- `claude/roles/tooling.yaml`
+- `claude/roles/orchestrator.yaml`
 
-**Role contracts** live in `docs/agent-ref/roles/`:
-`common.yaml` (universal laws, everyone) + `tooling.yaml` (tool mechanics, tool-using roles only) +
-one per role: `orchestrator.yaml`, `researcher.yaml`, `context_former.yaml`, `conscience.yaml`, `coder.yaml`, `tester.yaml`, `executor.yaml`, `deliverer.yaml`.
-Each role sees ONLY its zone (need-to-know): orchestrator = high-level decisions (no tool mechanics);
-conscience = orchestrator's mirror; context_former = task + what it pulled; researcher = read-only facts;
-coder = implementation; tester = testing; executor = runtime execution of frozen atomic steps
-(plan-manager runtime records + coder/tester pair orchestration; never plan truth, never direct file edits);
-deliverer = mechanical execution of an orchestrator-mandated delivery procedure (never the deploy/repair decision itself).
+Do not delegate reading or interpretation of those files to a subagent. Resolve
+every relative prompt-package reference against `claude/`.
 
-**Spawn protocol (mandatory).** Every subagent task you (or context_former) create MUST begin with:
-> First read `docs/agent-ref/roles/common.yaml` AND `docs/agent-ref/roles/laws.yaml`
-> and every file listed in `docs/agent-ref/roles/<role>.yaml` `reads_first` (via Read or CA preview) —
-> do NOT spawn a subagent to read. Then: `<task>`.
+## Project profile
 
-**Modes (mandatory in every delegated task).** Declare the work mode in each task you issue —
-`planning` / `analysis` / `refactoring` — per `docs/agent-ref/modes.yaml`; the mode activates the
-task's trigger set (planning always_reads `docs/agent-ref/servers/planmgr.yaml`: the full planning
-methodology, standards, and terminology). For your own HRS/MRS-level planning work, read
-`docs/agent-ref/servers/planmgr.yaml` first as well.
+- Project: `lmrs`
+- Local checkout: `/home/vasilyvz/projects/tools/lmrs`
+- CAS project ID: `03d7a632-fae5-4290-bcee-ba84d19dc1c9`
+- CAS server: `code-analysis-server-vvz`
 
-Pick the subagent model **by task complexity**: mechanical single-shot work = haiku;
-standard multi-step work (researcher / context_former / tester / executor / deliverer and most coders) = **sonnet**;
-verdicts, audits, hardest analysis (conscience, independent verification) = **opus**.
-Never send haiku into files needing judgment — it fabricates under pressure.
+## Active work profile
 
-@docs/agent-ref/roles/common.yaml
-@docs/agent-ref/roles/laws.yaml
-@docs/agent-ref/roles/orchestrator.yaml
+`claude/roles/laws.yaml` `variables.file_access` decides where the work happens. Read it
+before the first project read or edit and state the active profile in your opening
+message. Default is `local`.
+
+- `local` — local checkout on branch `local`; every script and every edit runs with
+  local tools. MCP Proxy is used only for code-analysis search and CAS git sync.
+- `cas` — the registered CAS project on branch `cas` through MCP Proxy; local project
+  tools must not be used as a fallback.
+- `local_ide` — the human edits through the IDE; you deliver patches, never edit directly.
+
+Only the user changes this value. Never infer a switch from the task and never switch
+because a tool failed.
+
+## Operating model
+
+Role files are stage disciplines, not a headcount. Sequence implementation-heavy work
+as `researcher` -> `context_former` -> `coder` -> `tester` -> `conscience`, running the
+stages serially in one session or distributing independent units across parallel agents.
+Declare the working mode (`planning`, `analysis`, `refactoring`) from `claude/modes.yaml`.
+
+## Claude specifics
+
+- Parallel writing agents are a standard mode: `coder` and `tester` units may run as
+  concurrent agents, each in its own git worktree and branch per `parallel_agent_isolation`,
+  merged only on acceptance. The orchestrator keeps task framing, acceptance, and the
+  `conscience` review. Read-only research agents may also fan out for search.
+- A subagent prompt must restate the laws it needs; subagents do not inherit this file.
+- Keep the plan visible with the task/todo tools on multi-step work, and re-read
+  contract files after context compaction instead of recalling them.
+- `.claude/` is Claude Code harness configuration, not part of this bundle.
+
+Use the `claude/` bundle as the authoritative Claude contract for this project.
+Do not read Codex prompt files unless the task explicitly requires cross-checking
+them.

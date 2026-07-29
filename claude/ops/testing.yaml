@@ -1,0 +1,30 @@
+# Claude testing rules
+
+rules:
+  - run verification through the project `pipeline` CLI, never through a hand-rolled command list
+  - start with the most local check that covers the change
+  - widen scope only when required by the failure or dependency graph
+  - include exact commands in the final report when verification matters
+
+pipeline_cli:
+  name: pipeline
+  install: "pip install -e ."
+  run_all: "pipeline"
+  run_one: "pipeline <check-name>"
+  list_checks: "pipeline --list"
+  contract:
+    - the command name is identical in every project
+    - no arguments runs every test and every check
+    - a single argument runs only that named check
+  required_contexts:
+    - local verification before delivery
+    - after any deploy, executed against the real deployed server
+    - after a normal server start, as the smoke run
+  when_missing: >-
+    A project without this CLI, or a check that lives outside it, is a gap. Add the pipeline
+    package or fold the stray check into it as a named check instead of running it separately.
+
+verdict:
+  pass: all chosen checks completed successfully
+  fail: at least one relevant check failed
+  blocked: verification could not run; report why

@@ -1,0 +1,6 @@
+# Planning authoring guidance
+
+rules:
+  - define scope, acceptance criteria, and execution order explicitly
+  - record review checkpoints and dependency assumptions in the planning artifact
+  - when converting user intent into implementation work, preserve a stable planning vocabulary
