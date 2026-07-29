@@ -42,12 +42,16 @@ def _run_all(registry: CheckRegistry) -> int:
     """
     results: list[tuple[str, int]] = []
     for check in registry.all():
+        # Flushed so this line lands next to the check's own output: a check
+        # writes to the file descriptor directly, while print() to a pipe is
+        # block-buffered and would otherwise report every verdict at exit.
+        print(f"--- {check.name}", flush=True)
         status = check.run()
         results.append((check.name, status))
-        print(f"{'PASS' if status == 0 else 'FAIL'} {check.name}")
+        print(f"{'PASS' if status == 0 else 'FAIL'} {check.name}", flush=True)
     passed = sum(1 for _, status in results if status == 0)
     failed = len(results) - passed
-    print(f"pipeline summary: {passed} passed, {failed} failed")
+    print(f"pipeline summary: {passed} passed, {failed} failed", flush=True)
     return 0 if failed == 0 else 1
 
 

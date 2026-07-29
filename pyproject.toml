@@ -37,23 +37,28 @@ include = ["lmrs*", "pipeline*"]
 namespaces = false
 
 [tool.ruff]
-# Same limit the project already enforces through .flake8, so the two linters
-# cannot contradict each other on the same line.
+# ruff and .flake8 are kept as one setting pair: same line length, same
+# exclusions, same rule set, same per-file ignores. Any change here must be
+# mirrored in .flake8, otherwise the two pipeline checks can disagree about
+# the same line.
 line-length = 220
 # Matches requires-python above.
 target-version = "py312"
-# Same exclusions as .flake8.
-extend-exclude = [".venv", "venv", "old_code"]
+# Same exclusions as .flake8. mtls-certs holds generated certificate helper
+# scripts and is gitignored; ruff would skip it anyway, but it is listed so
+# the two exclusion lists read identically instead of one relying on git.
+extend-exclude = [".venv", "venv", "old_code", ".git", "__pycache__", "mtls-certs"]
 
 [tool.ruff.lint]
 # Pinned explicitly. Without a selection ruff applies its own defaults, and
 # those change between releases: upgrading 0.15 -> 0.16 turned this project's
 # verdict from clean into 84 findings without a single line of code changing.
 # An unpinned linter makes the quality gate non-deterministic, so the rule set
-# is stated here rather than inherited.
-select = ["E", "F"]
+# is stated here rather than inherited. W is included because .flake8 enforces
+# pycodestyle warnings too, and the pair must select the same families.
+select = ["E", "F", "W"]
 
 [tool.ruff.lint.per-file-ignores]
-# Mirrors the per-file-ignores already declared in .flake8.
-"tools/plan_audit.py" = ["E401"]
-"tools/plan_locate.py" = ["E401", "F401"]
+# Identical to the per-file-ignores declared in .flake8.
+"tools/plan_audit.py" = ["E401", "E302", "E305"]
+"tools/plan_locate.py" = ["F401", "E401", "E302", "E305"]

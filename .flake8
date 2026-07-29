@@ -1,5 +1,22 @@
 [flake8]
+# .flake8 and [tool.ruff] in pyproject.toml are kept as one setting pair: same
+# line length, same exclusions, same rule set, same per-file ignores. Any
+# change here must be mirrored there, otherwise the two pipeline checks can
+# disagree about the same line.
 max-line-length = 220
+# Pinned explicitly rather than inherited, for the same reason ruff pins its
+# selection: flake8's default set changes with the installed plugins, and an
+# unpinned linter makes the quality gate non-deterministic.
+select = E,F,W
+# W503 and W504 are the mutually contradictory line-break-around-operator
+# pair: satisfying one violates the other, which is why pycodestyle ignores
+# both by default and ruff implements neither. An explicit `select` drops
+# flake8's default ignore list, so they are named again here to keep the two
+# linters enforcing the same W rules (W191, W291, W292, W293, W391, W605).
+extend-ignore = W503,W504
+# Same exclusions as [tool.ruff]. mtls-certs holds generated certificate
+# helper scripts and is gitignored; flake8 does not read .gitignore, so it is
+# named here explicitly.
 extend-exclude = .venv,venv,old_code,.git,__pycache__,mtls-certs
 per-file-ignores =
     tools/plan_audit.py:E401,E302,E305
