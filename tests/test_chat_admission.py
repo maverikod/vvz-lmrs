@@ -236,6 +236,80 @@ def test_estimate_accepts_the_json_shapes_a_remote_client_sends(wired: FakeVllm)
     assert payload["token_breakdown"]["input_tokens"] == 8
 
 
+def test_text_mode_estimate_sizes_a_real_prompt(wired: FakeVllm) -> None:
+    """estimate with a message answers the practical fit question itself."""
+    result = asyncio.run(registration.EstimateCommand().execute(
+        message="will this fit?", model_name=MODEL, max_tokens=16,
+    ))
+
+    payload = dict(result.to_dict()["data"]["payload"])
+    assert payload["outcome"] == CommandOutcome.WOULD_EXECUTE
+    assert payload["token_breakdown"]["input_tokens"] == 10
+    assert payload["token_breakdown"]["tokenizer_accuracy"] == "runtime_tokenizer"
+
+
+def test_text_mode_estimate_rejects_an_oversized_prompt(wired: FakeVllm) -> None:
+    """A prompt over the window would_reject with CONTEXT_OVERFLOW - the goal invariant."""
+    wired.prompt_tokens = 5000
+
+    result = asyncio.run(registration.EstimateCommand().execute(
+        message="a very long prompt", model_name=MODEL, max_tokens=16,
+    ))
+
+    payload = dict(result.to_dict()["data"]["payload"])
+    assert payload["outcome"] == CommandOutcome.WOULD_REJECT
+    assert payload["reason_code"] == "CONTEXT_OVERFLOW"
+    assert wired.completions == []
+
+
+def test_text_mode_estimate_defaults_to_the_resident_model(wired: FakeVllm) -> None:
+    """Without model_name the served model is sized against."""
+    result = asyncio.run(registration.EstimateCommand().execute(message="fit?"))
+
+    payload = dict(result.to_dict()["data"]["payload"])
+    assert payload["outcome"] == CommandOutcome.WOULD_EXECUTE
+
+
+def test_estimate_refuses_an_incomplete_mode(wired: FakeVllm) -> None:
+    """Neither a message nor the full raw set is an explicit error."""
+    result = asyncio.run(registration.EstimateCommand().execute(request_id="only-this"))
+
+    payload = result.to_dict()
+    assert payload["success"] is False
+    assert "estimate requires either" in payload["error"]["message"]
+
+
+def test_text_mode_token_count_uses_the_runtime_tokenizer(wired: FakeVllm) -> None:
+    """token_count with a message counts real text."""
+    result = asyncio.run(registration.TokenCountCommand().execute(
+        message="count me", model_name=MODEL, reserved_output_tokens=64,
+    ))
+
+    payload = dict(result.to_dict()["data"]["payload"])
+    assert payload["token_breakdown"]["input_tokens"] == 10
+    assert payload["token_breakdown"]["tokenizer_accuracy"] == "runtime_tokenizer"
+    assert payload["required_tokens"] == 74
+
+
+def test_numeric_token_count_still_sums_components(wired: FakeVllm) -> None:
+    """The numeric mode is unchanged."""
+    result = asyncio.run(registration.TokenCountCommand().execute(
+        input_tokens=100, reserved_output_tokens=28, tokenizer_name="qwen2", tokenizer_accuracy="exact",
+    ))
+
+    payload = dict(result.to_dict()["data"]["payload"])
+    assert payload["required_tokens"] == 128
+
+
+def test_token_count_refuses_an_incomplete_mode(wired: FakeVllm) -> None:
+    """No mode's inputs at all is an explicit error, not a guess."""
+    result = asyncio.run(registration.TokenCountCommand().execute(reserved_output_tokens=8))
+
+    payload = result.to_dict()
+    assert payload["success"] is False
+    assert "token_count requires either" in payload["error"]["message"]
+
+
 def test_an_uncached_model_cannot_be_sized_and_is_refused(wired: FakeVllm) -> None:
     """Without a cached config there is no KV cost, so the request is refused."""
     payload = _chat(message="say ready", model_name="absent/model", max_tokens=16)

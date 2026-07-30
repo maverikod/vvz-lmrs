@@ -147,9 +147,12 @@ def build_info_payload(registry: Any) -> dict[str, Any]:
             capability_entry["error_schema"] = cmd_error_schema
         capabilities[family].append(capability_entry)
 
+    from lmrs.adapter.command_docs import SERVICE_GUIDE
+
     return {
         "identity": identity,
         "build_metadata": build_metadata,
+        "documentation": SERVICE_GUIDE,
         "runtime_summary": runtime_summary,
         "capabilities": capabilities,
     }

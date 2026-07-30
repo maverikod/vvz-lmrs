@@ -65,8 +65,32 @@ class ThinAdapterCommand(Command):
 
     @classmethod
     def metadata(cls) -> dict[str, Any]:
-        """Return compact help metadata for proxy consumers."""
-        return {"name": cls.name, "summary": cls.descr, "type": "custom"}
+        """Return full help metadata in the fleet documentation paradigm.
+
+        The shape mirrors planmgr and the code-analysis server: summary,
+        detailed description, per-parameter docs, structured return value,
+        usage examples, error cases keyed by stable reason codes, and best
+        practices. The content lives in ``lmrs.adapter.command_docs`` so the
+        documentation has one source.
+        """
+        from lmrs.adapter.command_docs import DOC_AUTHOR, DOC_EMAIL, DOC_VERSION, command_documentation
+
+        documentation = dict(command_documentation(cls.name))
+        return {
+            "name": cls.name,
+            "summary": cls.descr,
+            "type": "custom",
+            "version": DOC_VERSION,
+            "author": DOC_AUTHOR,
+            "email": DOC_EMAIL,
+            "category": documentation.get("category", "uncategorized"),
+            "detailed_description": documentation.get("detailed_description", cls.descr),
+            "parameters": documentation.get("parameters", {}),
+            "return_value": documentation.get("return_value", {}),
+            "usage_examples": documentation.get("usage_examples", []),
+            "error_cases": documentation.get("error_cases", {}),
+            "best_practices": documentation.get("best_practices", []),
+        }
 
     def validate(self, params: Mapping[str, Any]) -> None:
         """Validate adapter request parameters before delegation."""
@@ -522,6 +546,8 @@ CHAT_SCHEMA: dict[str, Any] = {
         "system": {"type": "string"},
         "temperature": {"type": "number", "default": 0},
         "max_tokens": {"type": "integer", "default": 128},
+        "request_id": {"type": "string", "minLength": 1},
+        "session_id": {"type": "string", "minLength": 1},
     },
     "required": ["message", "model_name"],
     "additionalProperties": True,
@@ -659,9 +685,16 @@ class LocalModelUnloadCommand(ThinAdapterCommand):
         return _LIFECYCLE.unload_model(_param(params, "model_name"))
 
 
+# Two modes share one schema: text mode (message [+ system, model_name]) counts
+# with the runtime tokenizer; numeric mode sums caller-declared components.
+# Required is empty because either mode alone is a complete call; the delegate
+# enforces one complete mode with an explicit error.
 TOKEN_COUNT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
+        "message": {"type": "string", "minLength": 1},
+        "system": {"type": "string"},
+        "model_name": {"type": "string", "minLength": 1},
         "input_tokens": {"type": "integer", "minimum": 0},
         "tool_tokens": {"type": "integer", "minimum": 0, "default": 0},
         "service_tokens": {"type": "integer", "minimum": 0, "default": 0},
@@ -670,9 +703,52 @@ TOKEN_COUNT_SCHEMA: dict[str, Any] = {
         "tokenizer_accuracy": {"type": "string", "minLength": 1},
         "rough_estimate": {"type": "boolean", "default": False},
     },
-    "required": ["input_tokens", "tokenizer_name", "tokenizer_accuracy"],
+    "required": [],
     "additionalProperties": True,
 }
+
+
+def _resolve_target_model(params: Mapping[str, Any]) -> str | None:
+    """Return the model a text-mode request targets.
+
+    The explicit parameter wins; otherwise the recorded residency, and as the
+    last resort the runtime's own serving list, because on this deployment the
+    runtime serves exactly one model.
+
+    Args:
+        params: Adapter command parameters.
+
+    Returns:
+        The model name, or None when nothing names one.
+    """
+    explicit = params.get("model_name")
+    if isinstance(explicit, str) and explicit:
+        return explicit
+    residency = _LIFECYCLE.current_residency
+    if residency is not None:
+        return residency.model_name
+    probe = _VLLM_CLIENT.list_models()
+    if probe.ok and probe.served_models:
+        return probe.served_models[0]
+    return None
+
+
+def _chat_messages_from_params(params: Mapping[str, Any]) -> list[dict[str, str]]:
+    """Build the OpenAI-form messages of a text-mode request.
+
+    Args:
+        params: Adapter command parameters carrying message and optional system.
+
+    Returns:
+        The role-tagged message list.
+    """
+    messages: list[dict[str, str]] = []
+    system = params.get("system")
+    if isinstance(system, str) and system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": str(params["message"])})
+    return messages
+
 
 CANCEL_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -681,9 +757,16 @@ CANCEL_SCHEMA: dict[str, Any] = {
     "additionalProperties": True,
 }
 
+# Two modes share one schema: text mode (message + model_name [+ system,
+# max_tokens]) lets the server count, size and measure everything itself; raw
+# mode supplies every admission input explicitly. Required is empty because
+# either mode alone is complete; the delegate enforces one complete mode.
 ESTIMATE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
+        "message": {"type": "string", "minLength": 1},
+        "system": {"type": "string"},
+        "max_tokens": {"type": "integer", "minimum": 0, "default": 128},
         "request_id": {"type": "string", "minLength": 1},
         "model_name": {"type": "string", "minLength": 1},
         "token_breakdown": {"type": "object"},
@@ -693,18 +776,20 @@ ESTIMATE_SCHEMA: dict[str, Any] = {
         "per_request_overhead_bytes": {"type": "integer", "minimum": 0},
         "runtime_batch_overhead_bytes": {"type": "integer", "minimum": 0},
     },
-    "required": [
-        "request_id",
-        "model_name",
-        "token_breakdown",
-        "declared_context_window",
-        "capacity",
-        "kv_bytes_per_token",
-        "per_request_overhead_bytes",
-        "runtime_batch_overhead_bytes",
-    ],
+    "required": [],
     "additionalProperties": True,
 }
+
+_ESTIMATE_RAW_FIELDS: tuple[str, ...] = (
+    "request_id",
+    "model_name",
+    "token_breakdown",
+    "declared_context_window",
+    "capacity",
+    "kv_bytes_per_token",
+    "per_request_overhead_bytes",
+    "runtime_batch_overhead_bytes",
+)
 
 
 class ModelStatusCommand(ThinAdapterCommand):
@@ -742,19 +827,32 @@ class TokenCountCommand(ThinAdapterCommand):
     """Adapter wrapper for tokenizer-aware request accounting."""
 
     name: ClassVar[str] = CommandName.TOKEN_COUNT
-    descr: ClassVar[str] = "Report the token breakdown and required tokens of a request"
+    descr: ClassVar[str] = "Count a prompt with the runtime tokenizer, or sum caller-declared token components"
     schema: ClassVar[dict[str, Any]] = TOKEN_COUNT_SCHEMA
 
     def delegate(self, params: Mapping[str, Any]) -> Any:
-        breakdown = TokenBreakdown(
-            input_tokens=int(params["input_tokens"]),
-            tool_tokens=int(params.get("tool_tokens", 0)),
-            service_tokens=int(params.get("service_tokens", 0)),
-            reserved_output_tokens=int(params.get("reserved_output_tokens", 0)),
-            tokenizer_name=_param(params, "tokenizer_name"),
-            tokenizer_accuracy=_param(params, "tokenizer_accuracy"),
-            rough_estimate=bool(params.get("rough_estimate", False)),
-        )
+        if isinstance(params.get("message"), str) and params["message"]:
+            model_name = _resolve_target_model(params)
+            breakdown = prompt_token_breakdown(
+                model_name or "",
+                _chat_messages_from_params(params),
+                int(params.get("reserved_output_tokens", 0)),
+            )
+        elif params.get("input_tokens") is not None:
+            breakdown = TokenBreakdown(
+                input_tokens=int(params["input_tokens"]),
+                tool_tokens=int(params.get("tool_tokens", 0)),
+                service_tokens=int(params.get("service_tokens", 0)),
+                reserved_output_tokens=int(params.get("reserved_output_tokens", 0)),
+                tokenizer_name=_param(params, "tokenizer_name"),
+                tokenizer_accuracy=_param(params, "tokenizer_accuracy"),
+                rough_estimate=bool(params.get("rough_estimate", False)),
+            )
+        else:
+            raise ValueError(
+                "token_count requires either message (text mode) or "
+                "input_tokens with tokenizer_name and tokenizer_accuracy (numeric mode)"
+            )
         return {
             "token_breakdown": asdict(breakdown),
             "required_tokens": calculate_required_tokens(breakdown),
@@ -823,19 +921,70 @@ class EstimateCommand(ThinAdapterCommand):
             metadata=dict(value.get("metadata", {})) if isinstance(value.get("metadata", {}), Mapping) else {},
         )
 
+    def _text_mode_estimate(self, params: Mapping[str, Any]) -> Any:
+        """Run the dry-run admission of a real prompt.
+
+        Everything the verdict needs is produced by the server itself: the
+        token count comes from the runtime tokenizer, the KV cost from the
+        cached model's config, and the capacity from a live measurement -
+        exactly the inputs the chat path would use, without ever touching the
+        runtime's generation path.
+
+        Args:
+            params: Adapter parameters carrying message, optional system and
+                max_tokens, and the target model.
+
+        Returns:
+            The dry-run CommandResult.
+        """
+        model_name = _resolve_target_model(params)
+        if not model_name:
+            return _CHAT_HANDLER.executor.failure_result(
+                CommandName.ESTIMATE,
+                ErrorCode.HARDWARE_CAPACITY_UNKNOWN,
+                metadata={"detail": "no model_name was given and no model is resident or served, so there is nothing to size against"},
+            )
+        kv_profile = model_kv_profile(model_name)
+        if kv_profile is None:
+            return _CHAT_HANDLER.executor.failure_result(
+                CommandName.ESTIMATE,
+                ErrorCode.HARDWARE_CAPACITY_UNKNOWN,
+                metadata={
+                    "model_name": model_name,
+                    "detail": "the model is not cached on disk or its config does not state the KV parameters, so the request cannot be sized",
+                },
+            )
+        max_tokens = int(params.get("max_tokens", 128))
+        return _CHAT_HANDLER.estimate(
+            request_id=str(params.get("request_id") or f"estimate-{uuid4().hex}"),
+            model_name=model_name,
+            token_breakdown=prompt_token_breakdown(model_name, _chat_messages_from_params(params), max_tokens),
+            declared_context_window=kv_profile.declared_context_window,
+            capacity=capacity_snapshot(model_name),
+            kv_bytes_per_token=kv_profile.kv_bytes_per_token(),
+            per_request_overhead_bytes=_int_env("LMRS_PER_REQUEST_OVERHEAD_BYTES"),
+            runtime_batch_overhead_bytes=_int_env("LMRS_RUNTIME_BATCH_OVERHEAD_BYTES"),
+        )
+
     def delegate(self, params: Mapping[str, Any]) -> Any:
+        if isinstance(params.get("message"), str) and params["message"]:
+            return self._text_mode_estimate(params)
+        missing = [name for name in _ESTIMATE_RAW_FIELDS if params.get(name) is None]
+        if missing:
+            raise ValueError(
+                "estimate requires either message (text mode, optionally with "
+                "model_name, system and max_tokens) or the full raw input set; "
+                "missing raw fields: " + ", ".join(missing)
+            )
         # Only the parameters this command declares may reach the handler. The
         # adapter injects its own keys (context, for one) into execute kwargs,
         # and splatting them through raised TypeError on the deployed server.
-        declared = set(self.schema.get("properties", {}))
-        request = {key: value for key, value in params.items() if key in declared}
+        request = {key: params[key] for key in _ESTIMATE_RAW_FIELDS}
         # A remote client sends JSON, so the structured inputs arrive as plain
         # mappings; the handler works on the domain types. Passing the mappings
         # through raised AttributeError on the deployed server.
-        if "token_breakdown" in request:
-            request["token_breakdown"] = self._coerce_token_breakdown(request["token_breakdown"])
-        if "capacity" in request:
-            request["capacity"] = self._coerce_capacity(request["capacity"])
+        request["token_breakdown"] = self._coerce_token_breakdown(request["token_breakdown"])
+        request["capacity"] = self._coerce_capacity(request["capacity"])
         return _CHAT_HANDLER.estimate(**request)
 
 

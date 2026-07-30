@@ -19,6 +19,13 @@ dependencies = [
     "mcp-proxy-adapter>=8.10",
 ]
 
+[project.scripts]
+# lmrs-client drives a server from the shell; pipeline is the fleet-contract
+# acceptance runner, so an operator can prove a deployment with one command
+# after nothing more than pip install lmrs-client.
+lmrs-client = "lmrs_client.cli:main"
+pipeline = "lmrs_client.pipeline:main"
+
 [tool.setuptools.packages.find]
 include = ["lmrs_client*"]
 namespaces = false

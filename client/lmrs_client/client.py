@@ -127,10 +127,13 @@ class LmrsClient:
 
     async def token_count(
         self,
-        input_tokens: int,
-        tokenizer_name: str,
-        tokenizer_accuracy: str,
+        input_tokens: int | None = None,
+        tokenizer_name: str | None = None,
+        tokenizer_accuracy: str | None = None,
         *,
+        message: str | None = None,
+        system: str | None = None,
+        model_name: str | None = None,
         tool_tokens: int = 0,
         service_tokens: int = 0,
         reserved_output_tokens: int = 0,
@@ -138,30 +141,46 @@ class LmrsClient:
     ) -> Any:
         """Report the token breakdown and required tokens of a request.
 
+        Two modes, decided by the server: pass ``message`` (text mode) and the
+        prompt is counted with the runtime's own tokenizer; or pass
+        ``input_tokens`` with the tokenizer identity (numeric mode) and the
+        server sums the caller-declared components.
+
         Args:
-            input_tokens: Tokens in the input prompt.
-            tokenizer_name: Name of the tokenizer that produced the counts.
-            tokenizer_accuracy: Accuracy descriptor for the counts.
-            tool_tokens: Tokens consumed by tool definitions.
-            service_tokens: Tokens consumed by system service instructions.
+            input_tokens: Numeric mode: tokens in the input prompt.
+            tokenizer_name: Numeric mode: which tokenizer produced the counts.
+            tokenizer_accuracy: Numeric mode: accuracy descriptor.
+            message: Text mode: the user message to count.
+            system: Text mode: optional system instruction counted with it.
+            model_name: Text mode: model whose tokenizer applies; the resident
+                model is assumed when omitted.
+            tool_tokens: Numeric mode: tokens consumed by tool definitions.
+            service_tokens: Numeric mode: tokens for service instructions.
             reserved_output_tokens: Output tokens reserved for generation.
-            rough_estimate: Whether the counts are a rough estimate.
+            rough_estimate: Numeric mode: whether the counts are rough.
 
         Returns:
             The token breakdown and the required token total.
         """
-        return await self._call(
-            "token_count",
-            {
-                "input_tokens": input_tokens,
-                "tokenizer_name": tokenizer_name,
-                "tokenizer_accuracy": tokenizer_accuracy,
-                "tool_tokens": tool_tokens,
-                "service_tokens": service_tokens,
-                "reserved_output_tokens": reserved_output_tokens,
-                "rough_estimate": rough_estimate,
-            },
-        )
+        params: dict[str, Any] = {"reserved_output_tokens": reserved_output_tokens}
+        if message is not None:
+            params["message"] = message
+            if system is not None:
+                params["system"] = system
+            if model_name is not None:
+                params["model_name"] = model_name
+        else:
+            params.update(
+                {
+                    "input_tokens": input_tokens,
+                    "tokenizer_name": tokenizer_name,
+                    "tokenizer_accuracy": tokenizer_accuracy,
+                    "tool_tokens": tool_tokens,
+                    "service_tokens": service_tokens,
+                    "rough_estimate": rough_estimate,
+                }
+            )
+        return await self._call("token_count", params)
 
     async def estimate(self, **request: Any) -> Any:
         """Report whether a request would execute, queue or be rejected.
