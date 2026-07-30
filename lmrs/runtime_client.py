@@ -6,8 +6,9 @@ email: vasilyvz@gmail.com
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Any, Mapping
 
 
 class RuntimeBackend:
@@ -158,6 +159,121 @@ class VLLMOpenAIClient:
         payload.update(options)
         return self._json_request("POST", "/v1/chat/completions", payload)
 
+    def count_prompt_tokens(self, model_name: str, messages: object) -> int | None:
+        """Return the token count vLLM reports for a chat prompt.
+
+        Uses the runtime's own `/tokenize` endpoint, which applies the model's
+        chat template and its real tokenizer. A count produced anywhere else
+        would be a different tokenizer than the one that executes the request.
+
+        Args:
+            model_name: Model whose tokenizer and chat template apply.
+            messages: Chat messages in OpenAI form.
+
+        Returns:
+            The prompt token count, or None when the runtime does not answer.
+        """
+        try:
+            payload = self._json_request("POST", "/tokenize", {"model": model_name, "messages": messages})
+        except Exception:
+            return None
+        count = payload.get("count")
+        if isinstance(count, int):
+            return count
+        tokens = payload.get("tokens")
+        return len(tokens) if isinstance(tokens, list) else None
+
+
+def _normalize_vllm_payload(
+    payload: Mapping[str, object],
+    model_name: str,
+    latency_ms: float,
+    base_url: str,
+) -> NormalizedRuntimeResult:
+    """Convert a vLLM chat completion into the backend-independent result.
+
+    Args:
+        payload: The raw `/v1/chat/completions` response body.
+        model_name: Model the request named.
+        latency_ms: Wall-clock duration of the call in milliseconds.
+        base_url: Base URL of the runtime that answered.
+
+    Returns:
+        A NormalizedRuntimeResult carrying the assistant message, usage
+        counters, runtime metadata and call telemetry.
+    """
+    choices = payload.get("choices")
+    first: Mapping[str, Any] = {}
+    if isinstance(choices, list) and choices and isinstance(choices[0], Mapping):
+        first = choices[0]
+    message = first.get("message")
+    assistant_message: object | None = None
+    if isinstance(message, Mapping):
+        assistant_message = message.get("content")
+    usage = payload.get("usage")
+    return NormalizedRuntimeResult(
+        assistant_message=assistant_message,
+        usage=dict(usage) if isinstance(usage, Mapping) else {},
+        status="ok",
+        runtime_metadata={
+            "model": payload.get("model", model_name),
+            "response_id": payload.get("id"),
+            "finish_reason": first.get("finish_reason"),
+            "base_url": base_url,
+        },
+        telemetry={"latency_ms": round(latency_ms, 3)},
+        metadata={"role": message.get("role") if isinstance(message, Mapping) else None},
+    )
+
+
+def _request_value(admitted_request: object, *names: str) -> object | None:
+    """Return the first present field of an admitted request.
+
+    An admitted request reaches the runtime either as an object or as a
+    mapping, depending on which caller admitted it; both are read here so the
+    runtime does not force one shape on the layers above it.
+
+    Args:
+        admitted_request: The already-admitted request.
+        *names: Field names to try, in order.
+
+    Returns:
+        The first value found, or None.
+    """
+    for name in names:
+        if isinstance(admitted_request, Mapping):
+            value = admitted_request.get(name)
+        else:
+            value = getattr(admitted_request, name, None)
+        if value is not None:
+            return value
+    return None
+
+
+def _chat_messages(admitted_request: object) -> list[dict[str, object]]:
+    """Return the admitted request's messages in OpenAI chat form.
+
+    Args:
+        admitted_request: The already-admitted request.
+
+    Returns:
+        Role-tagged message dicts; empty when the request carries none.
+    """
+    raw = _request_value(admitted_request, "messages")
+    if raw is None:
+        return []
+    messages: list[dict[str, object]] = []
+    for item in raw if isinstance(raw, (list, tuple)) else [raw]:
+        if isinstance(item, Mapping):
+            role = item.get("role")
+            content = item.get("content")
+        else:
+            role = getattr(item, "role", None)
+            content = getattr(item, "content", None)
+        if isinstance(role, str) and content is not None:
+            messages.append({"role": role, "content": content})
+    return messages
+
 
 @dataclass
 class RuntimeClient:
@@ -167,11 +283,80 @@ class RuntimeClient:
     backend. It makes no admission decisions and never re-runs admission, and
     it does not generate public command metadata.
 
+    Two execution paths exist and are tried in that order: a runtime profile
+    that carries its own executor uses it, which is how a caller injects a
+    backend LMRS does not know; otherwise the client executes against the
+    backend it was configured with. Without either it reports
+    RUNTIME_EXECUTOR_UNAVAILABLE instead of pretending to run.
+
     Attributes:
         backend: The runtime backend identifier this client executes against.
+        vllm_client: Client for the local vLLM OpenAI-compatible API, used when
+            the backend is vLLM and the profile supplies no executor.
+        default_options: Inference options applied to every backend call unless
+            the request overrides them.
     """
 
     backend: str
+    vllm_client: VLLMOpenAIClient | None = None
+    default_options: Mapping[str, object] = field(default_factory=dict)
+
+    def _vllm_options(self, admitted_request: object) -> dict[str, object]:
+        """Return the inference options for one vLLM call.
+
+        Args:
+            admitted_request: The already-admitted request.
+
+        Returns:
+            Options merged from the client defaults and the request.
+        """
+        options: dict[str, object] = dict(self.default_options)
+        request_options = _request_value(admitted_request, "options")
+        if isinstance(request_options, Mapping):
+            options.update({str(key): value for key, value in request_options.items()})
+        for name in ("max_tokens", "temperature", "top_p", "stop"):
+            value = _request_value(admitted_request, name)
+            if value is not None:
+                options[name] = value
+        return options
+
+    def _execute_vllm(self, request_id: str, admitted_request: object) -> NormalizedRuntimeResult | RuntimeFailureSignal:
+        """Run one admitted request against the local vLLM server.
+
+        Args:
+            request_id: Identifier of the request being executed.
+            admitted_request: The already-admitted request.
+
+        Returns:
+            A NormalizedRuntimeResult on success or a RuntimeFailureSignal when
+            the runtime is unreachable, rejects the call, or the request does
+            not name a model.
+        """
+        client = self.vllm_client
+        if client is None:
+            return RuntimeFailureSignal(request_id, self.backend, "RUNTIME_EXECUTOR_UNAVAILABLE", "no vLLM client is configured")
+        model_name = _request_value(admitted_request, "model_name", "model")
+        if not isinstance(model_name, str) or not model_name:
+            return RuntimeFailureSignal(request_id, self.backend, "RUNTIME_CALL_FAILED", "the admitted request does not name a model")
+        messages = _chat_messages(admitted_request)
+        if not messages:
+            return RuntimeFailureSignal(request_id, self.backend, "RUNTIME_CALL_FAILED", "the admitted request carries no messages")
+        started = time.monotonic()
+        try:
+            payload = client.chat_completion(model_name, messages, **self._vllm_options(admitted_request))
+        except Exception as error:  # noqa: BLE001 - a runtime failure is signalled, never raised
+            text = str(error)
+            unavailable = "unavailable" in text
+            return RuntimeFailureSignal(
+                request_id,
+                self.backend,
+                "VLLM_UNAVAILABLE" if unavailable else "RUNTIME_CALL_FAILED",
+                text,
+                unavailable,
+                {"exception_type": type(error).__name__, "base_url": client.base_url, "model_name": model_name},
+            )
+        latency_ms = (time.monotonic() - started) * 1000.0
+        return _normalize_vllm_payload(payload, model_name, latency_ms, client.base_url)
 
     def execute(
         self,
@@ -188,7 +373,7 @@ class RuntimeClient:
             A NormalizedRuntimeResult on success or a RuntimeFailureSignal on
             failure.
         """
-        request_id = str(getattr(admitted_request, "request_id", "") or getattr(admitted_request, "id", "") or "unknown")
+        request_id = str(_request_value(admitted_request, "request_id", "id") or "unknown")
         executor = None
         for attr_name in ("execute", "run", "generate", "chat", "complete"):
             candidate = getattr(runtime_profile, attr_name, None)
@@ -200,6 +385,8 @@ class RuntimeClient:
             if callable(candidate):
                 executor = candidate
         if executor is None:
+            if self.backend == RuntimeBackend.VLLM and self.vllm_client is not None:
+                return self._execute_vllm(request_id, admitted_request)
             return RuntimeFailureSignal(request_id, self.backend, "RUNTIME_EXECUTOR_UNAVAILABLE", "runtime profile does not expose an executor")
         try:
             raw_result = executor(admitted_request)

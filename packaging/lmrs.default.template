@@ -47,3 +47,36 @@ LMCACHE_CONFIG_FILE=/etc/lmrs/lmcache.yaml
 # deliberately, per host, once the cache is known to satisfy the request.
 HF_TOKEN=
 HF_HUB_OFFLINE=
+
+# Admission inputs. Every one of these is a policy figure, not a measurement:
+# LMRS measures free VRAM itself and subtracts these reserves from it. Left
+# empty they are zero, which means the whole free pool is offered to requests.
+#
+# LMRS_RESIDENT_SERVICES is a comma-separated list of the always-on GPU services
+# running beside the model; it is recorded with the baseline measurement so a
+# later reader knows what the baseline included.
+LMRS_RESIDENT_SERVICES=
+LMRS_SAFETY_MARGIN_BYTES=
+LMRS_RUNTIME_RESERVE_BYTES=
+LMRS_PER_REQUEST_OVERHEAD_BYTES=
+LMRS_RUNTIME_BATCH_OVERHEAD_BYTES=
+
+# KV-cache element dtype, when vLLM is told to keep the KV cache in something
+# other than the model dtype (--kv-cache-dtype). Empty means the model dtype
+# decides. Weight quantization alone never shrinks the KV cache.
+LMRS_KV_CACHE_DTYPE=
+
+# How long an admitted-but-queued request stays valid, and the hardware profile
+# identifier reported with measured VRAM facts.
+LMRS_QUEUE_TTL_SECONDS=
+LMRS_HARDWARE_PROFILE_ID=
+
+# Where measured VRAM facts are persisted. The service baseline can only be
+# measured before a model is loaded, so it is stored on the data volume and read
+# back on later starts.
+LMRS_VRAM_FACTS_PATH=/var/lmrs/vram-facts.json
+
+# Disk model cache root. Empty means the image's HuggingFace hub cache, which is
+# the directory vLLM itself downloads into.
+LMRS_MODEL_CACHE_ROOT=
+LMRS_LMCACHE_PATH=/var/lmrs/lmcache

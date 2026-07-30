@@ -100,11 +100,23 @@ class ModelMemoryLifecycle:
 
     Attributes:
         current_residency: The currently resident model, if any.
+        runtime_backend: Backend that hosts the resident model.
+        model_probe: Asks the runtime whether it serves a model; without it no
+            runtime verification happens and residency is recorded as asked.
+        disk_cache: Disk cache consulted before a load, so a model absent from
+            disk is refused with MODEL_NOT_CACHED instead of being reported
+            resident. Skipped when the caller explicitly allows preload.
+        vram_recorder: Called with the model name right after a load is proven,
+            returning the measured VRAM facts of that load. Measurement itself
+            lives outside this object: residency owns the state machine, not the
+            driver.
     """
 
     current_residency: ModelResidency | None = None
     runtime_backend: str = "vllm"
     model_probe: Callable[[str], object] | None = None
+    disk_cache: DiskCacheLike | None = None
+    vram_recorder: Callable[[str], Mapping[str, Any]] | None = None
 
     def load_model(
         self, model_name: str, allow_preload: bool = False
@@ -139,6 +151,23 @@ class ModelMemoryLifecycle:
                 metadata={"resident_model": self.current_residency.model_name},
             )
         probe_metadata: dict[str, object] = {"allow_preload": allow_preload}
+        if self.disk_cache is not None and not allow_preload:
+            cache_status = self.disk_cache.status(model_name)
+            disk_state = getattr(cache_status, "status", None)
+            if disk_state != CacheState.CACHED_ON_DISK:
+                return LifecycleCommandResult(
+                    command="load_model",
+                    model_name=model_name,
+                    state=LifecycleState.NOT_LOADED,
+                    success=False,
+                    reason_code="MODEL_NOT_CACHED",
+                    metadata={
+                        "cache_status": disk_state,
+                        "cache_reason_code": getattr(cache_status, "reason_code", None),
+                        "hint": "call this command with allow_preload to fetch the model first",
+                    },
+                )
+            probe_metadata["cache_status"] = disk_state
         if self.model_probe is not None:
             probe_result = self.model_probe(model_name)
             ok = bool(getattr(probe_result, "ok", False))
@@ -160,11 +189,22 @@ class ModelMemoryLifecycle:
                     reason_code="MODEL_NOT_SERVED_BY_VLLM",
                     metadata={**probe_metadata, "error": str(error or "model is not served by vLLM")},
                 )
+        measured_static_vram: int | None = None
+        model_loaded_free_vram: int | None = None
+        if self.vram_recorder is not None:
+            facts = self.vram_recorder(model_name)
+            static_value = facts.get("measured_model_static_vram_bytes")
+            free_value = facts.get("model_loaded_free_vram_bytes")
+            measured_static_vram = static_value if isinstance(static_value, int) else None
+            model_loaded_free_vram = free_value if isinstance(free_value, int) else None
+            probe_metadata["vram_facts"] = dict(facts)
         self.current_residency = ModelResidency(
             model_name=model_name,
             runtime_backend=self.runtime_backend,
             state=LifecycleState.LOADED,
             keep_loaded=True,
+            measured_model_static_vram_bytes=measured_static_vram,
+            model_loaded_free_vram_bytes=model_loaded_free_vram,
             loaded_at=datetime.now(UTC).isoformat(),
             metadata=probe_metadata,
         )
@@ -173,6 +213,8 @@ class ModelMemoryLifecycle:
             model_name=model_name,
             state=LifecycleState.LOADED,
             success=True,
+            measured_model_static_vram_bytes=measured_static_vram,
+            model_loaded_free_vram_bytes=model_loaded_free_vram,
             metadata=probe_metadata,
         )
 

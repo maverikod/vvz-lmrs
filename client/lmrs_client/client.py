@@ -229,13 +229,17 @@ class LmrsClient:
     async def local_model_cache_preload(self, model_name: str) -> Any:
         """Prepare a model in the local disk cache.
 
+        A preload downloads model weights, so the server runs it through its
+        queue and this call returns only once the download has finished; the
+        framework's queued-job facility does the waiting.
+
         Args:
             model_name: Model to preload.
 
         Returns:
             The preload result.
         """
-        return await self._call("local_model_cache_preload", {"model_name": model_name})
+        return await self._call("local_model_cache_preload", {"model_name": model_name}, queued=True)
 
     async def local_model_cache_status(self, model_name: str) -> Any:
         """Report local disk-cache status for a model.

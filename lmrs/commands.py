@@ -580,6 +580,7 @@ class CanonicalChatHandler:
         runtime_client: Any = None,
         runtime_profile: Any = None,
         admitted_request: Any = None,
+        queue_sink: Callable[[RequestQueue], None] | None = None,
         **request: Any,
     ) -> CommandResult:
         """Run the chat path, executing, queueing or rejecting the request.
@@ -591,6 +592,11 @@ class CanonicalChatHandler:
             runtime_client: Client whose execute runs an admitted request.
             runtime_profile: Runtime profile passed to the runtime client.
             admitted_request: Payload handed to the runtime on execution.
+            queue_sink: Receives the queue value produced by admitting an entry.
+                RequestQueue is persistent, so adding an entry yields a new
+                queue rather than mutating the caller's; without this the owner
+                of the queue would keep the pre-admission value and the entry
+                this call reports as queued would exist in no queue at all.
             **request: The estimate inputs accepted by _estimate_and_admit.
 
         Returns:
@@ -613,6 +619,8 @@ class CanonicalChatHandler:
                 verdict, estimate, request_metadata, queue_metadata
             )
             updated = queue.add(_queue_entry_from_record(record))
+            if queue_sink is not None:
+                queue_sink(updated)
             return self.executor.chat_result(
                 verdict.decision,
                 reason_code=verdict.reason_code,

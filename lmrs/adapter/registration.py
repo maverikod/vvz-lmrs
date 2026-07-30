@@ -8,17 +8,29 @@ from __future__ import annotations  # noqa: I001 (project-wide false positive)
 from collections.abc import Callable, Iterable, Mapping, MutableSequence
 from copy import deepcopy
 from dataclasses import asdict, is_dataclass
+from datetime import UTC, datetime, timedelta
+import json
 import os
+from pathlib import Path
 from typing import Any, ClassVar, cast
+from uuid import uuid4
 
-from lmrs.commands import CanonicalChatHandler, CommandName
+from lmrs.admission import CapacitySnapshot
+from lmrs.commands import CanonicalChatHandler, CommandName, ErrorCode
+from lmrs.configuration import KVCacheProfile, derive_kv_cache_profile
 from lmrs.estimation import TokenBreakdown, calculate_required_tokens
 from lmrs.lmcache import LMCacheStoragePolicy, get_lmcache_status, purge_lmcache
 from lmrs.model_cache import DiskModelCache
-from lmrs.model_lifecycle import ModelMemoryLifecycle, switch_model
+from lmrs.model_lifecycle import ModelMemoryLifecycle, model_switch_in_progress, switch_model
 from lmrs.queue import RequestQueue
-from lmrs.runtime_client import VLLMOpenAIClient
-from lmrs.vram import DynamicVramState, VramRuntimeFacts, runtime_fact_snapshot
+from lmrs.runtime_client import RuntimeBackend, RuntimeClient, VLLMOpenAIClient
+from lmrs.vram import (
+    DynamicVramState,
+    VramFactsStore,
+    calculate_max_dynamic_pool,
+    calculate_usable_dynamic_vram,
+    measure_gpu_memory,
+)
 from mcp_proxy_adapter.commands.base import Command, CommandResult
 from mcp_proxy_adapter.commands.hooks import (
     register_custom_commands_hook as _adapter_register_custom_commands_hook,
@@ -99,22 +111,88 @@ class ThinAdapterCommand(Command):
             return self.error_result(type(exc).__name__, str(exc))
 
 
-_CACHE = DiskModelCache(
-    cache_root=os.environ.get("LMRS_MODEL_CACHE_ROOT", "/var/lmrs/hf-cache"),
-)
+def _model_cache_root() -> str:
+    """Return the directory the disk model cache owns.
+
+    The runtime downloads weights into the hub cache named by its own
+    environment, so that directory is preferred over any default: a cache
+    pointing somewhere else would report models the runtime cannot load and miss
+    the ones it can.
+
+    Returns:
+        The configured cache root.
+    """
+    for variable in ("LMRS_MODEL_CACHE_ROOT", "HF_HUB_CACHE", "HUGGINGFACE_HUB_CACHE"):
+        configured = os.environ.get(variable)
+        if configured:
+            return configured
+    return "/var/lmrs/hf-cache"
+
+
+def _int_env(name: str, default: int = 0) -> int:
+    """Return a non-negative integer setting from the environment.
+
+    Args:
+        name: Environment variable to read.
+        default: Value used when it is unset or unusable.
+
+    Returns:
+        The configured value, or the default.
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value >= 0 else default
+
+
+_CACHE = DiskModelCache(cache_root=_model_cache_root())
 _VLLM_CLIENT = VLLMOpenAIClient(
     base_url=os.environ.get("VLLM_BASE_URL", "http://127.0.0.1:8000"),
 )
+_VRAM_STORE = VramFactsStore(path=os.environ.get("LMRS_VRAM_FACTS_PATH", "/var/lmrs/vram-facts.json"))
+
+
+def record_model_load_measurement(model_name: str) -> Mapping[str, Any]:
+    """Measure and persist the VRAM facts of a model that just became resident.
+
+    Args:
+        model_name: The model the runtime reports as served.
+
+    Returns:
+        The stored VRAM facts, empty when the GPU could not be read.
+    """
+    measurement = measure_gpu_memory()
+    if not measurement.ok:
+        return {"measurement_error": measurement.error}
+    record = _CACHE.status(model_name).record
+    return _VRAM_STORE.record_model_loaded(
+        model_name,
+        measurement,
+        runtime_backend=RuntimeBackend.VLLM,
+        quantization_profile=record.quantization_profile if record is not None else "",
+    )
+
+
 _LIFECYCLE = ModelMemoryLifecycle(
-    runtime_backend="vllm", model_probe=_VLLM_CLIENT.is_model_served
+    runtime_backend=RuntimeBackend.VLLM,
+    model_probe=_VLLM_CLIENT.is_model_served,
+    disk_cache=_CACHE,
+    vram_recorder=record_model_load_measurement,
 )
+_RUNTIME_CLIENT = RuntimeClient(backend=RuntimeBackend.VLLM, vllm_client=_VLLM_CLIENT)
 _LMCACHE_POLICY = LMCacheStoragePolicy(
     enabled=os.environ.get("LMRS_LMCACHE_ENABLED", "").lower() in {"1", "true", "yes"},
     cache_storage_path=os.environ.get("LMRS_LMCACHE_PATH", "/var/lmrs/lmcache"),
 )
 
 
-_CHAT_HANDLER = CanonicalChatHandler()
+# The switch predicate is wired in on purpose: without it a request arriving
+# mid-switch would be admitted against a runtime that is being torn down.
+_CHAT_HANDLER = CanonicalChatHandler(model_switch_in_progress=model_switch_in_progress)
 
 
 class _QueueHolder:
@@ -141,6 +219,22 @@ class _QueueHolder:
         """
         return self.queue.snapshot()
 
+    def replace(self, queue: RequestQueue) -> None:
+        """Adopt the queue value an admission produced.
+
+        Args:
+            queue: The queue returned by adding an admitted entry.
+        """
+        self.queue = queue
+
+    def reserved_bytes(self) -> int:
+        """Return the dynamic VRAM currently held by queued requests.
+
+        Returns:
+            The sum of the reservations of every queued entry.
+        """
+        return sum(entry.required_dynamic_vram_bytes for entry in self.queue.entries)
+
     def cancel(self, request_id: str) -> list[dict[str, object]]:
         """Remove one request and return the resulting queue state.
 
@@ -155,25 +249,221 @@ class _QueueHolder:
 
 
 _QUEUE = _QueueHolder()
-# Placeholder measurement inputs. No producer in lmrs supplies measured VRAM
-# yet, so the capacity command reports a zeroed snapshot flagged measured=false
-# rather than inventing figures; the same honesty rule lmrs.adapter.info follows.
-_VRAM_FACTS = VramRuntimeFacts(resident_services=(), service_baseline_free_vram_bytes=0, model_loaded_free_vram_bytes=0)
-_VRAM_STATE = DynamicVramState(model_loaded_free_vram_bytes=0, safety_margin_bytes=0, runtime_reserve_bytes=0)
-_VRAM_MEASURED = False
+
+
+def _resident_services() -> tuple[str, ...]:
+    """Return the always-on GPU services declared for this host.
+
+    Returns:
+        Service names from ``LMRS_RESIDENT_SERVICES``, empty when unset.
+    """
+    raw = os.environ.get("LMRS_RESIDENT_SERVICES", "")
+    return tuple(name.strip() for name in raw.split(",") if name.strip())
+
+
+def vram_payload() -> dict[str, Any]:
+    """Return the measured VRAM facts and the derived capacity pools.
+
+    Every figure is a measurement or is derived from one: the model-loaded free
+    VRAM is read from the driver now, the service baseline is the reading taken
+    before a model was loaded, and the static VRAM is their difference. When a
+    figure has no measurement behind it the key is null and ``measured`` is
+    false, because a plausible number here would silently become an admission
+    decision.
+
+    Returns:
+        The capacity payload the ``capacity`` command reports.
+    """
+    measurement = measure_gpu_memory()
+    stored = _VRAM_STORE.read()
+    baseline = stored.get("service_baseline_free_vram_bytes")
+    baseline_bytes = baseline if isinstance(baseline, int) else None
+    if measurement.ok:
+        free_bytes: int | None = measurement.free_bytes
+    else:
+        recorded_free = stored.get("model_loaded_free_vram_bytes")
+        free_bytes = recorded_free if isinstance(recorded_free, int) else None
+    if measurement.ok and baseline_bytes is None and _LIFECYCLE.current_residency is None:
+        # The baseline is only observable while no model holds VRAM, so the
+        # runtime is asked as well: a reading taken while vLLM already serves
+        # weights would make the model look free.
+        probe = _VLLM_CLIENT.list_models()
+        model_served = bool(probe.ok and probe.served_models)
+        stored = _VRAM_STORE.record_service_baseline(measurement, _resident_services(), model_served=model_served)
+        baseline = stored.get("service_baseline_free_vram_bytes")
+        baseline_bytes = baseline if isinstance(baseline, int) else None
+    static_vram: int | None = None
+    if stored.get("baseline_model_served"):
+        baseline_bytes = None
+    if baseline_bytes is not None and free_bytes is not None and baseline_bytes >= free_bytes:
+        static_vram = baseline_bytes - free_bytes
+    state = DynamicVramState(
+        model_loaded_free_vram_bytes=free_bytes or 0,
+        safety_margin_bytes=_int_env("LMRS_SAFETY_MARGIN_BYTES"),
+        runtime_reserve_bytes=_int_env("LMRS_RUNTIME_RESERVE_BYTES"),
+        active_reservation_bytes=_QUEUE.reserved_bytes(),
+    )
+    residency = _LIFECYCLE.current_residency
+    return {
+        "resident_services": list(_resident_services()),
+        "service_baseline_free_vram_bytes": baseline_bytes,
+        "model_loaded_free_vram_bytes": free_bytes,
+        "measured_model_static_vram_bytes": static_vram,
+        "max_dynamic_pool_bytes": calculate_max_dynamic_pool(state) if free_bytes is not None else 0,
+        "usable_dynamic_vram_bytes": calculate_usable_dynamic_vram(state) if free_bytes is not None else 0,
+        "active_reservation_bytes": state.active_reservation_bytes,
+        "total_vram_bytes": measurement.total_bytes if measurement.ok else stored.get("total_vram_bytes"),
+        "model_name": residency.model_name if residency is not None else stored.get("model_name"),
+        "runtime_backend": RuntimeBackend.VLLM,
+        "quantization_profile": stored.get("quantization_profile"),
+        "hardware_profile_id": os.environ.get("LMRS_HARDWARE_PROFILE_ID"),
+        "measurement_metadata": {
+            "source": measurement.source,
+            "measured_at": measurement.measured_at,
+            "devices": [dict(device) for device in measurement.devices],
+            "error": measurement.error,
+            "baseline_measured_at": stored.get("baseline_measured_at"),
+            "baseline_model_served": stored.get("baseline_model_served"),
+            "static_vram_unavailable_reason": stored.get("static_vram_unavailable_reason"),
+        },
+        "measured": measurement.ok,
+        "safety_margin_bytes": state.safety_margin_bytes,
+        "runtime_reserve_bytes": state.runtime_reserve_bytes,
+    }
+
+
+def capacity_snapshot(model_name: str) -> CapacitySnapshot:
+    """Return the capacity snapshot admission decides against.
+
+    Args:
+        model_name: Model the request targets.
+
+    Returns:
+        A CapacitySnapshot carrying the measured pools and the runtime state of
+        that model. An unmeasurable GPU yields zeroed pools, which rejects
+        instead of admitting: refusing a request LMRS cannot size is the
+        invariant, not a degraded mode.
+    """
+    payload = vram_payload()
+    residency = _LIFECYCLE.current_residency
+    probe = _VLLM_CLIENT.is_model_served(model_name)
+    return CapacitySnapshot(
+        usable_dynamic_vram_bytes=int(payload["usable_dynamic_vram_bytes"]),
+        max_dynamic_pool_bytes=int(payload["max_dynamic_pool_bytes"]),
+        model_loaded=bool(probe.ok) or (residency is not None and residency.model_name == model_name),
+        runtime_ready=bool(probe.ok),
+        metadata={
+            "measured": payload["measured"],
+            "served_models": list(probe.served_models),
+            "probe_error": probe.error,
+        },
+    )
+
+
+def model_kv_profile(model_name: str) -> KVCacheProfile | None:
+    """Return the KV-cache profile of a cached model.
+
+    The parameters come from the ``config.json`` inside the cached snapshot the
+    runtime loads, so the KV cost belongs to that exact model revision.
+
+    Args:
+        model_name: Model to describe.
+
+    Returns:
+        The derived profile, or None when the model is not cached or its config
+        does not state the parameters the formula needs.
+    """
+    record = _CACHE.status(model_name).record
+    if record is None or not record.model_path:
+        return None
+    config_path = Path(record.model_path) / "config.json"
+    try:
+        loaded = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    return derive_kv_cache_profile(loaded, os.environ.get("LMRS_KV_CACHE_DTYPE"))
+
+
+def prompt_token_breakdown(
+    model_name: str,
+    messages: list[dict[str, str]],
+    reserved_output_tokens: int,
+) -> TokenBreakdown:
+    """Count the tokens of a chat prompt for admission.
+
+    The runtime's own tokenizer is asked first, because it is the tokenizer that
+    will execute the request; the character heuristic is used only when the
+    runtime does not answer, and the result is then marked as a rough estimate
+    so no caller mistakes it for an exact count.
+
+    Args:
+        model_name: Model whose tokenizer applies.
+        messages: The chat messages to be sent.
+        reserved_output_tokens: Output tokens reserved for the reply.
+
+    Returns:
+        A TokenBreakdown for this request.
+    """
+    counted = _VLLM_CLIENT.count_prompt_tokens(model_name, messages)
+    if counted is not None:
+        return TokenBreakdown(
+            input_tokens=counted,
+            tool_tokens=0,
+            service_tokens=0,
+            reserved_output_tokens=reserved_output_tokens,
+            tokenizer_name=model_name,
+            tokenizer_accuracy="runtime_tokenizer",
+            rough_estimate=False,
+        )
+    characters = sum(len(str(message.get("content", ""))) for message in messages)
+    return TokenBreakdown(
+        input_tokens=-(-characters // 4),
+        tool_tokens=0,
+        service_tokens=0,
+        reserved_output_tokens=reserved_output_tokens,
+        tokenizer_name="characters-per-four",
+        tokenizer_accuracy="rough",
+        rough_estimate=True,
+    )
 
 
 def _lmcache_observations() -> Mapping[str, Any]:
     """Return raw LMCache runtime observations for the status command.
 
-    The LMCache backend publishes its counters through the runtime wiring; until
-    that wiring reports them, no observation is available and the status command
-    answers with the policy plus zeroed counters rather than inventing figures.
+    The disk tier is measured directly from the storage path, which is the one
+    LMCache fact this process can observe on its own. Hit and miss counters stay
+    zero until the runtime publishes them; they are reported as observed rather
+    than estimated.
 
     Returns:
         A mapping of raw observations consumed by ``build_lmcache_telemetry``.
     """
-    return {}
+    storage_path = _LMCACHE_POLICY.cache_storage_path
+    if not storage_path:
+        return {"metadata": {"storage_path": None, "disk_tier_observed": False}}
+    root = Path(storage_path)
+    if not root.is_dir():
+        return {"metadata": {"storage_path": str(root), "disk_tier_observed": False, "reason": "storage path does not exist"}}
+    usage = 0
+    entries = 0
+    for path in root.rglob("*"):
+        try:
+            if path.is_file():
+                usage += path.stat().st_size
+                entries += 1
+        except OSError:
+            continue
+    return {
+        "disk_cache_usage": usage,
+        "metadata": {
+            "storage_path": str(root),
+            "disk_tier_observed": True,
+            "entry_count": entries,
+            "source": "filesystem",
+        },
+    }
 
 
 def _param(params: Mapping[str, Any], name: str) -> str:
@@ -231,6 +521,9 @@ class LocalModelCachePreloadCommand(ThinAdapterCommand):
 
     name: ClassVar[str] = CommandName.LOCAL_MODEL_CACHE_PRELOAD
     descr: ClassVar[str] = "Prepare a model in the local disk cache"
+    # Queued: a preload downloads model weights, which outlives any request
+    # timeout. Running it inline made the command a coin flip on model size.
+    use_queue: ClassVar[bool] = True
     schema: ClassVar[dict[str, Any]] = MODEL_NAME_SCHEMA
 
     def delegate(self, params: Mapping[str, Any]) -> Any:
@@ -260,10 +553,17 @@ class LocalModelCacheDeleteCommand(ThinAdapterCommand):
 
 
 class ChatCommand(ThinAdapterCommand):
-    """Adapter wrapper for a real vLLM chat completion call."""
+    """Adapter wrapper for an admitted chat completion.
+
+    The request is counted, sized against measured capacity and admitted before
+    anything reaches the runtime. That order is the service's reason to exist:
+    a prompt that does not fit must be refused with a stable reason code rather
+    than handed to vLLM to fail there, so this command never calls the runtime
+    itself and never bypasses the canonical handler.
+    """
 
     name: ClassVar[str] = CommandName.CHAT
-    descr: ClassVar[str] = "Send a chat message to the locally served vLLM model"
+    descr: ClassVar[str] = "Admit a chat request against measured capacity and run it on the local model"
     schema: ClassVar[dict[str, Any]] = CHAT_SCHEMA
 
     def delegate(self, params: Mapping[str, Any]) -> Any:
@@ -274,12 +574,42 @@ class ChatCommand(ThinAdapterCommand):
         if isinstance(system, str) and system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": message})
-        options: dict[str, object] = {}
+        max_tokens = int(params.get("max_tokens", 128))
+        kv_profile = model_kv_profile(model_name)
+        if kv_profile is None:
+            return _CHAT_HANDLER.executor.failure_result(
+                CommandName.CHAT,
+                ErrorCode.HARDWARE_CAPACITY_UNKNOWN,
+                metadata={
+                    "model_name": model_name,
+                    "detail": "the model is not cached on disk or its config does not state the KV parameters, so the request cannot be sized",
+                },
+            )
+        request_id = str(params.get("request_id") or f"chat-{uuid4().hex}")
+        admitted_at = datetime.now(UTC)
+        options: dict[str, object] = {"max_tokens": max_tokens}
         if "temperature" in params:
             options["temperature"] = params["temperature"]
-        if "max_tokens" in params:
-            options["max_tokens"] = params["max_tokens"]
-        return _VLLM_CLIENT.chat_completion(model_name, messages, **options)
+        return _CHAT_HANDLER.chat(
+            queue=_QUEUE.queue,
+            request_metadata={"session_id": str(params.get("session_id") or "adapter")},
+            queue_metadata={
+                "admitted_at": admitted_at.isoformat(),
+                "expires_at": (admitted_at + timedelta(seconds=_int_env("LMRS_QUEUE_TTL_SECONDS", 300))).isoformat(),
+            },
+            runtime_client=_RUNTIME_CLIENT,
+            runtime_profile=None,
+            admitted_request={"request_id": request_id, "model_name": model_name, "messages": messages, "options": options},
+            queue_sink=_QUEUE.replace,
+            request_id=request_id,
+            model_name=model_name,
+            token_breakdown=prompt_token_breakdown(model_name, messages, max_tokens),
+            declared_context_window=kv_profile.declared_context_window,
+            capacity=capacity_snapshot(model_name),
+            kv_bytes_per_token=kv_profile.kv_bytes_per_token(),
+            per_request_overhead_bytes=_int_env("LMRS_PER_REQUEST_OVERHEAD_BYTES"),
+            runtime_batch_overhead_bytes=_int_env("LMRS_RUNTIME_BATCH_OVERHEAD_BYTES"),
+        )
 
 
 class LocalModelLoadCommand(ThinAdapterCommand):
@@ -373,8 +703,7 @@ class CapacityCommand(ThinAdapterCommand):
     descr: ClassVar[str] = "Report measured VRAM facts and the usable dynamic pool"
 
     def delegate(self, params: Mapping[str, Any]) -> Any:
-        snapshot = runtime_fact_snapshot(_VRAM_FACTS, _VRAM_STATE)
-        return {**snapshot, "measured": _VRAM_MEASURED}
+        return vram_payload()
 
 
 class QueueStatusCommand(ThinAdapterCommand):

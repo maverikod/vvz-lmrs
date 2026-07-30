@@ -18,6 +18,22 @@ fi
 
 mkdir -p /var/lmrs/cache /var/lmrs/hf-cache "$LMRS_LOG_DIR"
 
+# The adapter talks to vLLM over this URL. Deriving it here keeps one setting
+# pair: changing VLLM_PORT moved the server but left the adapter calling 8000.
+vllm_client_host="$VLLM_HOST"
+if [ "$vllm_client_host" = "0.0.0.0" ]; then
+  vllm_client_host=127.0.0.1
+fi
+export VLLM_BASE_URL="${VLLM_BASE_URL:-http://${vllm_client_host}:${VLLM_PORT}}"
+
+# LMCache is enabled by the same condition that enables the KV connector below,
+# so the status command reports what the runtime actually runs with.
+if [ -f "$LMCACHE_CONFIG_FILE" ]; then
+  export LMRS_LMCACHE_ENABLED=1
+else
+  export LMRS_LMCACHE_ENABLED=0
+fi
+
 if [ ! -r "$LMRS_CONFIG" ]; then
   echo "LMRS config is not readable: $LMRS_CONFIG" >&2
   exit 66

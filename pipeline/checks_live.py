@@ -34,18 +34,22 @@ _CLIENT_ROOT = Path(__file__).resolve().parent.parent / "client"
 # Read-only state first, then accounting, then generation, then the mutating
 # cache and lifecycle commands. Anything the client exposes that is not named
 # here still runs, after these, so a new command cannot be silently skipped.
+#
+# The cache status runs after the preload, not before it: the cache commands act
+# on a scratch model that this run downloads and deletes again, so asking for its
+# status first would report a model nothing had fetched yet.
 _ORDER: tuple[str, ...] = (
     "healthcheck",
     "info",
     "capacity",
     "model_status",
     "queue_status",
-    "local_model_cache_status",
     "local_lmcache_status",
     "token_count",
     "estimate",
     "chat",
     "local_model_cache_preload",
+    "local_model_cache_status",
     "local_model_load",
     "local_model_reload",
     "local_lmcache_purge",
@@ -126,11 +130,44 @@ def _settings() -> dict[str, Any]:
     return settings
 
 
+def _acceptance_models() -> tuple[str, str]:
+    """Return the served model and the scratch model the cache commands use.
+
+    Two names, not one, and the difference matters: the disk-cache commands now
+    act on real weights, so pointing them at the served model would have the
+    acceptance run delete the very weights the server is running. The scratch
+    model is a tiny public repository that can be downloaded and deleted freely.
+
+    Returns:
+        The served model name and the scratch cache model name.
+
+    Raises:
+        RuntimeError: If the served model is not configured, or if the scratch
+            model is the served one.
+    """
+    served = os.environ.get("LMRS_LIVE_MODEL")
+    if not served:
+        raise RuntimeError(
+            "LMRS_LIVE_MODEL is not set; it must name the model the deployed "
+            "server serves, because commands driven against an invented name "
+            "prove nothing about the deployment"
+        )
+    scratch = os.environ.get("LMRS_LIVE_CACHE_MODEL", "hf-internal-testing/tiny-random-gpt2")
+    if scratch == served:
+        raise RuntimeError(
+            "LMRS_LIVE_CACHE_MODEL must differ from LMRS_LIVE_MODEL: the cache "
+            "commands delete what they preload, and deleting the served model "
+            "would remove the weights the server is running on"
+        )
+    return served, scratch
+
+
 def _arguments(command: str) -> dict[str, Any]:
     """Build the acceptance-profile arguments for one command.
 
-    Destructive commands act on the acceptance model only, and the order in
-    ``_ORDER`` reloads it afterwards so the server is left serving.
+    Lifecycle and generation commands act on the served model; the disk-cache
+    commands act on the scratch model, which they preload and delete again, so
+    the run leaves the deployment exactly as it found it.
 
     Args:
         command: Client method name.
@@ -138,7 +175,7 @@ def _arguments(command: str) -> dict[str, Any]:
     Returns:
         Keyword arguments for the call.
     """
-    model = os.environ.get("LMRS_LIVE_MODEL", "acceptance-model")
+    model, scratch = _acceptance_models()
     per_command: dict[str, dict[str, Any]] = {
         "model_status": {"model_name": model},
         "token_count": {"input_tokens": 8, "tokenizer_name": "acceptance", "tokenizer_accuracy": "rough"},
@@ -154,9 +191,9 @@ def _arguments(command: str) -> dict[str, Any]:
         },
         "chat": {"message": "Reply with the single word: ready", "model_name": model, "max_tokens": 16},
         "cancel": {"request_id": "live-nonexistent-request"},
-        "local_model_cache_preload": {"model_name": model},
-        "local_model_cache_status": {"model_name": model},
-        "local_model_cache_delete": {"model_name": model},
+        "local_model_cache_preload": {"model_name": scratch},
+        "local_model_cache_status": {"model_name": scratch},
+        "local_model_cache_delete": {"model_name": scratch},
         "local_model_load": {"model_name": model},
         "local_model_unload": {"model_name": model},
         "local_model_reload": {"model_name": model},
@@ -258,6 +295,7 @@ def run_commands_live() -> int:
         settings_error: Exception | None = None
         try:
             _settings()
+            _acceptance_models()
         except RuntimeError as error:
             settings_error = error
         if settings_error is not None:

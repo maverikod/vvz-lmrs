@@ -201,6 +201,45 @@ def autoload_default_model(
     return outcome
 
 
+def record_service_baseline_vram(logger: Callable[[str], None] | None = None) -> dict[str, Any]:
+    """Measure free VRAM before a model is loaded and persist it.
+
+    The service baseline is the one VRAM fact that cannot be recovered later:
+    once weights are resident, no reading can tell how much VRAM was free
+    before them. Startup is therefore the only honest moment to take it, and it
+    is taken before the autoload runs. When the runtime already serves a model
+    the reading is still stored, flagged so a consumer can see it is not a
+    model-free baseline rather than trusting it blindly.
+
+    Args:
+        logger: Receives one message describing what was recorded.
+
+    Returns:
+        The stored VRAM facts, empty when the GPU could not be read.
+    """
+    from lmrs.adapter import registration
+    from lmrs.vram import measure_gpu_memory
+
+    measurement = measure_gpu_memory()
+    if not measurement.ok:
+        if logger is not None:
+            logger(f"lmrs: GPU memory could not be measured at startup ({measurement.error}); capacity will report measured=false")
+        return {}
+    probe = registration._VLLM_CLIENT.list_models()
+    model_served = bool(probe.ok and probe.served_models)
+    facts = registration._VRAM_STORE.record_service_baseline(
+        measurement,
+        registration._resident_services(),
+        model_served=model_served,
+    )
+    if logger is not None:
+        logger(
+            f"lmrs: service baseline free VRAM recorded as {measurement.free_bytes} bytes "
+            f"(model already served: {model_served})"
+        )
+    return facts
+
+
 def _log_autoload(logger: Callable[[str], None] | None, outcome: Mapping[str, Any]) -> None:
     """Report the autoload outcome through the supplied logger.
 
@@ -276,6 +315,9 @@ def start_adapter_server(
     # before control passes to the factory.
     import lmrs.adapter.registration  # noqa: F401
 
+    # Before the autoload, not after: a baseline taken once weights are resident
+    # is not a baseline.
+    record_service_baseline_vram(_startup_logger)
     autoload_default_model(config, logger=_startup_logger)
     factory = create_and_run_server if create_and_run_server is not None else _default_server_factory()
     kwargs: dict[str, Any] = dict(factory_kwargs)

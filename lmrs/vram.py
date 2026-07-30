@@ -1,13 +1,25 @@
 """VRAM runtime facts and capacity calculation functions for the LMRS package.
 
+The measurement side of this module reads the GPU through ``nvidia-smi`` and
+persists what it read, because the service baseline is only observable before a
+model is loaded: once vLLM holds its weights, no later reading can reconstruct
+it. Every derived figure here comes from a stored measurement, never from a
+theoretical model size.
+
 Author: Vasiliy Zdanovskiy
 email: vasilyvz@gmail.com
 """
 
 from __future__ import annotations
 
+import json
+import shutil
+import subprocess
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Mapping
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Mapping
 
 
 @dataclass(frozen=True)
@@ -108,6 +120,233 @@ def calculate_usable_dynamic_vram(state: DynamicVramState) -> int:
     if state.active_reservation_bytes < 0:
         raise ValueError("active_reservation_bytes must be non-negative")
     return max(0, calculate_max_dynamic_pool(state) - state.active_reservation_bytes)
+
+
+_MIB_BYTES = 1024 * 1024
+_NVIDIA_SMI_QUERY = (
+    "nvidia-smi",
+    "--query-gpu=index,memory.total,memory.free,memory.used",
+    "--format=csv,noheader,nounits",
+)
+
+
+@dataclass(frozen=True)
+class GpuMemoryMeasurement:
+    """One reading of GPU memory taken from the driver.
+
+    Attributes:
+        ok: Whether the reading succeeded.
+        total_bytes: Total VRAM across the visible devices.
+        free_bytes: Free VRAM across the visible devices.
+        used_bytes: Used VRAM across the visible devices.
+        devices: Per-device totals, in device index order.
+        measured_at: ISO timestamp of the reading.
+        source: Tool that produced the reading.
+        error: Failure description when the reading did not succeed.
+    """
+
+    ok: bool
+    total_bytes: int = 0
+    free_bytes: int = 0
+    used_bytes: int = 0
+    devices: tuple[Mapping[str, int], ...] = ()
+    measured_at: str = ""
+    source: str = "nvidia-smi"
+    error: str | None = None
+
+
+def _run_nvidia_smi(command: Sequence[str]) -> tuple[int, str, str]:
+    """Run one nvidia-smi query.
+
+    Args:
+        command: The command line to execute.
+
+    Returns:
+        The exit status, standard output and standard error.
+
+    Raises:
+        FileNotFoundError: If nvidia-smi is not installed.
+    """
+    if shutil.which(command[0]) is None:
+        raise FileNotFoundError(f"{command[0]} is not installed")
+    completed = subprocess.run(list(command), capture_output=True, text=True, timeout=15, check=False)
+    return completed.returncode, completed.stdout, completed.stderr
+
+
+def measure_gpu_memory(
+    runner: Callable[[Sequence[str]], tuple[int, str, str]] | None = None,
+) -> GpuMemoryMeasurement:
+    """Read current GPU memory from the driver.
+
+    Args:
+        runner: Executes the query and returns status, stdout and stderr; the
+            nvidia-smi runner is used when omitted.
+
+    Returns:
+        A GpuMemoryMeasurement; ``ok`` is False when the driver could not be
+        read, and the failure is carried in ``error`` rather than raised, so a
+        capacity report can state that it has no measurement instead of
+        inventing one.
+    """
+    execute = runner if runner is not None else _run_nvidia_smi
+    measured_at = datetime.now(UTC).isoformat()
+    try:
+        status, stdout, stderr = execute(_NVIDIA_SMI_QUERY)
+    except Exception as error:  # noqa: BLE001 - an unreadable GPU is reported, not raised
+        return GpuMemoryMeasurement(False, measured_at=measured_at, error=f"{type(error).__name__}: {error}")
+    if status != 0:
+        return GpuMemoryMeasurement(False, measured_at=measured_at, error=(stderr or stdout).strip() or f"nvidia-smi exited with {status}")
+    devices: list[Mapping[str, int]] = []
+    for line in stdout.splitlines():
+        fields = [field_value.strip() for field_value in line.split(",")]
+        if len(fields) != 4:
+            continue
+        try:
+            index, total, free, used = (int(value) for value in fields)
+        except ValueError:
+            continue
+        devices.append({
+            "index": index,
+            "total_bytes": total * _MIB_BYTES,
+            "free_bytes": free * _MIB_BYTES,
+            "used_bytes": used * _MIB_BYTES,
+        })
+    if not devices:
+        return GpuMemoryMeasurement(False, measured_at=measured_at, error="nvidia-smi reported no devices")
+    return GpuMemoryMeasurement(
+        ok=True,
+        total_bytes=sum(int(device["total_bytes"]) for device in devices),
+        free_bytes=sum(int(device["free_bytes"]) for device in devices),
+        used_bytes=sum(int(device["used_bytes"]) for device in devices),
+        devices=tuple(devices),
+        measured_at=measured_at,
+    )
+
+
+@dataclass
+class VramFactsStore:
+    """Persisted VRAM measurements for one host.
+
+    The service baseline can only be observed while no model is loaded, so it is
+    written once and read back afterwards; without it a static-VRAM figure would
+    be a guess, and a guess is exactly what the invariant forbids.
+
+    Attributes:
+        path: File holding the recorded measurements.
+    """
+
+    path: str
+
+    def read(self) -> dict[str, Any]:
+        """Return the stored measurements.
+
+        Returns:
+            The stored mapping, empty when nothing has been recorded yet.
+        """
+        try:
+            loaded = json.loads(Path(self.path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return loaded if isinstance(loaded, dict) else {}
+
+    def _write(self, facts: Mapping[str, Any]) -> dict[str, Any]:
+        """Persist the measurements, ignoring an unwritable location.
+
+        Args:
+            facts: The mapping to store.
+
+        Returns:
+            The same mapping, so callers can use it whether or not the write
+            reached disk.
+        """
+        stored = dict(facts)
+        try:
+            target = Path(self.path)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(json.dumps(stored, indent=2, sort_keys=True), encoding="utf-8")
+        except OSError as error:
+            stored["write_error"] = str(error)
+        return stored
+
+    def record_service_baseline(
+        self,
+        measurement: GpuMemoryMeasurement,
+        resident_services: Sequence[str] = (),
+        model_served: bool = False,
+    ) -> dict[str, Any]:
+        """Record free VRAM measured before a model is loaded.
+
+        A reading taken while the runtime already serves a model is not a
+        baseline, and it is the reading a restart would otherwise produce: LMRS
+        can restart at any time while vLLM keeps its weights. Such a reading is
+        stored only when nothing better exists, is flagged as model-served, and
+        never replaces a model-free baseline - otherwise the next static-VRAM
+        figure would come out near zero and admission would believe the model
+        costs nothing.
+
+        Args:
+            measurement: The reading to record.
+            resident_services: Always-on GPU services running at that moment.
+            model_served: Whether the runtime already served a model when the
+                reading was taken.
+
+        Returns:
+            The stored facts.
+        """
+        if not measurement.ok:
+            return self.read()
+        facts = self.read()
+        if model_served and facts.get("baseline_model_served") is False:
+            return facts
+        facts.update({
+            "service_baseline_free_vram_bytes": measurement.free_bytes,
+            "total_vram_bytes": measurement.total_bytes,
+            "resident_services": list(resident_services),
+            "baseline_measured_at": measurement.measured_at,
+            "baseline_model_served": model_served,
+        })
+        return self._write(facts)
+
+    def record_model_loaded(
+        self,
+        model_name: str,
+        measurement: GpuMemoryMeasurement,
+        runtime_backend: str = "",
+        quantization_profile: str = "",
+    ) -> dict[str, Any]:
+        """Record free VRAM measured after a model became resident.
+
+        Args:
+            model_name: The model that is now resident.
+            measurement: The reading to record.
+            runtime_backend: Backend hosting the model.
+            quantization_profile: Quantization profile of the loaded model.
+
+        Returns:
+            The stored facts, including the derived static VRAM when both
+            measurements are present and consistent.
+        """
+        if not measurement.ok:
+            return self.read()
+        facts = self.read()
+        facts.update({
+            "model_name": model_name,
+            "model_loaded_free_vram_bytes": measurement.free_bytes,
+            "model_loaded_measured_at": measurement.measured_at,
+            "runtime_backend": runtime_backend,
+            "quantization_profile": quantization_profile,
+        })
+        baseline = facts.get("service_baseline_free_vram_bytes")
+        if facts.get("baseline_model_served"):
+            facts.pop("measured_model_static_vram_bytes", None)
+            facts["static_vram_unavailable_reason"] = "the stored baseline was measured while a model was already served"
+        elif isinstance(baseline, int) and baseline >= measurement.free_bytes:
+            facts["measured_model_static_vram_bytes"] = baseline - measurement.free_bytes
+            facts.pop("static_vram_unavailable_reason", None)
+        else:
+            facts.pop("measured_model_static_vram_bytes", None)
+            facts["static_vram_unavailable_reason"] = "no service baseline below the model-loaded reading"
+        return self._write(facts)
 
 
 def runtime_fact_snapshot(
