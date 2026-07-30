@@ -298,6 +298,27 @@ restart), so the server currently runs UNREGISTERED and info truthfully reports
 server_url is `https://lmrs:8012` (docker-internal name). Whether to retarget
 registration or fix routing is an operator decision.
 
+## 7c. Final update: 0.1.8 — auto-registration is durable
+
+The server had been running unregistered: the 2026-07-17 manual
+`docker network connect smart-assistant lmrs` did not survive the packaged
+runner's `docker rm -f` + `docker run` on restart, so the alias registration
+URL (`https://mcp-proxy.techsup.od.ua:3004` — the proxy's docker alias on
+`smart-assistant`, matching its cert SAN) stopped resolving and the adapter
+gave up after five attempts. Every registered on-host sibling (casmgr, planmgr,
+doc-store, svo-chunker) is a member of `smart-assistant`; lmrs was not.
+
+0.1.8 makes the membership part of the container definition: the runner takes
+`LMRS_DOCKER_NETWORK` (set to `smart-assistant` in `/etc/default/lmrs`,
+documented in the template, pinned by a contract test). Deployed config keeps
+the alias URLs and `server.advertised_host=lmrs`. Verified across two clean
+hands-free restarts: registration + heartbeat green, and `info`/`chat` work
+THROUGH the proxy. Note the copy_number: after a restart the proxy answered
+"already registered" and the server now serves as `lmrs_2` — call_server needs
+the current copy number, same behavior as CAS. `commands-live` direct: 18/18.
+Backups on host: `/root/config.json.pre-registration-fix`,
+`/root/config.json.pre-0.1.5`, `/root/lmrs.default.pre-0.1.5`.
+
 ## 7. Decisions the user has already made
 
 - Push the working branch without asking; do not wait for confirmation.
