@@ -35,10 +35,17 @@ warn()  { echo -e "${YELLOW}WARN:${NC} $1"; }
 # shellcheck source=scripts/dockerhub_repo.sh
 source "${ROOT}/scripts/dockerhub_repo.sh"
 DOCKERHUB_REPO="$(dockerhub_repo_default)"
-# The image must be inference-complete, so both runtime pins are supplied by
-# the operator and the build refuses a floating tag. There is deliberately no
-# default: a ":latest" fallback here would silently produce an unpinned image
-# that the Dockerfile then rejects.
+# The image must be inference-complete, so both runtime pins are exact values
+# carried in version control (docker/lmrs/pins.env) rather than a ":latest"
+# fallback, which would silently produce an unpinned image the Dockerfile then
+# rejects. The environment and .env still win, so a one-off experiment does not
+# require editing the committed pins.
+if [[ -f "${ROOT}/docker/lmrs/pins.env" ]]; then
+    while IFS='=' read -r pin_key pin_value; do
+        [[ "${pin_key}" == LMRS_* ]] || continue
+        [[ -n "${!pin_key:-}" ]] || printf -v "${pin_key}" '%s' "${pin_value}"
+    done < "${ROOT}/docker/lmrs/pins.env"
+fi
 VLLM_BASE="${LMRS_VLLM_BASE:-}"
 LMCACHE_VERSION="${LMRS_LMCACHE_VERSION:-}"
 
