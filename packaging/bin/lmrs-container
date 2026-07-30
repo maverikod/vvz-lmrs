@@ -48,6 +48,8 @@ start_container() {
     -e VLLM_PORT="${VLLM_PORT:-8000}" \
     -e VLLM_EXTRA_ARGS="${VLLM_EXTRA_ARGS:-}" \
     -e LMCACHE_CONFIG_FILE="${LMCACHE_CONFIG_FILE:-/etc/lmrs/lmcache.yaml}" \
+    -e HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}" \
+    -e HF_TOKEN="${HF_TOKEN:-}" \
     -e LMRS_LOG_DIR="${LMRS_LOG_DIR:-/var/log/lmrs}" \
     -p "${BIND}:${PORT}:8012" \
     -v "${CONFIG}:/etc/lmrs/config.json:ro" \

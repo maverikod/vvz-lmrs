@@ -36,7 +36,10 @@ trap shutdown TERM INT EXIT
 
 if [ -n "$LMRS_MODEL" ]; then
   lmcache_args=()
-  if [ -r "$LMCACHE_CONFIG_FILE" ]; then
+  # -f, not -r: the host run script bind-mounts this path, so when the file is
+  # absent on the host docker creates a DIRECTORY here. A directory is readable,
+  # so -r silently enabled the KV connector with a directory as its config.
+  if [ -f "$LMCACHE_CONFIG_FILE" ]; then
     export LMCACHE_CONFIG_FILE
     lmcache_args=(--kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}')
   fi

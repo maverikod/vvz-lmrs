@@ -30,3 +30,13 @@ VLLM_HOST=127.0.0.1
 VLLM_PORT=8000
 VLLM_EXTRA_ARGS="--gpu-memory-utilization 0.80"
 LMCACHE_CONFIG_FILE=/etc/lmrs/lmcache.yaml
+
+# Serve weights from the mounted model cache and never reach the HuggingFace Hub
+# on startup. The image is inference-complete and the cache volume already holds
+# the weights, so a Hub round trip only adds a network dependency: an
+# unauthenticated, rate-limited request inside vLLM's snapshot_download blocks
+# model load indefinitely, with no log line and no download progress to show why.
+# Set this to 0 only to fetch a model that is not in the cache yet, and give
+# HF_TOKEN a value when you do, so the fetch is not rate-limited.
+HF_HUB_OFFLINE=1
+HF_TOKEN=
