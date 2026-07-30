@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 
 import pipeline.checks  # noqa: F401  (registers the repository checks)
+import pipeline.checks_live  # noqa: F401  (registers the live all-commands check)
 from pipeline.registry import REGISTRY, CheckRegistry
 
 
