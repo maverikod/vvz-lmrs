@@ -44,6 +44,20 @@ def test_the_runner_bind_mounts_the_cache_paths_explicitly() -> None:
     assert '-v "${DATA_DIR}/lmcache:/var/lmrs/lmcache"' in script
 
 
+def test_the_runner_supports_joining_a_docker_network() -> None:
+    """Proxy registration resolves through docker aliases on a shared network.
+
+    A manual `docker network connect` does not survive the `docker rm -f` the
+    runner performs on every start, so the membership must come from the run
+    command itself or registration silently dies on the next restart.
+    """
+    script = _RUNNER.read_text(encoding="utf-8")
+
+    assert 'DOCKER_NETWORK=${LMRS_DOCKER_NETWORK:-}' in script
+    assert '--network $DOCKER_NETWORK' in script
+    assert "$NETWORK_ARGS" in script
+
+
 def test_the_runner_creates_the_bound_directories() -> None:
     """A bind of a missing host path would make docker create it as root."""
     script = _RUNNER.read_text(encoding="utf-8")

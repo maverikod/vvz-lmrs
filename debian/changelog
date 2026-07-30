@@ -1,5 +1,9 @@
-lmrs-container (0.1.7-1) unstable; urgency=medium
+lmrs-container (0.1.8-1) unstable; urgency=medium
 
-  * Release 0.1.7: containerized LMRS (vLLM + LMCache + adapter server).
+  * Join the container to a user-defined docker network via LMRS_DOCKER_NETWORK
+    (default smart-assistant in the shipped environment template). Proxy
+    registration on this fleet resolves through docker aliases on that shared
+    network; a manual `docker network connect` did not survive the container
+    recreation on restart, which is how the registration silently died.
 
- -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 16:09:23 +0300
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 16:30:00 +0300

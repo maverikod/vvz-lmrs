@@ -16,6 +16,7 @@ PORT=${LMRS_PORT:-8012}
 BIND=${LMRS_BIND:-127.0.0.1}
 GPUS=${LMRS_GPUS:-all}
 ENV_FILE=${LMRS_ENV_FILE:-/etc/default/lmrs}
+DOCKER_NETWORK=${LMRS_DOCKER_NETWORK:-}
 
 ensure_layout() {
   mkdir -p "$(dirname "$CONFIG")" "$CERT_DIR" "$DATA_DIR" "$DATA_DIR/cache" "$DATA_DIR/hf-cache" "$DATA_DIR/lmcache" "$LOG_DIR"
@@ -43,9 +44,24 @@ start_container() {
   # loses sight of the downloaded weights, and vLLM silently re-downloads the
   # whole model on every start instead of serving. That shadowing is the root
   # cause of the "vLLM never comes up" incident of 2026-07-30.
+  #
+  # LMRS_DOCKER_NETWORK joins the container to a user-defined docker network.
+  # Proxy registration on this fleet goes through docker aliases on the shared
+  # smart-assistant network (the proxy's alias is the registration hostname,
+  # matching its certificate SAN), so without the network membership the
+  # registration URL does not even resolve. A manual `docker network connect`
+  # does not survive the `docker rm -f` this script performs on every start,
+  # which is exactly how the 2026-07-17 manual wiring was silently lost.
+  NETWORK_ARGS=""
+  if [ -n "$DOCKER_NETWORK" ]; then
+    NETWORK_ARGS="--network $DOCKER_NETWORK"
+  fi
+
+  # shellcheck disable=SC2086  # NETWORK_ARGS is deliberately word-split
   docker run -d \
     --name "$NAME" \
     --restart unless-stopped \
+    $NETWORK_ARGS \
     --user "${LMRS_UID}:${LMRS_GID}" \
     --gpus "$GPUS" \
     -e NVIDIA_VISIBLE_DEVICES="$GPUS" \

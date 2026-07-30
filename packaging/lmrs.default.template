@@ -22,6 +22,14 @@ LMRS_ENV_FILE=/etc/default/lmrs
 
 # GPU access for vLLM inside the container. Use a comma-separated GPU list or all.
 LMRS_GPUS=all
+
+# User-defined docker network to join. On this fleet proxy registration goes
+# through docker aliases on the shared smart-assistant network: the proxy's
+# alias is the registration hostname and matches its certificate SAN, and the
+# advertised server URL is this container's name on the same network. Without
+# the membership the registration URL does not resolve and the server runs
+# unregistered. Empty means the docker default bridge.
+LMRS_DOCKER_NETWORK=smart-assistant
 NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 # vLLM/LMCache runtime inside the LMRS container.
