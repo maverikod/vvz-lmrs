@@ -258,6 +258,21 @@ def _log_autoload(logger: Callable[[str], None] | None, outcome: Mapping[str, An
     )
 
 
+def installed_version() -> str:
+    """Return the version of the installed LMRS package.
+
+    Returns:
+        The distribution version, or ``unknown`` when the package metadata is
+        not available, which is only the case outside an installed environment.
+    """
+    import importlib.metadata
+
+    try:
+        return importlib.metadata.version("lmrs")
+    except importlib.metadata.PackageNotFoundError:
+        return "unknown"
+
+
 def _default_server_factory() -> Callable[..., Any]:
     """Resolve the adapter's server factory.
 
@@ -314,6 +329,12 @@ def start_adapter_server(
     # Importing registration installs the adapter command hook; it must happen
     # before control passes to the factory.
     import lmrs.adapter.registration  # noqa: F401
+
+    # The advertised version comes from the installed package. It used to come
+    # from a field in the configuration file, which is a dpkg conffile: it
+    # survives upgrades, so an upgraded server kept advertising the version it
+    # was first installed with.
+    factory_kwargs.setdefault("version", installed_version())
 
     # Before the autoload, not after: a baseline taken once weights are resident
     # is not a baseline.

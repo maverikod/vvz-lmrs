@@ -77,17 +77,16 @@ def build_info_payload(registry: Any) -> dict[str, Any]:
             runtime_summary["queue_state"] = _jsonable(queue_snapshot)
     except Exception:
         pass
-    runtime_summary["vram"] = {
-        "available": False,
-        "reason": (
-            "no live VRAM measurement producer is wired into the "
-            "adapter runtime: VramRuntimeFacts/DynamicVramState "
-            "(lmrs/vram.py) are frozen dataclasses with required "
-            "fields and have no constructor call site anywhere in "
-            "lmrs outside this module, so real facts cannot be "
-            "gathered without fabricating them"
-        ),
-    }
+    try:
+        from lmrs.adapter.registration import vram_payload
+
+        vram_facts = vram_payload()
+        runtime_summary["vram"] = {"available": bool(vram_facts.get("measured")), **vram_facts}
+    except Exception as error:  # noqa: BLE001 - info must describe the service even when a probe fails
+        runtime_summary["vram"] = {
+            "available": False,
+            "reason": f"the VRAM measurement could not be taken: {type(error).__name__}: {error}",
+        }
     runtime_summary["registration"] = {
         "available": False,
         "reason": (

@@ -120,6 +120,33 @@ def test_shared_startup_runs_an_awaitable_factory_result() -> None:
     assert len(runner_calls) == 1
 
 
+def test_the_advertised_version_comes_from_the_installed_package() -> None:
+    """The factory is told the package version, not a version from a conffile."""
+    seen: list[dict[str, Any]] = []
+
+    def _factory(**kwargs: Any) -> str:
+        seen.append(kwargs)
+        return "served"
+
+    runtime.start_adapter_server("/etc/lmrs/config.json", create_and_run_server=_factory)
+
+    assert seen[0]["version"] == runtime.installed_version()
+    assert seen[0]["version"] != "unknown"
+
+
+def test_an_explicit_version_still_wins() -> None:
+    """A caller that names a version is not overridden by the package version."""
+    seen: list[dict[str, Any]] = []
+
+    def _factory(**kwargs: Any) -> str:
+        seen.append(kwargs)
+        return "served"
+
+    runtime.start_adapter_server("/etc/lmrs/config.json", create_and_run_server=_factory, version="9.9.9")
+
+    assert seen[0]["version"] == "9.9.9"
+
+
 def test_run_lmrs_adapter_without_a_factory_starts_no_server() -> None:
     """The no-factory seam prepares startup state without starting a server."""
     result = runtime.run_lmrs_adapter(config_loader=_valid_config)
