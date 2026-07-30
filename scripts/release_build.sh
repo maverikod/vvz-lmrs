@@ -35,7 +35,12 @@ warn()  { echo -e "${YELLOW}WARN:${NC} $1"; }
 # shellcheck source=scripts/dockerhub_repo.sh
 source "${ROOT}/scripts/dockerhub_repo.sh"
 DOCKERHUB_REPO="$(dockerhub_repo_default)"
-VLLM_BASE="${LMRS_VLLM_BASE:-vllm/vllm-openai:latest}"
+# The image must be inference-complete, so both runtime pins are supplied by
+# the operator and the build refuses a floating tag. There is deliberately no
+# default: a ":latest" fallback here would silently produce an unpinned image
+# that the Dockerfile then rejects.
+VLLM_BASE="${LMRS_VLLM_BASE:-}"
+LMCACHE_VERSION="${LMRS_LMCACHE_VERSION:-}"
 
 VERSION=""
 DO_DOCKER=1
@@ -74,11 +79,14 @@ LATEST_IMAGE="${DOCKERHUB_REPO}:latest"
 command -v docker >/dev/null 2>&1 || error "docker not found"
 
 if (( DO_DOCKER )); then
-    info "docker build ${FULL_IMAGE} (base ${VLLM_BASE})"
+    [[ -n "${VLLM_BASE}" ]] || error "LMRS_VLLM_BASE must name an exact vLLM base image tag (set it in .env)"
+    [[ -n "${LMCACHE_VERSION}" ]] || error "LMRS_LMCACHE_VERSION must name an exact LMCache version (set it in .env)"
+    info "docker build ${FULL_IMAGE} (base ${VLLM_BASE}, lmcache ${LMCACHE_VERSION})"
     docker build \
         -f docker/lmrs/Dockerfile \
         --build-arg VERSION="${VERSION}" \
         --build-arg VLLM_BASE="${VLLM_BASE}" \
+        --build-arg LMCACHE_VERSION="${LMCACHE_VERSION}" \
         -t "${FULL_IMAGE}" \
         -t "${LATEST_IMAGE}" \
         .

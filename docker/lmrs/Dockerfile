@@ -1,8 +1,26 @@
-ARG VLLM_BASE=vllm/vllm-openai:latest
+# The image must be inference-complete: a model loads and runs with nothing
+# installed at build-time-unknown versions. Both pins are required build
+# arguments with no default, so a build cannot quietly float to a new vLLM or
+# LMCache release; the guards below reject an unpinned value.
+ARG VLLM_BASE
 FROM ${VLLM_BASE}
 
+ARG VLLM_BASE
+ARG LMCACHE_VERSION
 ARG LMRS_UID=42424
 ARG LMRS_GID=42424
+
+RUN set -eux; \
+    case "${VLLM_BASE}" in \
+        "") echo "VLLM_BASE must be set to an exact vLLM base image tag" >&2; exit 1 ;; \
+        *:latest) echo "VLLM_BASE must be an exact tag, not ${VLLM_BASE}" >&2; exit 1 ;; \
+        *:*) : ;; \
+        *) echo "VLLM_BASE must carry an explicit tag, got ${VLLM_BASE}" >&2; exit 1 ;; \
+    esac; \
+    case "${LMCACHE_VERSION}" in \
+        "") echo "LMCACHE_VERSION must be set to an exact LMCache version" >&2; exit 1 ;; \
+        *) : ;; \
+    esac
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -18,13 +36,13 @@ ENV PYTHONUNBUFFERED=1 \
 RUN set -eux; \
     groupadd --system --gid "${LMRS_GID}" lmrsgrp; \
     useradd --system --uid "${LMRS_UID}" --gid lmrsgrp --home-dir /var/lmrs --shell /usr/sbin/nologin lmrsuser; \
-    mkdir -p /etc/lmrs/certs /var/lmrs/cache /var/lmrs/hf-cache /var/log/lmrs; \
+    mkdir -p /etc/lmrs/certs /var/lmrs/cache /var/lmrs/hf-cache /var/lmrs/lmcache /var/log/lmrs; \
     chown -R lmrsuser:lmrsgrp /var/lmrs /var/log/lmrs; \
     chgrp -R lmrsgrp /etc/lmrs; \
     chmod 0750 /etc/lmrs /etc/lmrs/certs /var/lmrs /var/log/lmrs
 
 RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install "lmcache"
+    && python3 -m pip install "lmcache==${LMCACHE_VERSION}"
 
 WORKDIR /opt/lmrs
 COPY pyproject.toml README.md ./
@@ -46,4 +64,10 @@ RUN chmod 0755 /usr/local/bin/lmrs-entrypoint
 
 USER lmrsuser:lmrsgrp
 EXPOSE 8012
+
+# Persistent state kept out of the image layer: model weights, LMCache runtime
+# artifacts, and the configuration surface. No configuration is baked in; the
+# operator mounts /etc/lmrs with config.json and lmcache.yaml at run time.
+VOLUME ["/var/lmrs/hf-cache", "/var/lmrs/lmcache", "/etc/lmrs"]
+
 ENTRYPOINT ["/usr/local/bin/lmrs-entrypoint"]

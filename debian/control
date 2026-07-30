@@ -13,7 +13,22 @@ Replaces: lmrs
 Breaks: lmrs
 Depends: ${misc:Depends}, docker.io | docker-ce, systemd, adduser, passwd, ca-certificates, nvidia-container-toolkit | nvidia-container-runtime
 Description: LMRS container runner with bundled vLLM and LMCache
- Installs the host-side contract for running LMRS from a Docker Hub image.
- The image contains the LMRS server, vLLM, and LMCache. The host keeps only
- settings, certificates, data, and logs mounted into the container. The package
- creates lmrsuser:lmrsgrp, pulls the configured image, and starts the service.
+ Installs and configures the LMRS Docker container on the host. The package
+ pulls or loads the vasilyvz/lmrs image, whose tag equals the release version
+ of this package, and creates the container with --gpus all and an explicit
+ --shm-size, which vLLM requires for its worker shared memory.
+ .
+ The image is inference-complete: it carries the LMRS server, pinned vLLM and
+ LMCache, and the adapter framework, so no component is installed at run time.
+ Nothing is configured inside the image. The host supplies the whole
+ configuration surface through mounted volumes: /etc/lmrs with config.json and
+ lmcache.yaml, persistent storage for the model disk cache and for LMCache
+ runtime artifacts, plus certificates and logs.
+ .
+ The package creates lmrsuser:lmrsgrp, installs a systemd service unit that
+ owns the container lifecycle, and applies the standard network settings so the
+ advertised server URL matches what the MCP proxy registers.
+ .
+ The package version is carried by debian/changelog, the Debian-standard place
+ for it, and the release pipeline keeps it equal to the server version, the
+ client version and the image tag.
