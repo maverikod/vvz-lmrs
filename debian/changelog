@@ -1,5 +1,12 @@
-lmrs-container (0.1.8-1) unstable; urgency=medium
+lmrs-container (0.1.9-1) unstable; urgency=medium
 
-  * Release 0.1.8: containerized LMRS (vLLM + LMCache + adapter server).
+  * token_count and estimate accept prompt text: the server counts with the
+    runtime tokenizer, sizes against the cached model config and measured
+    capacity, and returns the dry-run admission verdict.
+  * Every command documents itself in the fleet metadata paradigm; info
+    publishes the service guide plus exhaustive per-command documentation.
+  * The lmrs-client package ships the lmrs-client CLI and the fleet pipeline
+    acceptance runner (cli-surface, info-docs-live, prompt-admission-live,
+    commands-live).
 
- -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 16:31:40 +0300
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 17:50:00 +0300
