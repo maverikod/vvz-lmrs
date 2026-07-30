@@ -159,6 +159,26 @@ class VLLMOpenAIClient:
         payload.update(options)
         return self._json_request("POST", "/v1/chat/completions", payload)
 
+    def fetch_metrics(self) -> str | None:
+        """Return the raw Prometheus text of the runtime's `/metrics` endpoint.
+
+        This is the channel through which the runtime publishes its counters,
+        including the external KV-connector (LMCache) lookup accounting. The
+        text is returned unparsed; interpreting the families belongs to the
+        consumer that knows which of them it is answering for.
+
+        Returns:
+            The metrics exposition text, or None when the runtime does not
+            answer - an unreachable runtime has no counters to report.
+        """
+        import urllib.request
+
+        try:
+            with urllib.request.urlopen(self._url("/metrics"), timeout=self.timeout_seconds) as response:
+                return response.read().decode("utf-8", errors="replace")
+        except Exception:
+            return None
+
     def count_prompt_tokens(self, model_name: str, messages: object) -> int | None:
         """Return the token count vLLM reports for a chat prompt.
 

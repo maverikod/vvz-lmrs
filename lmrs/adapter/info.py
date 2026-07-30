@@ -13,7 +13,24 @@ from lmrs.adapter.registration import (  # type: ignore[import-not-found]
     LMRS_PUBLIC_COMMAND_CLASSES,
     _LIFECYCLE,
 )
+from lmrs.proxy.lifecycle import registration_state_from_adapter_snapshot
 from lmrs.queue import RequestQueue  # type: ignore[import-not-found]
+
+
+def _registration_snapshot() -> dict[str, Any]:
+    """Return the adapter framework's live registration snapshot.
+
+    A thin seam over the framework accessor, imported lazily so this module
+    stays importable without the optional ``[server]`` extra installed.
+
+    Returns:
+        The snapshot mapping the adapter's register/heartbeat flow maintains.
+    """
+    from mcp_proxy_adapter.core.proxy_registration import (  # type: ignore[import-not-found]
+        get_proxy_registration_status,
+    )
+
+    return dict(get_proxy_registration_status())
 
 
 def build_info_payload(registry: Any) -> dict[str, Any]:
@@ -23,12 +40,13 @@ def build_info_payload(registry: Any) -> dict[str, Any]:
     and adapter version; (2) build metadata (build date/commit if
     available, else omitted); (3) runtime summary reporting live
     model-lifecycle status (via the adapter's module-level
-    ``_LIFECYCLE`` singleton) and live queue state (via a fresh
-    ``RequestQueue`` snapshot). VRAM facts and registration state are
-    reported as explicitly unavailable: no live producer exists
-    anywhere in lmrs that supplies real measured VRAM data or a real
-    registration state to this function, so no values are fabricated
-    for them; (4) capabilities from command registry metadata/schemas.
+    ``_LIFECYCLE`` singleton), live queue state (via a fresh
+    ``RequestQueue`` snapshot), the measured VRAM facts from the
+    capacity producer, and the proxy registration state built from the
+    adapter framework's live registration snapshot. A probe that fails
+    reports itself unavailable with the failure named, rather than
+    contributing invented values; (4) capabilities from command
+    registry metadata/schemas.
 
     Args:
         registry: The adapter command registry.
@@ -87,18 +105,15 @@ def build_info_payload(registry: Any) -> dict[str, Any]:
             "available": False,
             "reason": f"the VRAM measurement could not be taken: {type(error).__name__}: {error}",
         }
-    runtime_summary["registration"] = {
-        "available": False,
-        "reason": (
-            "no live registration-state producer is wired into the "
-            "adapter runtime: run_registration_lifecycle "
-            "(lmrs/proxy/lifecycle.py) requires a policy, endpoint, "
-            "advertised URL, payload, and runtime state this "
-            "function has no access to, and it has no caller "
-            "anywhere in lmrs, so a real RegistrationState cannot be "
-            "gathered without fabricating one"
-        ),
-    }
+    try:
+        snapshot = _registration_snapshot()
+        state = registration_state_from_adapter_snapshot(snapshot)
+        runtime_summary["registration"] = {"available": True, **asdict(state)}
+    except Exception as error:  # noqa: BLE001 - info must describe the service even when a probe fails
+        runtime_summary["registration"] = {
+            "available": False,
+            "reason": f"the adapter registration snapshot could not be read: {type(error).__name__}: {error}",
+        }
 
     # (4) Capabilities: iterate commands and extract metadata per family
     capabilities: dict[str, list[dict[str, Any]]] = {}

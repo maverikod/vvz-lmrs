@@ -33,6 +33,57 @@ class RegistrationState:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
 
+def registration_state_from_adapter_snapshot(
+    snapshot: Mapping[str, Any],
+) -> RegistrationState:
+    """Build a RegistrationState from the adapter framework's live snapshot.
+
+    The adapter maintains one registration snapshot as the single source of
+    truth for its register/heartbeat flow, and rewrites its ``registered`` flag
+    on every heartbeat attempt. That flag is therefore a live fact, and the
+    proxy recognizing the server is exactly what a successful heartbeat means.
+
+    The snapshot carries no timestamp, so the heartbeat's freshness cannot be
+    verified from here: a heartbeat loop that silently died would leave a stale
+    ``registered=True`` behind. ``heartbeat_fresh`` mirrors the flag as the
+    last recorded attempt reported it, ``last_heartbeat_at`` stays None rather
+    than being invented, and the metadata says so explicitly. The missing
+    timestamp is an adapter-framework gap, tracked as a bug against that
+    project, not papered over here.
+
+    Args:
+        snapshot: The mapping the adapter's registration status accessor
+            returns: ``enabled``, ``registered``, ``proxy_url``,
+            ``server_url`` and ``server_name``.
+
+    Returns:
+        A RegistrationState carrying the live facts and naming the ones the
+        framework does not expose.
+    """
+    registered = bool(snapshot.get("registered", False))
+    server_name = snapshot.get("server_name")
+    return RegistrationState(
+        registered=registered,
+        last_heartbeat_at=None,
+        heartbeat_fresh=registered,
+        instance_uuid=None,
+        server_name=str(server_name) if server_name else None,
+        proxy_recognized=registered,
+        metadata={
+            "enabled": bool(snapshot.get("enabled", False)),
+            "proxy_url": snapshot.get("proxy_url"),
+            "server_url": snapshot.get("server_url"),
+            "source": "mcp_proxy_adapter registration snapshot",
+            "heartbeat_timestamp_available": False,
+            "heartbeat_timestamp_note": (
+                "the adapter snapshot is rewritten by every heartbeat attempt "
+                "but records no timestamp, so freshness reflects the last "
+                "recorded attempt and cannot be dated"
+            ),
+        },
+    )
+
+
 @dataclass(frozen=True)
 class RegistrationLifecyclePolicy:
     """Startup, heartbeat, retry, re-registration, and shutdown policy.

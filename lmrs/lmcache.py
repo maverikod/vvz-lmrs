@@ -152,6 +152,79 @@ def build_lmcache_telemetry(
     )
 
 
+# Metric families, as observed on a live vLLM v0.25.1 with the LMCache
+# KV connector active. The external prefix cache is the KV-connector tier:
+# queries and hits are counted in tokens, so miss_tokens is their difference.
+# The GPU-internal prefix cache is a different tier and is deliberately kept
+# out of the hit/miss accounting; it is carried as context only.
+_EXTERNAL_QUERIES_FAMILY = "vllm:external_prefix_cache_queries_total"
+_EXTERNAL_HITS_FAMILY = "vllm:external_prefix_cache_hits_total"
+_CONTEXT_FAMILIES: tuple[str, ...] = (
+    "vllm:prefix_cache_queries_total",
+    "vllm:prefix_cache_hits_total",
+    "vllm:kv_cache_usage_perc",
+)
+
+
+def _sum_metric_families(metrics_text: str) -> dict[str, float]:
+    """Sum every sample of each family in a Prometheus exposition text.
+
+    Args:
+        metrics_text: The raw text of a `/metrics` endpoint.
+
+    Returns:
+        Mapping of family name to the sum of its sample values across labels.
+    """
+    totals: dict[str, float] = {}
+    for line in metrics_text.splitlines():
+        if not line or line.startswith("#"):
+            continue
+        name_part, _, value_part = line.rpartition(" ")
+        family = name_part.split("{", 1)[0].strip()
+        if not family:
+            continue
+        try:
+            value = float(value_part)
+        except ValueError:
+            continue
+        totals[family] = totals.get(family, 0.0) + value
+    return totals
+
+
+def observations_from_vllm_metrics(metrics_text: str) -> dict[str, Any]:
+    """Extract LMCache hit and miss accounting from vLLM runtime metrics.
+
+    The runtime publishes the external KV-connector lookup counters through its
+    `/metrics` endpoint; this reads them and nothing else invents them. Both
+    counters count tokens. Any family published under an ``lmcache`` prefix is
+    surfaced verbatim in the metadata, so a future LMCache that exposes its own
+    families becomes visible without a code change.
+
+    Args:
+        metrics_text: The raw text of the runtime's `/metrics` endpoint.
+
+    Returns:
+        An observations mapping for ``build_lmcache_telemetry``: ``hit_tokens``
+        and ``miss_tokens`` when the external-cache families are present, plus
+        a ``metadata`` block naming what was found.
+    """
+    totals = _sum_metric_families(metrics_text)
+    lmcache_families = {name: value for name, value in totals.items() if "lmcache" in name.lower()}
+    metadata: dict[str, Any] = {
+        "counter_source": "vllm_metrics",
+        "external_cache_families_present": _EXTERNAL_QUERIES_FAMILY in totals and _EXTERNAL_HITS_FAMILY in totals,
+        "lmcache_families": lmcache_families,
+        "gpu_internal_context": {name: totals[name] for name in _CONTEXT_FAMILIES if name in totals},
+    }
+    observations: dict[str, Any] = {"metadata": metadata}
+    if metadata["external_cache_families_present"]:
+        queries = int(totals[_EXTERNAL_QUERIES_FAMILY])
+        hits = int(totals[_EXTERNAL_HITS_FAMILY])
+        observations["hit_tokens"] = hits
+        observations["miss_tokens"] = max(0, queries - hits)
+    return observations
+
+
 TelemetrySource = (
     LMCacheTelemetry
     | Mapping[str, Any]
@@ -205,7 +278,9 @@ def get_lmcache_status(
         A dict with the keys ``enabled``, ``cpu_cache_usage_bytes``,
         ``cpu_cache_limit_bytes``, ``disk_cache_usage_bytes``,
         ``disk_cache_limit_bytes``, ``hit_tokens``, ``miss_tokens``,
-        ``hit_quality`` and ``evictions``.
+        ``hit_quality``, ``evictions`` and ``metadata``. The metadata names
+        which sources actually answered, so a zero counter can be told apart
+        from a counter nobody measured.
     """
     telemetry = _resolve_telemetry(policy, telemetry_source)
     cpu_limit = telemetry.cpu_cache_limit if telemetry.cpu_cache_limit is not None else policy.cpu_cache_limit_bytes
@@ -220,6 +295,7 @@ def get_lmcache_status(
         "miss_tokens": telemetry.miss_tokens,
         "hit_quality": telemetry.hit_quality,
         "evictions": telemetry.evictions,
+        "metadata": dict(telemetry.metadata),
     }
 
 

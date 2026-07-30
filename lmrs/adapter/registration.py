@@ -19,7 +19,7 @@ from lmrs.admission import CapacitySnapshot
 from lmrs.commands import CanonicalChatHandler, CommandName, ErrorCode
 from lmrs.configuration import KVCacheProfile, derive_kv_cache_profile
 from lmrs.estimation import TokenBreakdown, calculate_required_tokens
-from lmrs.lmcache import LMCacheStoragePolicy, get_lmcache_status, purge_lmcache
+from lmrs.lmcache import LMCacheStoragePolicy, get_lmcache_status, observations_from_vllm_metrics, purge_lmcache
 from lmrs.model_cache import DiskModelCache
 from lmrs.model_lifecycle import ModelMemoryLifecycle, model_switch_in_progress, switch_model
 from lmrs.queue import RequestQueue
@@ -432,38 +432,60 @@ def prompt_token_breakdown(
 def _lmcache_observations() -> Mapping[str, Any]:
     """Return raw LMCache runtime observations for the status command.
 
-    The disk tier is measured directly from the storage path, which is the one
-    LMCache fact this process can observe on its own. Hit and miss counters stay
-    zero until the runtime publishes them; they are reported as observed rather
-    than estimated.
+    Two independent sources are read and merged. The disk tier is measured
+    directly from the storage path. The hit and miss counters come from the
+    runtime's own metrics endpoint, where the external KV-connector lookup
+    accounting is published in tokens. A source that does not answer leaves its
+    figures absent and is named in the metadata, rather than contributing
+    zeros that would read as measurements.
 
     Returns:
         A mapping of raw observations consumed by ``build_lmcache_telemetry``.
     """
+    observations: dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
+
     storage_path = _LMCACHE_POLICY.cache_storage_path
     if not storage_path:
-        return {"metadata": {"storage_path": None, "disk_tier_observed": False}}
-    root = Path(storage_path)
-    if not root.is_dir():
-        return {"metadata": {"storage_path": str(root), "disk_tier_observed": False, "reason": "storage path does not exist"}}
-    usage = 0
-    entries = 0
-    for path in root.rglob("*"):
-        try:
-            if path.is_file():
-                usage += path.stat().st_size
-                entries += 1
-        except OSError:
-            continue
-    return {
-        "disk_cache_usage": usage,
-        "metadata": {
-            "storage_path": str(root),
-            "disk_tier_observed": True,
-            "entry_count": entries,
-            "source": "filesystem",
-        },
-    }
+        metadata.update({"storage_path": None, "disk_tier_observed": False})
+    else:
+        root = Path(storage_path)
+        if not root.is_dir():
+            metadata.update({"storage_path": str(root), "disk_tier_observed": False, "reason": "storage path does not exist"})
+        else:
+            usage = 0
+            entries = 0
+            for path in root.rglob("*"):
+                try:
+                    if path.is_file():
+                        usage += path.stat().st_size
+                        entries += 1
+                except OSError:
+                    continue
+            observations["disk_cache_usage"] = usage
+            metadata.update({
+                "storage_path": str(root),
+                "disk_tier_observed": True,
+                "entry_count": entries,
+                "disk_tier_source": "filesystem",
+            })
+
+    metrics_text = _VLLM_CLIENT.fetch_metrics()
+    if metrics_text is None:
+        metadata["runtime_counters_available"] = False
+        metadata["runtime_counters_reason"] = "the runtime metrics endpoint did not answer"
+    else:
+        runtime_observations = observations_from_vllm_metrics(metrics_text)
+        for key in ("hit_tokens", "miss_tokens"):
+            if key in runtime_observations:
+                observations[key] = runtime_observations[key]
+        metadata["runtime_counters_available"] = "hit_tokens" in runtime_observations
+        runtime_metadata = runtime_observations.get("metadata")
+        if isinstance(runtime_metadata, Mapping):
+            metadata.update(runtime_metadata)
+
+    observations["metadata"] = metadata
+    return observations
 
 
 def _param(params: Mapping[str, Any], name: str) -> str:

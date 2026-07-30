@@ -86,6 +86,7 @@ def test_status_reports_every_documented_field_from_the_telemetry_source() -> No
         "miss_tokens": 30,
         "hit_quality": "high",
         "evictions": 7,
+        "metadata": {},
     }
 
 
@@ -206,6 +207,7 @@ def test_status_command_wraps_the_domain_function() -> None:
         "miss_tokens",
         "hit_quality",
         "evictions",
+        "metadata",
     }
 
 
