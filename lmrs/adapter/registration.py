@@ -11,11 +11,14 @@ from dataclasses import asdict, is_dataclass
 import os
 from typing import Any, ClassVar, cast
 
-from lmrs.commands import CommandName
+from lmrs.commands import CanonicalChatHandler, CommandName
+from lmrs.estimation import TokenBreakdown, calculate_required_tokens
 from lmrs.lmcache import LMCacheStoragePolicy, get_lmcache_status, purge_lmcache
 from lmrs.model_cache import DiskModelCache
 from lmrs.model_lifecycle import ModelMemoryLifecycle, switch_model
+from lmrs.queue import RequestQueue
 from lmrs.runtime_client import VLLMOpenAIClient
+from lmrs.vram import DynamicVramState, VramRuntimeFacts, runtime_fact_snapshot
 from mcp_proxy_adapter.commands.base import Command, CommandResult
 from mcp_proxy_adapter.commands.hooks import (
     register_custom_commands_hook as _adapter_register_custom_commands_hook,
@@ -109,6 +112,55 @@ _LMCACHE_POLICY = LMCacheStoragePolicy(
     enabled=os.environ.get("LMRS_LMCACHE_ENABLED", "").lower() in {"1", "true", "yes"},
     cache_storage_path=os.environ.get("LMRS_LMCACHE_PATH", "/var/lmrs/lmcache"),
 )
+
+
+_CHAT_HANDLER = CanonicalChatHandler()
+
+
+class _QueueHolder:
+    """Owns the single mutable reference to the process request queue.
+
+    RequestQueue is a persistent structure: add and cancel return a new queue
+    rather than mutating in place. The holder keeps one reference so the queue
+    a command reports is the queue another command mutated, instead of each
+    command carrying its own copy.
+
+    Attributes:
+        queue: The current immutable RequestQueue value.
+    """
+
+    def __init__(self) -> None:
+        """Start with an empty queue."""
+        self.queue = RequestQueue()
+
+    def snapshot(self) -> list[dict[str, object]]:
+        """Return the serializable state of the current queue.
+
+        Returns:
+            One dict per queued entry.
+        """
+        return self.queue.snapshot()
+
+    def cancel(self, request_id: str) -> list[dict[str, object]]:
+        """Remove one request and return the resulting queue state.
+
+        Args:
+            request_id: Identifier of the request to cancel.
+
+        Returns:
+            The queue snapshot the cancellation produced.
+        """
+        self.queue = self.queue.cancel(request_id)
+        return self.queue.snapshot()
+
+
+_QUEUE = _QueueHolder()
+# Placeholder measurement inputs. No producer in lmrs supplies measured VRAM
+# yet, so the capacity command reports a zeroed snapshot flagged measured=false
+# rather than inventing figures; the same honesty rule lmrs.adapter.info follows.
+_VRAM_FACTS = VramRuntimeFacts(resident_services=(), service_baseline_free_vram_bytes=0, model_loaded_free_vram_bytes=0)
+_VRAM_STATE = DynamicVramState(model_loaded_free_vram_bytes=0, safety_margin_bytes=0, runtime_reserve_bytes=0)
+_VRAM_MEASURED = False
 
 
 def _lmcache_observations() -> Mapping[str, Any]:
@@ -255,6 +307,147 @@ class LocalModelUnloadCommand(ThinAdapterCommand):
         return _LIFECYCLE.unload_model(_param(params, "model_name"))
 
 
+TOKEN_COUNT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "input_tokens": {"type": "integer", "minimum": 0},
+        "tool_tokens": {"type": "integer", "minimum": 0, "default": 0},
+        "service_tokens": {"type": "integer", "minimum": 0, "default": 0},
+        "reserved_output_tokens": {"type": "integer", "minimum": 0, "default": 0},
+        "tokenizer_name": {"type": "string", "minLength": 1},
+        "tokenizer_accuracy": {"type": "string", "minLength": 1},
+        "rough_estimate": {"type": "boolean", "default": False},
+    },
+    "required": ["input_tokens", "tokenizer_name", "tokenizer_accuracy"],
+    "additionalProperties": True,
+}
+
+CANCEL_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"request_id": {"type": "string", "minLength": 1}},
+    "required": ["request_id"],
+    "additionalProperties": True,
+}
+
+ESTIMATE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "request_id": {"type": "string", "minLength": 1},
+        "model_name": {"type": "string", "minLength": 1},
+        "token_breakdown": {"type": "object"},
+        "declared_context_window": {"type": "integer", "minimum": 1},
+        "capacity": {"type": "object"},
+        "kv_bytes_per_token": {"type": "integer", "minimum": 0},
+        "per_request_overhead_bytes": {"type": "integer", "minimum": 0},
+        "runtime_batch_overhead_bytes": {"type": "integer", "minimum": 0},
+    },
+    "required": [
+        "request_id",
+        "model_name",
+        "token_breakdown",
+        "declared_context_window",
+        "capacity",
+        "kv_bytes_per_token",
+        "per_request_overhead_bytes",
+        "runtime_batch_overhead_bytes",
+    ],
+    "additionalProperties": True,
+}
+
+
+class ModelStatusCommand(ThinAdapterCommand):
+    """Adapter wrapper for read-only model residency status."""
+
+    name: ClassVar[str] = CommandName.MODEL_STATUS
+    descr: ClassVar[str] = "Report the memory residency status of a model"
+    schema: ClassVar[dict[str, Any]] = MODEL_NAME_SCHEMA
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        return _LIFECYCLE.model_status(_param(params, "model_name"))
+
+
+class CapacityCommand(ThinAdapterCommand):
+    """Adapter wrapper for the read-only VRAM capacity snapshot."""
+
+    name: ClassVar[str] = CommandName.CAPACITY
+    descr: ClassVar[str] = "Report measured VRAM facts and the usable dynamic pool"
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        snapshot = runtime_fact_snapshot(_VRAM_FACTS, _VRAM_STATE)
+        return {**snapshot, "measured": _VRAM_MEASURED}
+
+
+class QueueStatusCommand(ThinAdapterCommand):
+    """Adapter wrapper for the read-only request queue state."""
+
+    name: ClassVar[str] = CommandName.QUEUE_STATUS
+    descr: ClassVar[str] = "Report the current request queue state"
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        return {"entries": _QUEUE.snapshot()}
+
+
+class TokenCountCommand(ThinAdapterCommand):
+    """Adapter wrapper for tokenizer-aware request accounting."""
+
+    name: ClassVar[str] = CommandName.TOKEN_COUNT
+    descr: ClassVar[str] = "Report the token breakdown and required tokens of a request"
+    schema: ClassVar[dict[str, Any]] = TOKEN_COUNT_SCHEMA
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        breakdown = TokenBreakdown(
+            input_tokens=int(params["input_tokens"]),
+            tool_tokens=int(params.get("tool_tokens", 0)),
+            service_tokens=int(params.get("service_tokens", 0)),
+            reserved_output_tokens=int(params.get("reserved_output_tokens", 0)),
+            tokenizer_name=_param(params, "tokenizer_name"),
+            tokenizer_accuracy=_param(params, "tokenizer_accuracy"),
+            rough_estimate=bool(params.get("rough_estimate", False)),
+        )
+        return {
+            "token_breakdown": asdict(breakdown),
+            "required_tokens": calculate_required_tokens(breakdown),
+        }
+
+
+class CancelCommand(ThinAdapterCommand):
+    """Adapter wrapper for cancelling one queued request."""
+
+    name: ClassVar[str] = CommandName.CANCEL
+    descr: ClassVar[str] = "Cancel a queued request and report the resulting queue state"
+    schema: ClassVar[dict[str, Any]] = CANCEL_SCHEMA
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        request_id = _param(params, "request_id")
+        return {"request_id": request_id, "entries": _QUEUE.cancel(request_id)}
+
+
+class EstimateCommand(ThinAdapterCommand):
+    """Adapter wrapper for the dry-run estimate and admission path."""
+
+    name: ClassVar[str] = CommandName.ESTIMATE
+    descr: ClassVar[str] = "Report whether a request would execute, queue or be rejected"
+    schema: ClassVar[dict[str, Any]] = ESTIMATE_SCHEMA
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        return _CHAT_HANDLER.estimate(**dict(params))
+
+
+class InfoCommand(ThinAdapterCommand):
+    """Adapter wrapper for the read-only service self-description."""
+
+    name: ClassVar[str] = CommandName.INFO
+    descr: ClassVar[str] = "Describe the service identity, build, runtime and capabilities"
+
+    def delegate(self, params: Mapping[str, Any]) -> Any:
+        # Imported here, not at module scope: lmrs.adapter.info reads this
+        # module's command inventory, so a module-level import would close an
+        # import cycle.
+        from lmrs.adapter.info import build_info_payload
+
+        return build_info_payload(params.get("registry"))
+
+
 LMCACHE_PURGE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -324,6 +517,13 @@ class LocalModelReloadCommand(ThinAdapterCommand):
 
 LMRS_PUBLIC_COMMAND_CLASSES: tuple[type[ThinAdapterCommand], ...] = (
     HealthcheckCommand,
+    ModelStatusCommand,
+    CapacityCommand,
+    TokenCountCommand,
+    EstimateCommand,
+    QueueStatusCommand,
+    CancelCommand,
+    InfoCommand,
     LocalModelCachePreloadCommand,
     LocalModelCacheStatusCommand,
     LocalModelCacheDeleteCommand,

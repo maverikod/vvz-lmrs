@@ -133,6 +133,13 @@ def build_default_service_boundary() -> ServiceBoundary:
     exposure = AdapterExposure(
         command_surface=(
             CommandName.HEALTHCHECK,
+            CommandName.MODEL_STATUS,
+            CommandName.CAPACITY,
+            CommandName.TOKEN_COUNT,
+            CommandName.ESTIMATE,
+            CommandName.QUEUE_STATUS,
+            CommandName.CANCEL,
+            CommandName.INFO,
             CommandName.LOCAL_MODEL_CACHE_PRELOAD,
             CommandName.LOCAL_MODEL_CACHE_STATUS,
             CommandName.LOCAL_MODEL_CACHE_DELETE,

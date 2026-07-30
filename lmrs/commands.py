@@ -35,6 +35,7 @@ class CommandName:
         LOCAL_LMCACHE_STATUS: LMCache status command.
         LOCAL_LMCACHE_PURGE: LMCache purge command.
         LOCAL_MODEL_SWITCH: Queued full model switch command.
+        INFO: Read-only service self-description command.
     """
 
     HEALTHCHECK: str = "healthcheck"
@@ -54,6 +55,7 @@ class CommandName:
     LOCAL_LMCACHE_STATUS: str = "local_lmcache_status"
     LOCAL_LMCACHE_PURGE: str = "local_lmcache_purge"
     LOCAL_MODEL_SWITCH: str = "local_model_switch"
+    INFO: str = "info"
 
 
 class ErrorCode:
