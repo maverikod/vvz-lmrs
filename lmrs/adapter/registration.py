@@ -430,7 +430,11 @@ class EstimateCommand(ThinAdapterCommand):
     schema: ClassVar[dict[str, Any]] = ESTIMATE_SCHEMA
 
     def delegate(self, params: Mapping[str, Any]) -> Any:
-        return _CHAT_HANDLER.estimate(**dict(params))
+        # Only the parameters this command declares may reach the handler. The
+        # adapter injects its own keys (context, for one) into execute kwargs,
+        # and splatting them through raised TypeError on the deployed server.
+        declared = set(self.schema.get("properties", {}))
+        return _CHAT_HANDLER.estimate(**{key: value for key, value in params.items() if key in declared})
 
 
 class InfoCommand(ThinAdapterCommand):

@@ -165,6 +165,55 @@ def _arguments(command: str) -> dict[str, Any]:
     return per_command.get(command, {})
 
 
+def _verdict(response: Any) -> tuple[bool, str]:
+    """Decide whether one command call succeeded, and name the failure if not.
+
+    The framework client does not raise on a structured error: a failed command
+    comes back as an envelope carrying ``result.success = false`` and an
+    ``error`` object, and a command that ran but reports a negative domain
+    outcome carries ``payload.success = false`` with a stable ``reason_code``.
+    Treating "no exception" as success is what made this check report green
+    while chat was returning "vLLM unavailable", so both layers are inspected
+    here.
+
+    Args:
+        response: The value the client returned for one command.
+
+    Returns:
+        A pair of (succeeded, code); code is empty on success and otherwise
+        carries the stable error or reason code the server reported.
+    """
+    if not isinstance(response, dict):
+        return True, ""
+
+    result = response.get("result", response)
+    # A queued command answers with a job envelope whose own "result" holds the
+    # command result. Without unwrapping it, every queued command looked like a
+    # pass no matter what it reported.
+    if isinstance(result, dict) and "job_id" in result and isinstance(result.get("result"), dict):
+        result = result["result"]
+
+    if not isinstance(result, dict):
+        return True, ""
+
+    if result.get("success") is False:
+        error = result.get("error")
+        if isinstance(error, dict):
+            data = error.get("data")
+            code = data.get("code") if isinstance(data, dict) else None
+            return False, str(code or error.get("code") or "UNKNOWN_ERROR")
+        return False, "UNKNOWN_ERROR"
+
+    data = result.get("data")
+    payload = data.get("payload") if isinstance(data, dict) else None
+    if isinstance(payload, dict):
+        # Domain results report a negative outcome two ways: a success flag
+        # (lifecycle and cache commands) or a status string (model switch).
+        if payload.get("success") is False or payload.get("status") == "failed":
+            return False, str(payload.get("reason_code") or "UNKNOWN_REASON")
+    return True, ""
+
+
 async def _drive(client_class: Any) -> int:
     """Call every public client command against the live server.
 
@@ -181,8 +230,13 @@ async def _drive(client_class: Any) -> int:
         try:
             result = method(**_arguments(command))
             if inspect.isawaitable(result):
-                await result
-            print(f"PASS {command}", flush=True)
+                result = await result
+            succeeded, code = _verdict(result)
+            if succeeded:
+                print(f"PASS {command}", flush=True)
+            else:
+                failures.append(command)
+                print(f"FAIL {command}: {code}", flush=True)
         except Exception as error:  # noqa: BLE001 - one broken command must not hide the rest
             code = getattr(error, "code", None) or type(error).__name__
             failures.append(command)
