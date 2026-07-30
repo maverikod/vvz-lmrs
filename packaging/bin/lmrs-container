@@ -18,7 +18,7 @@ GPUS=${LMRS_GPUS:-all}
 ENV_FILE=${LMRS_ENV_FILE:-/etc/default/lmrs}
 
 ensure_layout() {
-  mkdir -p "$(dirname "$CONFIG")" "$CERT_DIR" "$DATA_DIR" "$DATA_DIR/cache" "$DATA_DIR/hf-cache" "$LOG_DIR"
+  mkdir -p "$(dirname "$CONFIG")" "$CERT_DIR" "$DATA_DIR" "$DATA_DIR/cache" "$DATA_DIR/hf-cache" "$DATA_DIR/lmcache" "$LOG_DIR"
   chown -R "${LMRS_UID}:${LMRS_GID}" "$DATA_DIR" "$LOG_DIR" 2>/dev/null || true
 }
 
@@ -36,6 +36,13 @@ start_container() {
     docker rm -f "$NAME" >/dev/null
   fi
 
+  # The hf-cache and lmcache binds below look redundant next to the parent
+  # bind of DATA_DIR, and with the current image they are. They stay because
+  # images 0.1.4 and 0.1.5 declare VOLUME for those paths: without an explicit
+  # bind, docker shadows each with a fresh anonymous volume, the container
+  # loses sight of the downloaded weights, and vLLM silently re-downloads the
+  # whole model on every start instead of serving. That shadowing is the root
+  # cause of the "vLLM never comes up" incident of 2026-07-30.
   docker run -d \
     --name "$NAME" \
     --restart unless-stopped \
@@ -67,6 +74,8 @@ start_container() {
     -v "${CERT_DIR}:/etc/lmrs/certs:ro" \
     -v "${LMCACHE_CONFIG}:/etc/lmrs/lmcache.yaml:ro" \
     -v "${DATA_DIR}:/var/lmrs" \
+    -v "${DATA_DIR}/hf-cache:/var/lmrs/hf-cache" \
+    -v "${DATA_DIR}/lmcache:/var/lmrs/lmcache" \
     -v "${LOG_DIR}:/var/log/lmrs" \
     "$IMAGE"
 }

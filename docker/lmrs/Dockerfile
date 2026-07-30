@@ -65,9 +65,12 @@ RUN chmod 0755 /usr/local/bin/lmrs-entrypoint
 USER lmrsuser:lmrsgrp
 EXPOSE 8012
 
-# Persistent state kept out of the image layer: model weights, LMCache runtime
-# artifacts, and the configuration surface. No configuration is baked in; the
-# operator mounts /etc/lmrs with config.json and lmcache.yaml at run time.
-VOLUME ["/var/lmrs/hf-cache", "/var/lmrs/lmcache", "/etc/lmrs"]
-
+# Deliberately NO VOLUME declarations. A VOLUME here makes docker create an
+# anonymous volume for any declared path the run command does not explicitly
+# bind, and that anonymous volume SHADOWS a bind mount of a parent directory:
+# with `-v /var/lmrs:/var/lmrs` and `VOLUME /var/lmrs/hf-cache`, the container
+# saw an empty anonymous volume instead of the host's downloaded weights, and
+# every restart minted a fresh empty one, so vLLM re-downloaded the model from
+# scratch on every start and never came up. Persistent state lives on explicit
+# bind mounts owned by packaging/bin/lmrs-container.
 ENTRYPOINT ["/usr/local/bin/lmrs-entrypoint"]

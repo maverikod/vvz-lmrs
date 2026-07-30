@@ -12,6 +12,7 @@ from typing import Any, Callable, Mapping
 from lmrs.admission import build_queue_entry_request, decide_admission
 from lmrs.estimation import estimate_request_capacity
 from lmrs.queue import QueueDispatchWorker, QueueEntry, RequestQueue
+from lmrs.runtime_client import RuntimeFailureSignal
 
 
 class CommandName:
@@ -630,6 +631,20 @@ class CanonicalChatHandler:
                 payload=record,
             )
         runtime_result = runtime_client.execute(admitted_request, runtime_profile)
+        if isinstance(runtime_result, RuntimeFailureSignal):
+            # An admitted request whose runtime call failed is a failed command.
+            # Wrapping the failure signal in an executed/success result made the
+            # live check report chat green while vLLM was not serving at all.
+            return self.executor.failure_result(
+                CommandName.CHAT,
+                runtime_result.reason_code,
+                payload=runtime_result,
+                metadata={
+                    "admitted": True,
+                    "retriable": runtime_result.retriable,
+                    "message": runtime_result.message,
+                },
+            )
         return self.executor.chat_result(
             verdict.decision,
             reason_code=verdict.reason_code,

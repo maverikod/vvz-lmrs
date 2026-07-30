@@ -37,12 +37,13 @@ _CLIENT_ROOT = Path(__file__).resolve().parent.parent / "client"
 #
 # The cache status runs after the preload, not before it: the cache commands act
 # on a scratch model that this run downloads and deletes again, so asking for its
-# status first would report a model nothing had fetched yet.
+# status first would report a model nothing had fetched yet. model_status runs
+# after local_model_load for the same reason: residency is operator-declared
+# state, and before the load this run performs there is honestly nothing loaded.
 _ORDER: tuple[str, ...] = (
     "healthcheck",
     "info",
     "capacity",
-    "model_status",
     "queue_status",
     "local_lmcache_status",
     "token_count",
@@ -51,6 +52,7 @@ _ORDER: tuple[str, ...] = (
     "local_model_cache_preload",
     "local_model_cache_status",
     "local_model_load",
+    "model_status",
     "local_model_reload",
     "local_lmcache_purge",
     "cancel",
@@ -58,6 +60,14 @@ _ORDER: tuple[str, ...] = (
     "local_model_cache_delete",
     "local_model_switch",
 )
+
+# Commands whose correct answer on this deployment is a specific negative
+# outcome. vLLM cannot dynamically unload a model, so the honest reply to
+# unload is exactly VLLM_DYNAMIC_UNLOAD_UNSUPPORTED: that reply is asserted as
+# the expected behavior, and any other outcome - including success - fails.
+_EXPECTED_REASONS: dict[str, str] = {
+    "local_model_unload": "VLLM_DYNAMIC_UNLOAD_UNSUPPORTED",
+}
 
 
 def _load_client_class() -> Any:
@@ -269,7 +279,14 @@ async def _drive(client_class: Any) -> int:
             if inspect.isawaitable(result):
                 result = await result
             succeeded, code = _verdict(result)
-            if succeeded:
+            expected = _EXPECTED_REASONS.get(command)
+            if expected is not None:
+                if not succeeded and code == expected:
+                    print(f"PASS {command}: failed with the expected {code}", flush=True)
+                else:
+                    failures.append(command)
+                    print(f"FAIL {command}: expected {expected}, got {'success' if succeeded else code}", flush=True)
+            elif succeeded:
                 print(f"PASS {command}", flush=True)
             else:
                 failures.append(command)

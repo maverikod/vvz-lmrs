@@ -201,6 +201,41 @@ def test_a_capacity_constrained_request_is_queued(wired: FakeVllm, monkeypatch) 
     assert registration._QUEUE.reserved_bytes() > 0
 
 
+def test_an_admitted_request_whose_runtime_fails_is_a_failed_command(wired: FakeVllm) -> None:
+    """A runtime failure after admission is reported as failure, not success."""
+    def unreachable(model_name: str, messages: object, **options: object) -> None:
+        raise RuntimeError("vLLM unavailable: connection refused")
+
+    wired.chat_completion = unreachable  # type: ignore[method-assign]
+
+    payload = _chat(message="say ready", model_name=MODEL, max_tokens=16)
+
+    assert payload["success"] is False
+    assert payload["outcome"] == CommandOutcome.REJECTED
+    assert payload["reason_code"] == "VLLM_UNAVAILABLE"
+    assert payload["metadata"]["admitted"] is True
+    assert payload["metadata"]["retriable"] is True
+
+
+def test_estimate_accepts_the_json_shapes_a_remote_client_sends(wired: FakeVllm) -> None:
+    """The estimate command coerces mapping inputs into the domain types."""
+    result = asyncio.run(registration.EstimateCommand().execute(
+        request_id="live-estimate",
+        model_name=MODEL,
+        token_breakdown={"input_tokens": 8, "tool_tokens": 0, "service_tokens": 0, "reserved_output_tokens": 8},
+        declared_context_window=4096,
+        capacity={"usable_dynamic_vram_bytes": 1 << 30},
+        kv_bytes_per_token=1024,
+        per_request_overhead_bytes=0,
+        runtime_batch_overhead_bytes=0,
+    ))
+
+    payload = dict(result.to_dict()["data"]["payload"])
+    assert payload["success"] is True
+    assert payload["outcome"] == CommandOutcome.WOULD_EXECUTE
+    assert payload["token_breakdown"]["input_tokens"] == 8
+
+
 def test_an_uncached_model_cannot_be_sized_and_is_refused(wired: FakeVllm) -> None:
     """Without a cached config there is no KV cost, so the request is refused."""
     payload = _chat(message="say ready", model_name="absent/model", max_tokens=16)

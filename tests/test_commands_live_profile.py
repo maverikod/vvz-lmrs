@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from pipeline.checks_live import _ORDER, _acceptance_models, _arguments, _verdict
+from pipeline.checks_live import _EXPECTED_REASONS, _ORDER, _acceptance_models, _arguments, _verdict
 
 SERVED = "acme/served-model"
 
@@ -63,6 +63,18 @@ def test_the_scratch_model_is_preloaded_before_it_is_inspected_and_deleted() -> 
 
     assert order.index("local_model_cache_preload") < order.index("local_model_cache_status")
     assert order.index("local_model_cache_status") < order.index("local_model_cache_delete")
+
+
+def test_residency_is_checked_after_the_run_loads_the_model() -> None:
+    """model_status runs after local_model_load: before it, nothing is loaded."""
+    order = list(_ORDER)
+
+    assert order.index("local_model_load") < order.index("model_status")
+
+
+def test_unload_is_expected_to_fail_with_the_vllm_limitation() -> None:
+    """The honest unload answer on a vLLM deployment is the unsupported code."""
+    assert _EXPECTED_REASONS["local_model_unload"] == "VLLM_DYNAMIC_UNLOAD_UNSUPPORTED"
 
 
 def test_a_transport_level_failure_is_a_failure() -> None:

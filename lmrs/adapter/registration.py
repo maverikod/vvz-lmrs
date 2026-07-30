@@ -758,12 +758,63 @@ class EstimateCommand(ThinAdapterCommand):
     descr: ClassVar[str] = "Report whether a request would execute, queue or be rejected"
     schema: ClassVar[dict[str, Any]] = ESTIMATE_SCHEMA
 
+    @staticmethod
+    def _coerce_token_breakdown(value: Any) -> Any:
+        """Return the token breakdown as the domain type.
+
+        Args:
+            value: A TokenBreakdown or the JSON mapping a remote client sends.
+
+        Returns:
+            A TokenBreakdown when the value is a mapping, the value otherwise.
+        """
+        if not isinstance(value, Mapping):
+            return value
+        return TokenBreakdown(
+            input_tokens=int(value.get("input_tokens", 0)),
+            tool_tokens=int(value.get("tool_tokens", 0)),
+            service_tokens=int(value.get("service_tokens", 0)),
+            reserved_output_tokens=int(value.get("reserved_output_tokens", 0)),
+            tokenizer_name=str(value.get("tokenizer_name", "caller_declared")),
+            tokenizer_accuracy=str(value.get("tokenizer_accuracy", "caller_declared")),
+            rough_estimate=bool(value.get("rough_estimate", True)),
+        )
+
+    @staticmethod
+    def _coerce_capacity(value: Any) -> Any:
+        """Return the capacity input as the domain snapshot type.
+
+        Args:
+            value: A CapacitySnapshot or the JSON mapping a remote client sends.
+
+        Returns:
+            A CapacitySnapshot when the value is a mapping, the value otherwise.
+        """
+        if not isinstance(value, Mapping):
+            return value
+        usable = int(value.get("usable_dynamic_vram_bytes", 0))
+        return CapacitySnapshot(
+            usable_dynamic_vram_bytes=usable,
+            max_dynamic_pool_bytes=int(value.get("max_dynamic_pool_bytes", usable)),
+            model_loaded=bool(value.get("model_loaded", False)),
+            runtime_ready=bool(value.get("runtime_ready", False)),
+            metadata=dict(value.get("metadata", {})) if isinstance(value.get("metadata", {}), Mapping) else {},
+        )
+
     def delegate(self, params: Mapping[str, Any]) -> Any:
         # Only the parameters this command declares may reach the handler. The
         # adapter injects its own keys (context, for one) into execute kwargs,
         # and splatting them through raised TypeError on the deployed server.
         declared = set(self.schema.get("properties", {}))
-        return _CHAT_HANDLER.estimate(**{key: value for key, value in params.items() if key in declared})
+        request = {key: value for key, value in params.items() if key in declared}
+        # A remote client sends JSON, so the structured inputs arrive as plain
+        # mappings; the handler works on the domain types. Passing the mappings
+        # through raised AttributeError on the deployed server.
+        if "token_breakdown" in request:
+            request["token_breakdown"] = self._coerce_token_breakdown(request["token_breakdown"])
+        if "capacity" in request:
+            request["capacity"] = self._coerce_capacity(request["capacity"])
+        return _CHAT_HANDLER.estimate(**request)
 
 
 class InfoCommand(ThinAdapterCommand):

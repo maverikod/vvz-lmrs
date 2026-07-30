@@ -1,13 +1,13 @@
-lmrs-container (0.1.5-1) unstable; urgency=medium
+lmrs-container (0.1.6-1) unstable; urgency=medium
 
-  * Implement the domain layer behind the public commands: the disk model cache
-    is backed by the hub cache directory the runtime downloads into, the runtime
-    client executes against vLLM, VRAM is measured instead of reported as zero,
-    and chat is admitted against measured capacity before it reaches the model.
-  * Advertise the version of the installed package instead of the version field
-    in /etc/lmrs/config.json, which is a conffile and survives upgrades.
-  * Forward the admission and measurement settings into the container, derive
-    VLLM_BASE_URL from VLLM_HOST/VLLM_PORT, and report LMCache as enabled from
-    the same condition that enables the KV connector.
+  * Fix the root cause of vLLM never serving: the image declared VOLUME for
+    /var/lmrs/hf-cache while the runner bind-mounted only the parent /var/lmrs,
+    so docker shadowed the cache with a fresh anonymous volume on every start
+    and vLLM silently re-downloaded the model instead of loading it from disk.
+    The VOLUME declarations are removed and the runner bind-mounts hf-cache and
+    lmcache explicitly, which also overrides the declaration in older images.
+  * An admitted chat request whose runtime call fails is now reported as a
+    failed command with the runtime reason code instead of a success.
+  * The estimate command accepts the JSON shapes a remote client sends.
 
- -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 15:10:00 +0300
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 15:40:00 +0300
