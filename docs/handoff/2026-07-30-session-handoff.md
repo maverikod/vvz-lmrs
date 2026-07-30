@@ -68,7 +68,12 @@ closed with verified fixes.
 
 ---
 
-## 3. vLLM does not serve — located, not solved
+## 3. vLLM does not serve — RESOLVED later the same day, see §3a
+
+> The section below is kept as the investigation record. The root cause turned
+> out to be none of the leads here: see §3a.
+
+## 3-old. vLLM does not serve — located, not solved
 
 **Symptom.** Container starts, adapter serves on 8012, but vLLM's own API on
 127.0.0.1:8000 never accepts a connection. No log line after
@@ -119,6 +124,36 @@ left in place: `/root/lmcache.yaml.abtest-backup`,
 `/root/lmrs-container.pre-offline`.
 
 ---
+
+## 3a. Root cause found and fixed: anonymous-volume shadowing (0.1.6)
+
+Since 0.1.4 (commit `5738594`) the image declared `VOLUME` for
+`/var/lmrs/hf-cache`, `/var/lmrs/lmcache` and `/etc/lmrs`, while the runner
+bind-mounted only the parent `/var/lmrs`. Docker shadows a declared path that
+has no explicit bind with a **fresh anonymous volume per container**: the
+container saw an empty cache instead of the host's 15 GB, and every restart
+re-downloaded the model from scratch, unauthenticated and throttled — that is
+the "stuck in snapshot_download". All three disproven hypotheses are explained:
+the shard/incomplete checks inspected the host path the container could not
+see, and `HF_HUB_OFFLINE=1` honestly reported the (invisible-to-us, actually
+empty) cache as unusable. 0.1.3 declared no volumes, so the defect was
+packaging 0.1.4, not the vLLM v0.25.1 pin. The host had accumulated 28
+dangling anonymous volumes (one 7.5 GB of partial download); 23 lmrs/empty
+ones were removed, 12 foreign non-empty kept.
+
+Fixed in `73e0db4`, released and deployed as **0.1.6**: VOLUME removed from the
+image, runner bind-mounts hf-cache and lmcache explicitly (this also overrides
+the declaration still baked into 0.1.4/0.1.5 images), contract test pins both.
+Proven live before the fix (same image + explicit bind → serving in ~4 min),
+recorded RED through `commands-live` (12/18) first, and after deploy the same
+check is **18/18 green** with a real chat reply and
+`identity.package_version = 0.1.6` advertised from the installed package.
+
+The RED run also exposed and the release fixed: chat wrapped a runtime failure
+in an executed/success result (false green while vLLM was down); estimate
+crashed on the JSON mappings a remote client sends; the live profile now checks
+residency after its own load and asserts `VLLM_DYNAMIC_UNLOAD_UNSUPPORTED` as
+the expected unload outcome on vLLM.
 
 ## 4. The live check was lying, and what it exposed
 
