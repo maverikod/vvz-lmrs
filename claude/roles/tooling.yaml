@@ -1,6 +1,6 @@
 # lmrs — Claude tooling contract
 
-template_version: v1.6.8
+template_version: v1.6.9
 
 meta:
   workspace: local

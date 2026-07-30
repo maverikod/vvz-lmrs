@@ -91,11 +91,15 @@ laws:
     blocker; do not bypass the gate just to force a write-through.
   bugfix_acceptance_cycle: >-
     [TRIGGER: any bug fix] The mandatory bug-fix algorithm is, in order: (1) REPRODUCE the
-    defect on the real failing path; (2) ADD a covering check for that defect to the project's
-    `pipeline` CLI as a named check and confirm it FAILS — the bug must be visible THROUGH the
-    pipeline — before any code change; (3) FIND the root cause in code; (4) PROVE the
-    cause-to-symptom link with concrete evidence; (5) FIX the defect with focused regression
-    coverage; (6) TEST by running `pipeline` locally and confirm it is GREEN, i.e. the step-(2)
+    defect on the REAL DEPLOYED SERVER, on the real failing path — never from the bug report
+    alone and never against a mock or a stub; (2) IMMEDIATELY after that reproduction, ADD a
+    covering check for the defect to the project's `pipeline` CLI as a named check and RUN it
+    (`pipeline <check-name>`) against that same real server, and confirm it FAILS. The purpose of
+    this run is to CONFIRM THE REPRODUCTION — proof that the defect is visible THROUGH the
+    pipeline and not only by hand — it is NOT the testing step and it says nothing about any fix.
+    Nothing in the code may change until the pipeline has shown the defect RED; (3) FIND the root
+    cause in code; (4) PROVE the cause-to-symptom link with concrete evidence; (5) FIX the
+    defect with focused regression coverage; (6) TEST by running `pipeline` locally and confirm it is GREEN, i.e. the step-(2)
     check now passes; (7) BUMP the project version by exactly +1 — MANDATORY before any
     deployment; (8) BUILD the deployable image and package via `build.sh`; (9) DEPLOY via ssh
     to `root@192.168.254.26` and, if the project ships a client, publish that client to PyPI at the same
