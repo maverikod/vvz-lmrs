@@ -4,6 +4,10 @@ Written at the end of a long session so the next one starts with facts rather
 than re-derivation. Everything below was observed, not assumed; where something
 is unproven it says so.
 
+> **READ §0 FIRST.** The day went through five releases (0.1.5 → 0.1.10); §0 is
+> the end-of-day truth. Sections 1-6 describe the MORNING state and are kept as
+> the investigation record; §7a-7d are the per-release chronology.
+
 Contract in force: prompt bundle `claude-prompts-v1` rev **1.6.9**, active
 profile **`local`** (branch `local`, local tools for every script and edit).
 Note the 1.6.9 change: `bugfix_acceptance_cycle` now requires reproducing a
@@ -12,7 +16,51 @@ against that same server** before any code change.
 
 ---
 
-## 1. Where things stand
+## 0. End-of-day state (2026-07-30, evening) — the current truth
+
+**Deployed and healthy: 0.1.10.** Host vvz (192.168.254.26), container
+`vasilyvz/lmrs:0.1.10` on the `smart-assistant` network, vLLM serves
+`Qwen/Qwen2.5-Coder-7B-Instruct` from the host hub cache (~60 s to serving
+after restart). Model resident, static VRAM measured at ~21.6 GB, usable
+dynamic pool ~3.5 GB.
+
+**Registered with the proxy, hands-free.** Auto-registration survives clean
+restarts (network membership is part of the packaged runner,
+`LMRS_DOCKER_NETWORK=smart-assistant` in `/etc/default/lmrs`). Currently
+serving as **`lmrs_2`** — the proxy bumps the copy number on re-registration,
+so `call_server` needs the current one from `list_servers`. Verified
+end-to-end through the proxy: a real generation task answered in ~412 ms, and
+`estimate` with an oversized reservation refused with `CONTEXT_OVERFLOW`
+before the runtime.
+
+**Whole surface green.** `commands-live` 18/18 against the live server
+(unload asserts vLLM's honest `VLLM_DYNAMIC_UNLOAD_UNSUPPORTED` as the
+expected outcome). Operator scenario proven from a fresh venv:
+`pip install lmrs-client==0.1.10` → `pipeline` → 4/4 checks (cli-surface,
+info-docs-live, prompt-admission-live, commands-live).
+
+**What ships where.** Server: image on Docker Hub + `lmrs-container 0.1.10-1`
+deb. Client on PyPI: library + `lmrs-client` CLI (pure-JSON stdout, verdict
+exit codes, prompt sizing via `estimate --message` / `token-count --message`)
++ the fleet-contract `pipeline` runner. The live-check implementation lives in
+`lmrs_client.live_check`, shared by the repo pipeline — one runner.
+
+**Git.** `local` = `main`, both pushed. Local verification: 199 tests +
+ruff/flake8/mypy green; repo `pipeline` also registers prompt-admission-live
+and info-docs-live as named checks.
+
+**Open threads.** (1) Upstream adapter gap filed as planmgr bug `2b8101e6`
+(project `mcp-proxy-adapter`): registration snapshot records no heartbeat
+timestamp, so a dead heartbeat loop is indistinguishable from a healthy one —
+LMRS declares this in `info.registration.metadata`. (2) The planmgr plan
+(`8b9b0466`, frozen at `36282da8`) predates the day's work; if plan bookkeeping
+should reflect it, that is authoring work nobody has asked for yet.
+(3) LMCache hit counters are live but hits are 0 so far — nothing reuses
+prefixes yet; not a defect.
+
+---
+
+## 1. Where things stand (MORNING — superseded by §0)
 
 **Git.** Branch `local`, pushed to `origin/local`, working tree clean apart from
 the prompt-bundle files the user edits by hand (CLAUDE.md, claude/*) which are
