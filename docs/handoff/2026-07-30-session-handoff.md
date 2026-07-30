@@ -205,6 +205,38 @@ blocks again — rebuild once more afterwards or the gate reports them.
 
 ---
 
+## 7a. Update, later the same day: the domain layer is implemented
+
+Commit `7064cc2` on `local` closes §5 item 4. The disk cache is backed by the
+hub cache directory the runtime downloads into; `RuntimeClient` executes against
+vLLM and normalizes the answer; VRAM is measured through `nvidia-smi` with the
+service baseline persisted in `/var/lmrs/vram-facts.json`; KV cost is derived
+from the cached model's own `config.json`; and `chat` is admitted before it
+reaches the runtime instead of calling vLLM directly. `pipeline tests` is 150
+passed, ruff/flake8/mypy green.
+
+Three things the next session must know.
+
+**Nothing of this is verified live.** The runtime paths need a serving vLLM, so
+§3 is still item one. `commands-live` also now requires `LMRS_LIVE_MODEL` to name
+the served model, and drives the disk-cache commands against a scratch model
+(`LMRS_LIVE_CACHE_MODEL`, default `hf-internal-testing/tiny-random-gpt2`) - the
+cache commands delete real weights now, and the old profile would have deleted
+the deployed model.
+
+**Two response shapes changed.** `chat` returns the normalized command result
+(outcome, reason code, token breakdown, capacity snapshot, payload) instead of a
+raw vLLM completion, and `capacity` reports null where it has no measurement
+rather than a zero. `local_model_cache_preload` is queued on both client and
+server.
+
+**New operator settings** are documented in `packaging/lmrs.default.template`
+and forwarded by `packaging/bin/lmrs-container`: resident services, safety
+margin, runtime reserve, per-request and batch overheads, KV dtype, queue TTL,
+hardware profile id, VRAM facts path, cache root. The entrypoint now derives
+`VLLM_BASE_URL` from `VLLM_HOST`/`VLLM_PORT` and sets `LMRS_LMCACHE_ENABLED`
+from the same condition that enables the KV connector.
+
 ## 7. Decisions the user has already made
 
 - Push the working branch without asking; do not wait for confirmation.
