@@ -319,6 +319,34 @@ the current copy number, same behavior as CAS. `commands-live` direct: 18/18.
 Backups on host: `/root/config.json.pre-registration-fix`,
 `/root/config.json.pre-0.1.5`, `/root/lmrs.default.pre-0.1.5`.
 
+## 7d. Final update: 0.1.9/0.1.10 — client CLI, fleet pipeline, self-documentation
+
+`pip install lmrs-client` now delivers the whole operator story:
+
+- **lmrs-client CLI**: one subcommand per public command, derived from the
+  client class by inspection (surface cannot drift); connection via flags or
+  `LMRS_LIVE_*` env; stdout is pure machine-readable JSON (0.1.10 fixed the
+  framework's import-time noise via a lazy PEP 562 package export plus a
+  guarded import); exit code from the shared three-layer verdict.
+  Prompt-size control from the shell: `lmrs-client estimate --message ...
+  --max-tokens ...` and `lmrs-client token-count --message ...`.
+- **Client `pipeline`** per the fleet contract (no args = suite, name = one
+  check, `--list`): cli-surface, info-docs-live, prompt-admission-live,
+  commands-live. Implementations live in `lmrs_client.live_check` and the
+  repo pipeline registers the same functions — one runner, two entrypoints.
+- **Server prompt sizing**: token_count and estimate accept text (runtime
+  tokenizer + KV from cached config + measured capacity → dry-run verdict);
+  raw numeric modes preserved; chat schema now declares request_id/session_id.
+- **Exhaustive self-documentation**: every command carries fleet-paradigm
+  metadata (planmgr/CAS shape) from `lmrs/adapter/command_docs.py`; info
+  publishes the service guide + full per-command docs; completeness pinned by
+  tests and by the live info-docs-live check.
+
+Verified: 199 local tests + linters; deployed 0.1.10; operator scenario from
+a fresh venv with the PyPI client — full pipeline 4/4 green against the live
+server, including the invariant (oversized prompt → CONTEXT_OVERFLOW, never
+executed) and commands-live 18/18.
+
 ## 7. Decisions the user has already made
 
 - Push the working branch without asking; do not wait for confirmation.

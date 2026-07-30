@@ -1,6 +1,5 @@
 lmrs-container (0.1.10-1) unstable; urgency=medium
 
-  * lmrs-client keeps stdout machine-readable: the framework's import-time
-    banner and INFO logging no longer prefix the JSON output.
+  * Release 0.1.10: containerized LMRS (vLLM + LMCache + adapter server).
 
- -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 18:05:00 +0300
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 18:00:26 +0300
