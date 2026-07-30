@@ -1,10 +1,5 @@
 lmrs-container (0.1.7-1) unstable; urgency=medium
 
-  * local_lmcache_status reports real hit/miss token counters read from the
-    runtime's external KV-connector metrics, plus the measured disk tier, and
-    names any source that did not answer instead of reporting zeros.
-  * The info command reports the live proxy registration state built from the
-    adapter framework's registration snapshot; the framework's missing
-    heartbeat timestamp is declared and tracked as an upstream bug.
+  * Release 0.1.7: containerized LMRS (vLLM + LMCache + adapter server).
 
- -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 16:05:00 +0300
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 30 Jul 2026 16:09:23 +0300
