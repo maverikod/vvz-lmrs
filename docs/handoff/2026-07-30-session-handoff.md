@@ -272,6 +272,32 @@ hardware profile id, VRAM facts path, cache root. The entrypoint now derives
 `VLLM_BASE_URL` from `VLLM_HOST`/`VLLM_PORT` and sets `LMRS_LMCACHE_ENABLED`
 from the same condition that enables the KV connector.
 
+## 7b. Final update: 0.1.7 — the last observation stubs are real
+
+Released and deployed the same day; `commands-live` against the live server is
+18/18 with the new code.
+
+- `local_lmcache_status` reports real hit/miss token counters read from vLLM's
+  `/metrics` — the external KV-connector families
+  `vllm:external_prefix_cache_{queries,hits}_total` (verified present and
+  moving on the deployed runtime; counted in tokens) — plus the measured disk
+  tier. A source that does not answer is named in the new `metadata` key of the
+  status payload instead of contributing zeros. The GPU-internal prefix cache
+  never mixes into the LMCache figures.
+- `info` builds its RegistrationState from the adapter framework's live
+  registration snapshot (rewritten by every heartbeat attempt). The snapshot
+  carries no timestamp, so freshness cannot be dated — declared in metadata and
+  filed upstream as planmgr bug `2b8101e6` against project `mcp-proxy-adapter`
+  (`79cf5a1b-...`).
+
+**Live operational fact, not a code defect:** the deployed config points
+registration at `https://mcp-proxy.techsup.od.ua:3004`, which is unreachable
+from the container ("Proxy not available", 5 attempts then gives up until
+restart), so the server currently runs UNREGISTERED and info truthfully reports
+`registered=false`; the proxy's server list indeed has no lmrs. Advertised
+server_url is `https://lmrs:8012` (docker-internal name). Whether to retarget
+registration or fix routing is an operator decision.
+
 ## 7. Decisions the user has already made
 
 - Push the working branch without asking; do not wait for confirmation.
