@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lmrs-client"
+version = "0.1.4"
+description = "Client library for the Local Model Runtime Service (LMRS)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Vasiliy Zdanovskiy", email = "vasilyvz@gmail.com"},
+]
+# Pinned to the same adapter range the server declares: the client is built on
+# the framework's JSON-RPC client, so a client paired with a different adapter
+# major would speak a different transport contract than the server it talks to.
+dependencies = [
+    "mcp-proxy-adapter>=8.10",
+]
+
+[tool.setuptools.packages.find]
+include = ["lmrs_client*"]
+namespaces = false
