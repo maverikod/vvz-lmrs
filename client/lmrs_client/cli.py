@@ -20,14 +20,23 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import inspect
 import json
+import logging
 import os
 import sys
 from typing import Any, Callable
 
-from lmrs_client.client import LmrsClient
+# The adapter framework prints a banner and emits INFO log lines to stdout at
+# import time. This CLI's stdout is machine-readable JSON (its stated purpose
+# is scriptable ground truth), so the import happens with stdout redirected to
+# stderr and the framework loggers are quieted to errors afterwards.
+with contextlib.redirect_stdout(sys.stderr):
+    from lmrs_client.client import LmrsClient
 from lmrs_client.verdict import verdict
+
+logging.getLogger("mcp_proxy_adapter").setLevel(logging.ERROR)
 
 _CONNECTION_FLAGS: tuple[tuple[str, str, str], ...] = (
     ("--host", "LMRS_LIVE_HOST", "Server hostname."),
