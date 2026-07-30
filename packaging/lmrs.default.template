@@ -31,12 +31,19 @@ VLLM_PORT=8000
 VLLM_EXTRA_ARGS="--gpu-memory-utilization 0.80"
 LMCACHE_CONFIG_FILE=/etc/lmrs/lmcache.yaml
 
-# Serve weights from the mounted model cache and never reach the HuggingFace Hub
-# on startup. The image is inference-complete and the cache volume already holds
-# the weights, so a Hub round trip only adds a network dependency: an
-# unauthenticated, rate-limited request inside vLLM's snapshot_download blocks
-# model load indefinitely, with no log line and no download progress to show why.
-# Set this to 0 only to fetch a model that is not in the cache yet, and give
-# HF_TOKEN a value when you do, so the fetch is not rate-limited.
-HF_HUB_OFFLINE=1
+# HuggingFace Hub access for model weights.
+#
+# vLLM calls snapshot_download on every start, even when the cache volume already
+# holds the model. Unauthenticated that call can stall indefinitely, and it
+# stalls silently: no log line after "Using FlashAttention version 2", no
+# download progress, no .incomplete file. Set HF_TOKEN so the request is not
+# rate-limited; that is the one setting known to matter here.
+#
+# HF_HUB_OFFLINE=1 makes a start that cannot reach the Hub fail fast instead of
+# hanging, which is easier to diagnose, but it also blocks fetching a model that
+# is not cached yet. It is left off by default: on a host observed 2026-07-30 it
+# turned the hang into LocalEntryNotFoundError even though refs/main matched the
+# cached snapshot, and that resolution failure is not yet understood. Turn it on
+# deliberately, per host, once the cache is known to satisfy the request.
 HF_TOKEN=
+HF_HUB_OFFLINE=
