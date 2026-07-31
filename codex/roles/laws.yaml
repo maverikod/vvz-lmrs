@@ -1,17 +1,49 @@
 # lmrs — standing laws for Codex
 
 variables:
-  workspace_truth: local
+  file_access: local      # local (default) | cas | local_ide. Selects the active work site.
+  local_branch: local
+  cas_branch: cas
+  transfer_branch: main
   verification: required
 
 laws:
+  active_profile_declaration: >-
+    [TRIGGER: first action of any task] `variables.file_access` decides where work happens and
+    which tools are legitimate. Read it before the first project action and state the active
+    profile. The default is `local`; only the user may change it. Never infer a switch or switch
+    after a tool failure. If the value is missing or unreadable, stop and ask.
   local_workspace_truth: >-
-    The local checkout is the default source of truth. Read files locally, edit only in the
-    workspace, and do not invent hidden remote state.
+    Under `local`, the local checkout is the source of truth. Under `cas`, the registered
+    Code Analysis Server project is authoritative instead and this law yields to `cas_mode`.
   branch_discipline: >-
-    Keep a clear working-branch policy for local changes, avoid direct history rewrites on shared
-    branches, and document how verified work is promoted. If the project has no formal branch
-    contract yet, define one here instead of silently omitting the law.
+    There are three branches: `local` is local work, `cas` is server-side work, and `main` is
+    transfer-only. Work only on the branch for the active site. Never edit `main` directly and
+    never merge `local` directly with `cas`. Synchronize `main` into the active branch before
+    work. Build, deploy, and run live acceptance from the active branch. Only after live
+    verification is green, merge that branch into local `main`; do not push it. Report the ready
+    commit and wait for explicit user confirmation. The opposite site then pulls `main` through
+    its authoritative Git surface, verifies the commit, and merges it into its own work branch.
+  parallel_agent_isolation: >-
+    [TRIGGER: launching more than one writing agent] Concurrent agents never share a working
+    tree or branch. In a local profile, give each agent a dedicated `git worktree` and branch.
+    In a CAS profile, use the equivalent isolated server-side working copy and branch admitted by
+    CAS Git. Each agent edits and verifies only its own isolated copy. Integrate only after
+    acceptance: merge into the active branch, resolve conflicts there, and re-run `pipeline` on
+    the merged result. Discard rejected work without a partial merge. Parallel writing is normal,
+    but this law never relaxes tester, conscience, zero-trust, or orchestrator acceptance gates.
+  local_mode: >-
+    [active when variables.file_access=local] Reads, edits, tests, builds, and release
+    preparation use the local checkout on `local`. MCP Proxy is only for analysis and
+    CAS-authoritative Git sync: never use it to execute a build, test, or deploy script, edit a
+    file, or enter a terminal sandbox/host-exec path for ordinary work.
+  cas_mode: >-
+    [active when variables.file_access=cas] All project reads, edits, verification, and Git
+    target the registered CAS project on `cas` through MCP Proxy. Never fall back to local tools.
+  local_ide_mode: >-
+    [active when variables.file_access=local_ide] The human edits local files through the IDE.
+    The agent only supplies proposed patches or diffs; CAS via MCP Proxy remains available for
+    search and analysis. Branch rules follow the `local` branch-discipline clause.
   no_assumption_policy: >-
     Do not claim behavior, architecture intent, or test status without repository evidence.
   inspect_before_edit: >-
@@ -33,14 +65,16 @@ laws:
     blocker; do not bypass the gate just to force a write-through.
   bugfix_acceptance_cycle: >-
     [TRIGGER: any bug fix] The mandatory bug-fix algorithm is, in order: (1) REPRODUCE the
-    defect on the real failing path; (2) ADD a covering check for that defect to the project's
-    `pipeline` CLI as a named check and confirm it fails before further changes; (3) FIND the
-    root cause in code; (4) PROVE the cause-to-symptom link with concrete evidence; (5) FIX the
-    defect with focused regression coverage; (6) BUMP the project version by exactly +1 before
-    any deployment; (7) DEPLOY via ssh to `root@192.168.254.26` and, if the project ships a
-    client, publish that client to PyPI at the same version; (8) RUN `pipeline` against the real
-    deployed server and SMOKE-TEST the original bug path on the live system. This cycle is
-    mandatory, not advisory. Work is not accepted until every applicable step passes.
+    defect on the REAL DEPLOYED SERVER, on the real failing path — never from a report, mock, or
+    stub; (2) IMMEDIATELY add a named covering `pipeline` check, run `pipeline <check-name>`
+    against that same real server, and confirm it FAILS. This RED run CONFIRMS REPRODUCTION
+    through the pipeline; it is not testing and says nothing about a fix. Do not change code
+    before it is RED; (3) FIND the root cause; (4) PROVE the cause-to-symptom link; (5) FIX with
+    focused regression coverage; (6) TEST locally with `pipeline` and confirm GREEN, including
+    the step-(2) check; (7) BUMP the version by exactly +1 before deployment; (8) BUILD with
+    `build.sh`; (9) DEPLOY to `root@192.168.254.26` and publish any client to PyPI at that version;
+    (10) RUN `pipeline` against the real deployed server and SMOKE-TEST the original path. This
+    cycle is mandatory; work is not accepted until every applicable step passes.
   pipeline_cli_contract: >-
     [TRIGGER: any verification, deploy, or server start] The project MUST ship a pipeline
     package that becomes a plain CLI application after `pip install -e .`. The command is named

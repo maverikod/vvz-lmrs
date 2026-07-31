@@ -3,7 +3,7 @@
 `../AGENTS.md` is the entrypoint. This directory contains the project-bound
 Codex contract bundle.
 
-Package version: `v1.6.2`
+Package version: `v1.6.13`
 
 ## Layout
 

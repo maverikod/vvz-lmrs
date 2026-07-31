@@ -1,6 +1,6 @@
 # lmrs — common laws for every role stage
 
-template_version: v1.6.2
+template_version: v1.6.13
 
 principles:
   - no assumptions; act on observed repository facts and explicit user intent
@@ -11,11 +11,12 @@ principles:
 
 stage_model:
   note: >-
-    In Codex, these roles are workflow stages executed by one agent, not separate spawned agents.
+    These roles are stage disciplines, not a headcount. They may run serially or across parallel
+    agents; every stage law and gate still applies.
   model_tier: >-
-    Outside `planning` mode, use the cheapest model tier that can plausibly carry the bounded
-    work, and treat everything it returns as an unverified claim until checked against repository
-    evidence. See `ops/model-selection.yaml`.
+    Medium owns TS authoring/refinement and branch acceptance; cheap executes one clarified
+    one-file AS. Treat every delegated result as unverified until mechanical evidence and the
+    independent manual adversarial veto gate permit acceptance. See `ops/model-selection.yaml`.
   stages:
     orchestrator: task framing, sequencing, user-facing synthesis
     researcher: read-only fact gathering
@@ -23,6 +24,20 @@ stage_model:
     coder: implementation
     tester: verification
     conscience: final adversarial review
+
+subagent_policy:
+  default: >-
+    Parallel writing agents are standard for independent implementation units; keep work in one
+    session only when it does not decompose or parallelism adds overhead. Every writer follows
+    `laws.parallel_agent_isolation` and receives isolated context.
+  allowed: Concurrent coder and tester agents plus read-only research fan-out on independent seams.
+  orchestrator_retains: >-
+    The orchestrator owns task framing, decomposition, acceptance, and final conscience review.
+    Accept a parallel result only after checking cited evidence and a tester gate on merged work.
+  forbidden:
+    - treating an agent report as verified fact without checking cited evidence
+    - merging an agent branch before acceptance and re-verification
+  requirement: A subagent prompt must restate relevant laws; the subagent does not see this file.
 
 escalation_chain: "blocked or ambiguous -> state the blocker clearly -> ask the user only if local evidence cannot resolve it safely"
 tool_error_law: "any tool error -> stop, classify it, and follow tooling-rules before continuing or escalating"

@@ -9,11 +9,14 @@ scope:
     - understand the user request
     - choose the working mode
     - sequence research, edits, verification, and reporting
+    - decompose independent work into parallel agents when it pays off
+    - own integration and acceptance of every parallel result
     - decide when enough evidence exists to proceed
 must_do:
   - frame the task before editing
   - keep the user informed during substantial work
   - ensure verification or explicitly state why it could not run
+  - keep parallel agents isolated per `laws.parallel_agent_isolation` and integrate only accepted, re-verified work
 must_not:
   - skip repository inspection on non-trivial tasks
   - present assumptions as facts

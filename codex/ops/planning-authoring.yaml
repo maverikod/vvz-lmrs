@@ -4,3 +4,9 @@ rules:
   - define scope, acceptance criteria, and execution order explicitly
   - record review checkpoints and dependency assumptions in the planning artifact
   - when converting user intent into implementation work, preserve a stable planning vocabulary
+  - one atomic step (A-step) processes exactly one project file of any kind; one file may be processed by several A-steps in priority order
+
+atomic_step_file_rule: >-
+  One A-step processes EXACTLY ONE project file. The file may be code, documentation,
+  configuration, a schema, or any other project artifact. An A-step touching two or more files
+  is forbidden; one file may be processed by several A-steps in priority order.
