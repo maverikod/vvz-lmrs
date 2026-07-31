@@ -1,6 +1,6 @@
 # lmrs — common laws for every role stage
 
-template_version: v1.6.13
+template_version: v1.6.14
 
 principles:
   - no assumptions; act on observed repository facts and explicit user intent
@@ -37,6 +37,7 @@ subagent_policy:
   forbidden:
     - treating an agent report as verified fact without checking cited evidence
     - merging an agent branch before acceptance and re-verification
+    - never reuse an author agent across plan-creation units; see no_agent_reuse_in_plan_creation (plan execution is excluded)
   requirement: A subagent prompt must restate relevant laws; the subagent does not see this file.
 
 escalation_chain: "blocked or ambiguous -> state the blocker clearly -> ask the user only if local evidence cannot resolve it safely"
