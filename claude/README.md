@@ -3,7 +3,7 @@
 `../CLAUDE.md` is the entrypoint. This directory contains the project-bound
 Claude contract bundle.
 
-Package version: `v1.6.16`
+Package version: `v1.6.17`
 
 ## Layout
 
