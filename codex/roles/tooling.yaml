@@ -1,6 +1,6 @@
 # lmrs — Codex tooling contract
 
-template_version: v1.6.17
+template_version: v1.6.18
 
 meta:
   workspace: local
