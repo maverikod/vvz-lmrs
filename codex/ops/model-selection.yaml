@@ -1,7 +1,7 @@
 # Codex model selection and zero-trust verification
 
 principle: >-
-  Codex planning has fixed ownership: medium authors/refines TS and formally accepts a branch;
+  Codex planning has fixed ownership: workhorse authors/refines TS and formally accepts a branch;
   cheap executes one clarified, narrow AS for exactly one project file. Every result remains
   untrusted until mechanical evidence and an independent negative manual review permit acceptance.
 
@@ -15,25 +15,25 @@ mode_gate:
 tiers:
   order: [cheap, medium, strong, strongest]
   cheap:
-    id: gpt-5.6-luna
+    id: gpt-5.6-terra
     reasoning_effort: medium
     relative_cost: 1x
     fits: one clarified narrow AS whose target is exactly one project file.
   medium:
     id: gpt-5.6-terra
-    reasoning_effort: medium
+    reasoning_effort: xhigh
     relative_cost: 2x
     fits: >-
       Authors/refines TS, owns formal branch acceptance, and verifies a cheap AS result.
   strong:
-    id: gpt-5.6-terra
-    reasoning_effort: xhigh
+    id: gpt-5.6-sol
+    reasoning_effort: max
     relative_cost: 4x
     fits: >-
       The next promotion tier for the unchanged clarified scope after medium fails.
   strongest:
     id: gpt-5.6-sol
-    reasoning_effort: max
+    reasoning_effort: ultra
     relative_cost: 8x
     fits: >-
       Final Codex promotion tier; its failure escalates upward with the unchanged clarified scope.
