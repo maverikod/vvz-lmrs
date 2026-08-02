@@ -1,6 +1,6 @@
 # lmrs — common laws for every role stage
 
-template_version: v1.6.14
+template_version: v1.6.15
 
 principles:
   - no assumptions; act on observed repository facts and explicit user intent

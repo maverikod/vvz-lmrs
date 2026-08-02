@@ -87,23 +87,45 @@ laws:
     parallel script, or an ad-hoc command list for any of those contexts; a missing check is
     added to this pipeline as a new named check. A project without this CLI has a gap that must
     be closed before the work is accepted.
+  live_api_contract_coverage: >-
+    [TRIGGER: any pipeline run against the real deployed server, and any change to the API
+    surface] The live acceptance pipeline MUST cover the API exhaustively: EVERY command the
+    server exposes and, for every command, EVERY parameter — in BOTH directions. Positive
+    direction: a valid value of the declared type, including boundary values, and optional
+    parameters exercised both PRESENT and ABSENT. Negative direction, per parameter: required one
+    OMITTED, present but EMPTY or null, WRONG TYPE, out-of-range or malformed value, and an
+    UNKNOWN extra parameter rejected. Responses are asserted STRICTLY. It is never enough that a
+    call did not raise, returned HTTP 200, or that some substring appears in a serialized body.
+    Every check asserts the exact status or error code, the response SHAPE, the PRESENCE of every
+    property the contract promises, the ABSENCE of every property it does not, and the TYPE of
+    each property's value — recursing into nested objects and into list elements — plus the value
+    itself wherever the contract fixes it. A negative case asserts the SPECIFIC contracted error,
+    not merely that the call failed. An API command with no check, a parameter exercised in only
+    one direction, or a response accepted without full property-and-type assertions is a COVERAGE
+    GAP; close it by adding named checks to the `pipeline` CLI before the work is accepted. Report
+    coverage against the API surface — which commands and parameters are covered — never as a
+    count of checks that passed. See `ops/testing.yaml` for the per-parameter and per-response
+    matrix.
   cheapest_capable_model: >-
-    [TRIGGER: any delegation, helper-model use, or model choice outside `planning` mode] Push
-    the work down to the cheapest model tier that can plausibly carry it, and never to a tier
-    that cannot. Lower effort before raising the tier. State what the task requires before
-    choosing; do not pick a higher tier by habit. On failure, move up exactly one tier once,
-    then escalate; never loop on the same cheap attempt. `planning` mode is exempt: task
-    framing, mode routing, acceptance structure, and architectural decisions stay at the session
-    tier, because a cheap model must not choose the plan. See `ops/model-selection.yaml`.
+    [TRIGGER: TS/AS delegation, helper-model use, or acceptance] In Codex planning, medium
+    authors/refines TS and owns formal branch acceptance; cheap executes only one clarified
+    narrow AS for exactly one project file. The first verified defect gets exactly one strict
+    clarified retry at the same tier. If that retry fails, promote the unchanged clarified scope
+    one tier; repeat the retry-then-promotion chain until strongest-tier failure escalates upward.
+    Never change the target file or widen scope during the chain. See `ops/model-selection.yaml`.
   zero_trust_cheap_output: >-
     [TRIGGER: any result produced by a cheaper tier] Output from a cheaper tier is a claim, not
     a fact, and the stage that used it owns the verification. Read the files a result cites
     before repeating its conclusion; re-run any command reported as passing; treat "found
     nothing" as unverified until the search is reproduced; never forward a cheap-tier summary to
     the user as an established finding. The `tester` verdict, the `conscience` review, every
-    acceptance gate, and the definition of the task itself are never delegated downward. If
+    acceptance gate, semantic score, and the definition of the task itself are never delegated downward. If
     verifying costs more attention than doing the work at the higher tier, the cheap tier was
     the wrong choice; say so and move up instead of skipping verification.
+  adversarial_manual_acceptance: >-
+    [TRIGGER: branch acceptance] Semantic score is advisory/diagnostic only. An independent
+    negative manual conscience review is the final veto: the medium TS owner accepts only after
+    mechanical checks pass and no negative review remains.
   verify_before_delivery: >-
     Verify through the `pipeline` CLI. Run the narrowest covering check first
     (`pipeline <check-name>`), then full `pipeline` before delivery. If verification cannot run,

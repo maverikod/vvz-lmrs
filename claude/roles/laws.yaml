@@ -118,6 +118,25 @@ laws:
     parallel script, or an ad-hoc command list for any of those contexts; a missing check is
     added to this pipeline as a new named check. A project without this CLI has a gap that must
     be closed before the work is accepted.
+  live_api_contract_coverage: >-
+    [TRIGGER: any pipeline run against the real deployed server, and any change to the API
+    surface] The live acceptance pipeline MUST cover the API exhaustively: EVERY command the
+    server exposes and, for every command, EVERY parameter — in BOTH directions. Positive
+    direction: a valid value of the declared type, including boundary values, and optional
+    parameters exercised both PRESENT and ABSENT. Negative direction, per parameter: required one
+    OMITTED, present but EMPTY or null, WRONG TYPE, out-of-range or malformed value, and an
+    UNKNOWN extra parameter rejected. Responses are asserted STRICTLY. It is never enough that a
+    call did not raise, returned HTTP 200, or that some substring appears in a serialized body.
+    Every check asserts the exact status or error code, the response SHAPE, the PRESENCE of every
+    property the contract promises, the ABSENCE of every property it does not, and the TYPE of
+    each property's value — recursing into nested objects and into list elements — plus the value
+    itself wherever the contract fixes it. A negative case asserts the SPECIFIC contracted error,
+    not merely that the call failed. An API command with no check, a parameter exercised in only
+    one direction, or a response accepted without full property-and-type assertions is a COVERAGE
+    GAP; close it by adding named checks to the `pipeline` CLI before the work is accepted. Report
+    coverage against the API surface — which commands and parameters are covered — never as a
+    count of checks that passed. See `ops/testing.yaml` for the per-parameter and per-response
+    matrix.
   cheapest_capable_model: >-
     [TRIGGER: any delegation or model choice outside `planning` mode] Push work down to the
     cheapest model tier that can plausibly carry it, and never to a tier that cannot. Tier order
