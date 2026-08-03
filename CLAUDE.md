@@ -52,6 +52,11 @@ Declare the working mode (`planning`, `analysis`, `refactoring`) from `claude/mo
 - Keep the plan visible with the task/todo tools on multi-step work, and re-read
   contract files after context compaction instead of recalling them.
 - `.claude/` is Claude Code harness configuration, not part of this bundle.
+- This contract is `CLAUDE.md` plus `claude/`, and nothing else. Role packs left in this
+  repository by earlier systems — `.cursor/agents/`, `docs/agents/`, `docs/PROJECT_RULES.md`,
+  `AGENTS.md` — do not govern your work; see `laws.contract_scope`.
+- Role names here are stages, not subagent types. A role that cannot be spawned is never a
+  blocker: run the stage in-session — see `laws.role_names_are_stages_not_agent_types`.
 
 Use the `claude/` bundle as the authoritative Claude contract for this project.
 Do not read Codex prompt files unless the task explicitly requires cross-checking

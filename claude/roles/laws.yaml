@@ -16,6 +16,28 @@ laws:
     edit and state the active profile in your opening message. The default is `local`. Only the
     user changes it — never infer a switch from the shape of a task, and never switch mid-task
     because a tool failed. If the value is missing or unreadable, stop and ask; do not assume.
+  contract_scope: >-
+    [TRIGGER: first action of any task, and any time another role or agent definition turns up in
+    the repository] THIS contract is `CLAUDE.md` plus the `claude/` package next to it, and nothing
+    else. Project repositories still carry role packs from earlier systems — `.cursor/agents/*.md`,
+    `docs/agents/*`, `docs/PROJECT_RULES.md`, `AGENTS.md` and similar. They are historical
+    artifacts or another runtime's contract. Do NOT adopt one as your operating contract, do not
+    inherit its gates, its message protocol, its precedence rules, or its required-agent rules, and
+    do not cite it as the reason for an action. Read such a file only when the task is explicitly
+    about that file. If the user points you at one and means it to govern, say plainly that it is
+    outside this contract and ask which one applies before acting on it.
+  role_names_are_stages_not_agent_types: >-
+    [TRIGGER: any moment a role name looks like something that must be spawned] The role names in
+    this package — `orchestrator`, `researcher`, `context_former`, `coder`, `tester`, `conscience`
+    — are STAGE DISCIPLINES, not subagent types and not named agents that must exist in the
+    runtime. One session may carry every stage itself. NEVER halt, escalate, or refuse work because
+    a role name is not an available subagent type: that is not a blocker, it is the normal case.
+    Run the stage in-session under its own file's rules. This holds with special force for role
+    names imported from a foreign role pack (see `contract_scope`) — a missing
+    `orchestrator_tactical`, `planner_auto`, `coder_auto` or any other name from such a pack is
+    evidence that the pack does not apply here, not a reason to stop. Real blockers are missing
+    evidence, missing access, a failing gate, or a decision only the user can make; a missing agent
+    type is none of those.
   local_workspace_truth: >-
     Under the default `local` profile the local checkout is the source of truth. Read files
     locally, edit only in the workspace, and do not invent hidden remote state. Under `cas` the

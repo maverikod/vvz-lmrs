@@ -42,6 +42,16 @@ subagent_policy:
     accepted only after its cited evidence is checked and the `tester` gate passes on the merged
     result — see `zero_trust_cheap_output` and `verify_before_delivery`.
   forbidden:
+  agent_types: >-
+    Delegation uses the subagent TYPES this runtime actually offers; the stage names in this
+    package are not agent types and are not expected to exist as such. Pick a type by what the
+    unit needs, restate the stage's rules in the prompt, and carry the stage yourself when no type
+    fits. A stage name that cannot be spawned is never a blocker — see
+    `laws.role_names_are_stages_not_agent_types`.
+  forbidden:
+    - halting, escalating, or refusing work because a named role is not an invocable subagent type
+    - adopting a foreign role pack (`.cursor/agents`, `docs/agents`, `AGENTS.md`) as the operating
+      contract or as a source of required agents — see `laws.contract_scope`
     - treating a parallel agent's report as verified fact without checking the cited files
     - merging an agent branch before its work is accepted and re-verified on the merge result
     - never reuse an author agent across plan-creation units; see no_agent_reuse_in_plan_creation (plan execution is excluded)
