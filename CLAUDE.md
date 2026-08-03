@@ -1,6 +1,6 @@
 # lmrs - Claude operating contract
 
-**Prompts template:** `claude-prompts-v1` rev **1.6.11** (2026-07-29)
+**Prompts template:** `claude-prompts-v1` rev **1.6.19** (2026-08-03)
 
 This file is the Claude entrypoint and is loaded automatically at session start.
 Read these files yourself before the first action of a task:
