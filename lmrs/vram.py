@@ -226,13 +226,18 @@ def measure_gpu_memory(
     )
 
 
-_DRIFT_RESERVE_BYTES = 1024 * _MIB_BYTES
+# The fraction covers weights, activations and the KV pool, but CUDA graph
+# capture happens after the pool is sized and allocates on top of it: a 14B AWQ
+# model captured 51 piecewise and 35 full graphs and needed more than 1.2 GiB
+# beyond the fraction, dying on a 150 MiB allocation with 56 MiB left. So this
+# reserve is graph-capture headroom first and co-resident drift headroom second.
+_HEADROOM_RESERVE_BYTES = 2048 * _MIB_BYTES
 
 
 def derive_gpu_memory_utilization(
     free_bytes: int,
     total_bytes: int,
-    reserve_bytes: int = _DRIFT_RESERVE_BYTES,
+    reserve_bytes: int = _HEADROOM_RESERVE_BYTES,
 ) -> float:
     """Return a ``--gpu-memory-utilization`` the runtime can actually satisfy.
 
@@ -296,7 +301,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--reserve-mib",
         type=int,
-        default=_DRIFT_RESERVE_BYTES // _MIB_BYTES,
+        default=_HEADROOM_RESERVE_BYTES // _MIB_BYTES,
         help="VRAM left outside the fraction as drift headroom (default: %(default)s).",
     )
     arguments = parser.parse_args(argv)

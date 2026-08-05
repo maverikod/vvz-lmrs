@@ -70,6 +70,7 @@ start_container() {
     -e VLLM_HOST="${VLLM_HOST:-127.0.0.1}" \
     -e VLLM_PORT="${VLLM_PORT:-8000}" \
     -e VLLM_EXTRA_ARGS="${VLLM_EXTRA_ARGS:-}" \
+    -e LMRS_VRAM_RESERVE_MIB="${LMRS_VRAM_RESERVE_MIB:-}" \
     -e LMCACHE_CONFIG_FILE="${LMCACHE_CONFIG_FILE:-/etc/lmrs/lmcache.yaml}" \
     -e HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-}" \
     -e HF_TOKEN="${HF_TOKEN:-}" \

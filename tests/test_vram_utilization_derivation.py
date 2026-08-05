@@ -20,6 +20,7 @@ from lmrs.vram import GpuMemoryMeasurement, derive_gpu_memory_utilization, main
 _ROOT = Path(__file__).resolve().parent.parent
 _ENTRYPOINT = _ROOT / "docker" / "lmrs" / "docker-entrypoint.sh"
 _DEFAULT_TEMPLATE = _ROOT / "packaging" / "lmrs.default.template"
+_RUNNER = _ROOT / "packaging" / "bin" / "lmrs-container"
 
 _MIB = 1024**2
 
@@ -29,6 +30,13 @@ _TOTAL = 24576 * _MIB
 _FREE_WITH_EMBED_IDLE = 19855 * _MIB
 _FREE_WITH_EMBED_GROWN = 16190 * _MIB
 _RESERVE = 1024 * _MIB
+
+# The 0.1.11 deploy: free VRAM at start, and the CUDA graph capture that OOMed
+# after the KV pool had been sized, dying on a 150 MiB allocation with 56 MiB
+# left. Capture therefore wanted more than the 1.19 GiB that a 1 GiB reserve
+# left outside the fraction.
+_FREE_AT_DEPLOY = 19404 * _MIB
+_OBSERVED_GRAPH_CAPTURE_BYTES = 1218 * _MIB
 
 
 def test_the_derived_value_is_startable_on_a_shared_card() -> None:
@@ -174,3 +182,36 @@ def test_the_entrypoint_refuses_to_start_without_a_derived_value() -> None:
     derivation = script.split("utilization_args=()", 1)[1].split("vllm serve", 1)[0]
 
     assert "exit 69" in derivation
+
+
+def test_the_default_reserve_covers_observed_cuda_graph_capture() -> None:
+    """The 0.74 start sized the KV pool and then died capturing graphs on top of it."""
+    utilization = derive_gpu_memory_utilization(_FREE_AT_DEPLOY, _TOTAL)
+
+    left_outside_the_fraction = _FREE_AT_DEPLOY - utilization * _TOTAL
+
+    assert left_outside_the_fraction > _OBSERVED_GRAPH_CAPTURE_BYTES
+
+
+def test_a_one_gibibyte_reserve_would_not_have_covered_the_capture() -> None:
+    """Pins why the default grew: the first value left 1.19 GiB and capture wanted more."""
+    utilization = derive_gpu_memory_utilization(_FREE_AT_DEPLOY, _TOTAL, 1024 * _MIB)
+
+    left_outside_the_fraction = _FREE_AT_DEPLOY - utilization * _TOTAL
+
+    assert utilization == 0.74
+    assert left_outside_the_fraction < _OBSERVED_GRAPH_CAPTURE_BYTES
+
+
+def test_the_runner_passes_the_reserve_into_the_container() -> None:
+    """A reserve set in /etc/default/lmrs is inert unless the runner forwards it."""
+    script = _RUNNER.read_text(encoding="utf-8")
+
+    assert "-e LMRS_VRAM_RESERVE_MIB=" in script
+
+
+def test_the_entrypoint_forwards_a_configured_reserve() -> None:
+    """A model that captures more graphs must be tunable without a rebuild."""
+    script = _ENTRYPOINT.read_text(encoding="utf-8")
+
+    assert "--reserve-mib" in script
