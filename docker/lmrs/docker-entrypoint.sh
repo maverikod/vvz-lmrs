@@ -60,11 +60,31 @@ if [ -n "$LMRS_MODEL" ]; then
     lmcache_args=(--kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}')
   fi
 
+  # vLLM reads --gpu-memory-utilization as a fraction of TOTAL device memory and
+  # refuses to start when less than that is free, so a value pinned in
+  # /etc/default/lmrs fails as soon as another process holds VRAM and cannot be
+  # right on the local card and a rented one at once. Derive it from this card
+  # unless the operator pinned it deliberately.
+  utilization_args=()
+  case " $VLLM_EXTRA_ARGS " in
+    *" --gpu-memory-utilization"*) ;;
+    *)
+      if utilization=$(python3 -m lmrs.vram 2>&1); then
+        utilization_args=(--gpu-memory-utilization "$utilization")
+        echo "LMRS: derived --gpu-memory-utilization $utilization from free VRAM" >&2
+      else
+        echo "LMRS: cannot derive --gpu-memory-utilization: $utilization" >&2
+        exit 69
+      fi
+      ;;
+  esac
+
   # vLLM stays inside the LMRS container and receives GPU resources from docker run --gpus.
   vllm serve "$LMRS_MODEL" \
     --host "$VLLM_HOST" \
     --port "$VLLM_PORT" \
     "${lmcache_args[@]}" \
+    "${utilization_args[@]}" \
     ${VLLM_EXTRA_ARGS} &
   pids+=("$!")
 fi

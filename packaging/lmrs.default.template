@@ -36,7 +36,11 @@ NVIDIA_DRIVER_CAPABILITIES=compute,utility
 LMRS_MODEL=
 VLLM_HOST=127.0.0.1
 VLLM_PORT=8000
-VLLM_EXTRA_ARGS="--gpu-memory-utilization 0.80"
+# Extra args appended to `vllm serve`. Leave --gpu-memory-utilization out: the
+# entrypoint derives it from the free VRAM of the card the container starts on,
+# because vLLM reads it as a fraction of TOTAL memory and refuses to start when
+# less than that is free. Pin it here only to override that derivation.
+VLLM_EXTRA_ARGS=""
 LMCACHE_CONFIG_FILE=/etc/lmrs/lmcache.yaml
 
 # HuggingFace Hub access for model weights.

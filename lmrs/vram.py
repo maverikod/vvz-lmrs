@@ -12,9 +12,12 @@ email: vasilyvz@gmail.com
 
 from __future__ import annotations
 
+import argparse
 import json
+import math
 import shutil
 import subprocess
+import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -223,6 +226,97 @@ def measure_gpu_memory(
     )
 
 
+_DRIFT_RESERVE_BYTES = 1024 * _MIB_BYTES
+
+
+def derive_gpu_memory_utilization(
+    free_bytes: int,
+    total_bytes: int,
+    reserve_bytes: int = _DRIFT_RESERVE_BYTES,
+) -> float:
+    """Return a ``--gpu-memory-utilization`` the runtime can actually satisfy.
+
+    vLLM reads that flag as a fraction of TOTAL device memory and refuses to
+    start when less than the resulting figure is free. A value pinned in a config
+    file therefore breaks as soon as any other process holds VRAM, and it cannot
+    be right on two different cards at once. Deriving it from a live reading
+    keeps one setting correct on an idle card, on a card shared with an embedding
+    service, and on a rented card of a different size.
+
+    Args:
+        free_bytes: Free VRAM measured now.
+        total_bytes: Total VRAM of the visible devices.
+        reserve_bytes: VRAM deliberately left outside the fraction, so a
+            co-resident process that grows a little does not make the next start
+            fail.
+
+    Returns:
+        The fraction, truncated rather than rounded to two decimals: rounding up
+        could name more memory than is free, which is the failure being fixed.
+
+    Raises:
+        ValueError: If a measurement is negative, total VRAM is not positive,
+            free VRAM exceeds total, or the reserve leaves nothing to allocate.
+    """
+    if free_bytes < 0 or total_bytes < 0 or reserve_bytes < 0:
+        raise ValueError("VRAM measurements and reserves must be non-negative")
+    if total_bytes == 0:
+        raise ValueError("total VRAM must be positive")
+    if free_bytes > total_bytes:
+        raise ValueError("free VRAM cannot exceed total VRAM")
+    allocatable_bytes = free_bytes - reserve_bytes
+    utilization = math.floor(allocatable_bytes / total_bytes * 100) / 100
+    if utilization <= 0:
+        raise ValueError(
+            f"free VRAM {free_bytes} leaves no allocatable fraction after a "
+            f"{reserve_bytes} byte reserve of {total_bytes} total"
+        )
+    return utilization
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Print a runtime-satisfiable ``--gpu-memory-utilization`` for this host.
+
+    The container entrypoint calls this when the operator has not pinned the
+    flag, so the served value follows the card the service actually starts on.
+    The reading failure and the no-memory-left case are distinct exit statuses
+    because the first is a broken host and the second is a full card.
+
+    Args:
+        argv: Optional argument vector (defaults to ``sys.argv[1:]``).
+
+    Returns:
+        0 with the fraction on stdout, 1 when the GPU could not be read, or 2
+        when nothing is allocatable; the reason goes to stderr.
+    """
+    parser = argparse.ArgumentParser(
+        prog="python3 -m lmrs.vram",
+        description="Print a --gpu-memory-utilization value derived from free VRAM.",
+    )
+    parser.add_argument(
+        "--reserve-mib",
+        type=int,
+        default=_DRIFT_RESERVE_BYTES // _MIB_BYTES,
+        help="VRAM left outside the fraction as drift headroom (default: %(default)s).",
+    )
+    arguments = parser.parse_args(argv)
+    measurement = measure_gpu_memory()
+    if not measurement.ok:
+        print(f"cannot read GPU memory: {measurement.error}", file=sys.stderr)
+        return 1
+    try:
+        utilization = derive_gpu_memory_utilization(
+            measurement.free_bytes,
+            measurement.total_bytes,
+            arguments.reserve_mib * _MIB_BYTES,
+        )
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        return 2
+    print(utilization)
+    return 0
+
+
 @dataclass
 class VramFactsStore:
     """Persisted VRAM measurements for one host.
@@ -375,3 +469,7 @@ def runtime_fact_snapshot(
         "hardware_profile_id": facts.hardware_profile_id,
         "measurement_metadata": dict(facts.measurement_metadata),
     }
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
