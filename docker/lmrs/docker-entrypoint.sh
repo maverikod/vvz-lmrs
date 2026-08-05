@@ -13,6 +13,7 @@ fi
 : "${VLLM_PORT:=8000}"
 : "${VLLM_EXTRA_ARGS:=}"
 : "${LMRS_VRAM_RESERVE_MIB:=}"
+: "${LMRS_RESIDENT_PEAK_MIB:=}"
 : "${LMCACHE_CONFIG_FILE:=/etc/lmrs/lmcache.yaml}"
 : "${NVIDIA_VISIBLE_DEVICES:=all}"
 : "${NVIDIA_DRIVER_CAPABILITIES:=compute,utility}"
@@ -73,6 +74,9 @@ if [ -n "$LMRS_MODEL" ]; then
       reserve_args=()
       if [ -n "$LMRS_VRAM_RESERVE_MIB" ]; then
         reserve_args=(--reserve-mib "$LMRS_VRAM_RESERVE_MIB")
+      fi
+      if [ -n "$LMRS_RESIDENT_PEAK_MIB" ]; then
+        reserve_args+=(--resident-peak-mib "$LMRS_RESIDENT_PEAK_MIB")
       fi
       if utilization=$(python3 -m lmrs.vram "${reserve_args[@]}" 2>&1); then
         utilization_args=(--gpu-memory-utilization "$utilization")

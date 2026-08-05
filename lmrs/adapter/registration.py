@@ -176,6 +176,7 @@ def _int_env(name: str, default: int = 0) -> int:
 _CACHE = DiskModelCache(cache_root=_model_cache_root())
 _VLLM_CLIENT = VLLMOpenAIClient(
     base_url=os.environ.get("VLLM_BASE_URL", "http://127.0.0.1:8000"),
+    timeout_seconds=float(_int_env("LMRS_RUNTIME_TIMEOUT_SECONDS", 180)),
 )
 _VRAM_STORE = VramFactsStore(path=os.environ.get("LMRS_VRAM_FACTS_PATH", "/var/lmrs/vram-facts.json"))
 

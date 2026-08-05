@@ -229,8 +229,7 @@ def measure_gpu_memory(
 # The fraction covers weights, activations and the KV pool, but CUDA graph
 # capture happens after the pool is sized and allocates on top of it: a 14B AWQ
 # model captured 51 piecewise and 35 full graphs and needed more than 1.2 GiB
-# beyond the fraction, dying on a 150 MiB allocation with 56 MiB left. So this
-# reserve is graph-capture headroom first and co-resident drift headroom second.
+# beyond the fraction, dying on a 150 MiB allocation with 56 MiB left.
 _HEADROOM_RESERVE_BYTES = 2048 * _MIB_BYTES
 
 
@@ -238,6 +237,7 @@ def derive_gpu_memory_utilization(
     free_bytes: int,
     total_bytes: int,
     reserve_bytes: int = _HEADROOM_RESERVE_BYTES,
+    resident_peak_bytes: int = 0,
 ) -> float:
     """Return a ``--gpu-memory-utilization`` the runtime can actually satisfy.
 
@@ -248,12 +248,23 @@ def derive_gpu_memory_utilization(
     keeps one setting correct on an idle card, on a card shared with an embedding
     service, and on a rented card of a different size.
 
+    A live reading alone is still not enough, because the two consumers of a
+    shared card allocate in opposite ways. The runtime claims everything up
+    front and never grows; a co-resident service such as an embedding server
+    grows on demand and its caching allocator does not give the memory back.
+    Deriving from free VRAM while that service happens to be idle hands the
+    runtime memory the service will need later, and the service is what then
+    fails. ``resident_peak_bytes`` closes that hole: the operator declares the
+    peak those services reach, and the room between their current usage and
+    that peak stays unallocated.
+
     Args:
         free_bytes: Free VRAM measured now.
         total_bytes: Total VRAM of the visible devices.
-        reserve_bytes: VRAM deliberately left outside the fraction, so a
-            co-resident process that grows a little does not make the next start
-            fail.
+        reserve_bytes: VRAM left outside the fraction for the runtime's own
+            post-sizing allocations, CUDA graph capture above all.
+        resident_peak_bytes: Declared peak VRAM of every co-resident consumer
+            on this card. Zero means nothing else is expected to grow.
 
     Returns:
         The fraction, truncated rather than rounded to two decimals: rounding up
@@ -261,15 +272,18 @@ def derive_gpu_memory_utilization(
 
     Raises:
         ValueError: If a measurement is negative, total VRAM is not positive,
-            free VRAM exceeds total, or the reserve leaves nothing to allocate.
+            free VRAM exceeds total, or the reserves leave nothing to allocate.
     """
-    if free_bytes < 0 or total_bytes < 0 or reserve_bytes < 0:
+    if free_bytes < 0 or total_bytes < 0 or reserve_bytes < 0 or resident_peak_bytes < 0:
         raise ValueError("VRAM measurements and reserves must be non-negative")
     if total_bytes == 0:
         raise ValueError("total VRAM must be positive")
     if free_bytes > total_bytes:
         raise ValueError("free VRAM cannot exceed total VRAM")
-    allocatable_bytes = free_bytes - reserve_bytes
+    # Everything not free before the runtime starts is the co-resident services;
+    # only the distance from there to their declared peak still has to be kept.
+    resident_growth_bytes = max(0, resident_peak_bytes - (total_bytes - free_bytes))
+    allocatable_bytes = free_bytes - reserve_bytes - resident_growth_bytes
     utilization = math.floor(allocatable_bytes / total_bytes * 100) / 100
     if utilization <= 0:
         raise ValueError(
@@ -302,7 +316,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--reserve-mib",
         type=int,
         default=_HEADROOM_RESERVE_BYTES // _MIB_BYTES,
-        help="VRAM left outside the fraction as drift headroom (default: %(default)s).",
+        help="VRAM left outside the fraction for CUDA graph capture (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--resident-peak-mib",
+        type=int,
+        default=0,
+        help="Declared peak VRAM of co-resident services; their room to grow stays unallocated.",
     )
     arguments = parser.parse_args(argv)
     measurement = measure_gpu_memory()
@@ -314,6 +334,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             measurement.free_bytes,
             measurement.total_bytes,
             arguments.reserve_mib * _MIB_BYTES,
+            arguments.resident_peak_mib * _MIB_BYTES,
         )
     except ValueError as error:
         print(str(error), file=sys.stderr)

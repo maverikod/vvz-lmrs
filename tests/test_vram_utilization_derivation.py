@@ -215,3 +215,65 @@ def test_the_entrypoint_forwards_a_configured_reserve() -> None:
     script = _ENTRYPOINT.read_text(encoding="utf-8")
 
     assert "--reserve-mib" in script
+
+
+def test_an_idle_neighbour_does_not_lose_its_room_to_grow() -> None:
+    """The trap: starting while the embedder idles must not claim its future memory."""
+    embedder_idle = 4604 * _MIB
+    embedder_peak = 7818 * _MIB
+    free_now = _TOTAL - embedder_idle
+
+    utilization = derive_gpu_memory_utilization(
+        free_now, _TOTAL, _RESERVE, resident_peak_bytes=embedder_peak
+    )
+
+    claimed = utilization * _TOTAL
+    assert claimed + embedder_peak + _RESERVE <= _TOTAL
+
+
+def test_declaring_a_peak_lowers_the_fraction() -> None:
+    """Same reading, one declared neighbour: the runtime must ask for less."""
+    free_now = _TOTAL - 4604 * _MIB
+
+    blind = derive_gpu_memory_utilization(free_now, _TOTAL, _RESERVE)
+    aware = derive_gpu_memory_utilization(
+        free_now, _TOTAL, _RESERVE, resident_peak_bytes=7818 * _MIB
+    )
+
+    assert aware < blind
+
+
+def test_a_neighbour_already_at_its_peak_costs_nothing() -> None:
+    """Growth room already consumed is not reserved twice."""
+    peak = 7818 * _MIB
+    free_now = _TOTAL - peak
+
+    aware = derive_gpu_memory_utilization(free_now, _TOTAL, _RESERVE, resident_peak_bytes=peak)
+    blind = derive_gpu_memory_utilization(free_now, _TOTAL, _RESERVE)
+
+    assert aware == blind
+
+
+def test_a_negative_resident_peak_is_refused() -> None:
+    """A nonsense declaration raises instead of quietly widening the fraction."""
+    with pytest.raises(ValueError):
+        derive_gpu_memory_utilization(
+            _FREE_AT_DEPLOY, _TOTAL, _RESERVE, resident_peak_bytes=-1
+        )
+
+
+def test_the_runner_passes_the_peak_and_timeout_into_the_container() -> None:
+    """Both new settings are inert unless the runner forwards them."""
+    script = _RUNNER.read_text(encoding="utf-8")
+
+    assert "-e LMRS_RESIDENT_PEAK_MIB=" in script
+    assert "-e LMRS_RUNTIME_TIMEOUT_SECONDS=" in script
+
+
+def test_the_runtime_timeout_admits_a_full_window_completion() -> None:
+    """10 s killed every completion past ~750 tokens while vLLM finished for nobody."""
+    from lmrs.runtime_client import VLLMOpenAIClient
+
+    slowest_legal_seconds = 8192 / 75.0
+
+    assert VLLMOpenAIClient().timeout_seconds > slowest_legal_seconds

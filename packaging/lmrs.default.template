@@ -47,6 +47,19 @@ VLLM_EXTRA_ARGS=""
 # on top of the fraction. Empty uses the built-in default, measured against a
 # 14B AWQ model; raise it for a model that captures more graphs.
 LMRS_VRAM_RESERVE_MIB=
+
+# Declared peak VRAM of every co-resident GPU consumer, in MiB. The runtime
+# claims its memory once and never grows; a service like an embedding server
+# grows on demand and its allocator does not release. Without this figure the
+# derivation happily hands the runtime memory the neighbour needs later, and the
+# neighbour is what fails. Measure the peak, declare it here.
+LMRS_RESIDENT_PEAK_MIB=
+
+# Whole-call timeout for LMRS talking to the in-container vLLM, in seconds.
+# Empty uses the built-in default, sized so the longest completion admission
+# can accept (a full context window of output) still fits. Do not size this
+# for probes: a wedged runtime fails on connect, not on this timeout.
+LMRS_RUNTIME_TIMEOUT_SECONDS=
 LMCACHE_CONFIG_FILE=/etc/lmrs/lmcache.yaml
 
 # HuggingFace Hub access for model weights.

@@ -97,7 +97,12 @@ class VLLMOpenAIClient:
     """
 
     base_url: str = "http://127.0.0.1:8000"
-    timeout_seconds: float = 10.0
+    # Sized from the longest call the server can admit, not from a probe's
+    # patience: admission caps a request at the model context window, so the
+    # slowest legal completion is roughly window / decode rate - 8192 tokens at
+    # the measured 75-80 tok/s is ~110 s. 10 s silently killed every completion
+    # longer than ~750 tokens while vLLM finished the work for nobody.
+    timeout_seconds: float = 180.0
 
     def _url(self, path: str) -> str:
         return f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
