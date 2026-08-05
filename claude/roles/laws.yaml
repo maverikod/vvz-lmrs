@@ -128,6 +128,20 @@ laws:
     version; (10) RUN `pipeline` against the real deployed server and SMOKE-TEST the original
     bug path on the live system. This cycle is mandatory, not advisory. Work is not accepted
     until every applicable step passes.
+  release_version_identity: >-
+    [TRIGGER: any release, deploy, or version bump] MANDATORY, not advisory. One version number
+    identifies a release and is carried by EVERY artifact of it: the server `pyproject.toml`
+    (the single source), the client `pyproject.toml`, `debian/changelog`, the Docker image tag,
+    and the client package published to PyPI. A release is incomplete while any artifact lags.
+    Building with `--skip-publish` is a mid-flight state, never an accepted end state, and "the
+    code did not change" is NOT a reason to leave the published client on an older number:
+    publish it at the release version anyway, because the value being protected is that the
+    numbers cannot drift apart. The image registry carries a tag ONLY for a version that was
+    actually released — an intermediate build whose flaw was found before acceptance is deleted
+    from the registry instead of being left as a tag with no release behind it. The deployed
+    container must run the tag equal to the released version, never `latest` and never a stale
+    per-host `LMRS_IMAGE` pin that outlives the packaged default. Report the release by naming
+    the version and every artifact that now carries it.
   pipeline_cli_contract: >-
     [TRIGGER: any verification, deploy, or server start] The project MUST ship a pipeline
     package that becomes a plain CLI application after `pip install -e .`. The command is named
