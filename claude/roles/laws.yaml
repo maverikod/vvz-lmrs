@@ -49,12 +49,30 @@ laws:
     active site. Never edit `main` directly and never merge `local` directly with `cas`. Before
     new work, synchronize `main` into the active working branch. Build, deploy, and run the live
     acceptance pipeline from the active working branch. Only after deployment and live
-    verification are green, merge that working branch into local `main`. Do not push `main`:
-    report the exact ready commit and wait for the user's explicit confirmation that `main` was
-    pushed. After confirmation, the opposite site checks out `main`, pulls it through its
+    verification are green, merge that working branch into local `main`. Push `main` yourself and
+    then bring the opposite site to it — see `branch_sync_after_every_step`; waiting for the user
+    to push is no longer correct. The opposite site checks out `main`, pulls it through its
     authoritative Git surface, verifies the expected commit, checks out its own working branch,
     and merges `main` into it. The same sequence is mirrored when work originates on `cas`.
     Leave each site on its own working branch.
+  branch_sync_after_every_step: >-
+    [TRIGGER: every completed step — a commit, a merge, a release branch or tag, a deployment, an
+    accepted agent branch] Keeping both sites on the same state is YOUR duty, not the user's.
+    After each step, synchronize: push the branch you just moved to `origin`, then bring the other
+    site to that same commit. The local checkout and the server-side project must never be left
+    holding different versions of the same branch. This holds no matter where you are working: on
+    the server, push and then pull the local side; locally, push and then pull the server side
+    through its authoritative Git surface. Do not stop at "prepared locally" and do not wait for
+    the user to run the push — the earlier rule that pushing is user-owned is WITHDRAWN. Verify
+    instead of assuming: after pushing, confirm the remote branch points at the expected commit;
+    after pulling, confirm the other site's tree is on that commit; report what was pushed, what
+    was pulled, and the resulting commit on both sides. NEVER force-push and never rewrite
+    published history: a rejected non-fast-forward is resolved by merging per `branch_discipline`,
+    not by overwriting the remote. If a push or pull fails — credentials, network, rejection —
+    stop there, report the exact command and its error, and do not continue work on top of
+    unsynchronized sites. Synchronization moves commits between sites; it never creates merges
+    outside the topology in `branch_discipline`, and it does not authorize deploying prompt
+    bundles or build artifacts anywhere.
   parallel_agent_isolation: >-
     [TRIGGER: launching more than one agent that may modify the repository at the same time]
     Concurrent agents must never share a working tree or a branch. Give each parallel agent its
