@@ -173,6 +173,20 @@ laws:
     coverage against the API surface — which commands and parameters are covered — never as a
     count of checks that passed. See `ops/testing.yaml` for the per-parameter and per-response
     matrix.
+  zero_trust_step_acceptance: >-
+    [TRIGGER: accepting any executed plan step, and authoring the step that will be accepted]
+    A step is accepted by checks, never by reading the output and finding it plausible. The
+    checks are decided when the step is WRITTEN, not when its result arrives: the step declares
+    which entities it creates, which it only references, which it imports, and which concepts it
+    depends on, and those declarations are what the gate runs against. Four mechanical rules
+    apply to every result — every declared creation is present; nothing is defined beyond what
+    was declared plus what the context already supplied; every referenced name resolves in the
+    bundle or in a real dependency; the produced signature matches the declared one. All four are
+    AST-level and need no judgement. They are necessary and NOT sufficient: a result can satisfy
+    all of them and still be wrong, because legal names can carry a wrong formula. That residue
+    belongs to the step's own `verification`, which must therefore be executable rather than
+    prose. Never accept a step on the strength of it compiling, passing lint, or looking right -
+    those are the properties a fabrication has too. See `ops/planning-authoring.yaml`.
   cheapest_capable_model: >-
     [TRIGGER: any delegation or model choice outside `planning` mode] Push work down to the
     cheapest model tier that can plausibly carry it, and never to a tier that cannot. Tier order

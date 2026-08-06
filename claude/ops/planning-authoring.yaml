@@ -5,6 +5,8 @@ rules:
   - record review checkpoints and dependency assumptions in the planning artifact
   - when converting user intent into implementation work, preserve a stable planning vocabulary
   - one atomic step processes exactly one project file, of any kind; see `atomic_step_file_rule`
+  - every atomic step declares its names and concepts as a checkable manifest; see `declared_name_and_concept_manifests`
+  - an atomic step's `verification` must be executable, not prose: prose is reviewed, only a check gates
   - never reuse an agent while creating a plan; one fresh agent per unit, see `no_agent_reuse_in_plan_creation`
 
 no_agent_reuse_in_plan_creation: >-
@@ -19,6 +21,25 @@ no_agent_reuse_in_plan_creation: >-
   compounds with every reuse, so later artifacts in a plan are the most contaminated and the least
   trustworthy. A reused agent is therefore a defect in the plan, not merely an inefficiency.
   This rule governs plan creation only and does not apply to plan execution.
+
+declared_name_and_concept_manifests: >-
+  [TRIGGER: authoring or reviewing any atomic step] Every A-step declares, at authoring time, the
+  names it deals with, split by HOW each one is resolved rather than lumped together. Three
+  disjoint sets: `creates` — the entities this step introduces, which is exactly what may appear
+  as a new definition in its output; `from_context` — entities the step references but does not
+  define, which the context compiler must find in the compiled bundle; and `imports` — entities
+  from outside the target file, which must resolve to a real module in the project's declared
+  dependencies. Merging the last two destroys the check, because an invented API then passes as
+  "it was imported". Alongside the names, the step's declared `concepts` must be embedded in the
+  bundle COMPLETE, with every property, since a truncated concept excerpt is a missing fact that
+  no name check can see. The point of declaring this at authoring time is not to grade the
+  executor's output afterwards - it is that the compiler can refuse to dispatch a step whose
+  context does not satisfy the manifest, so the situation that would require the executor to
+  notice a missing fact and escalate never arises. Measured on this project's own plan steps: a
+  scope check against `creates` catches an executor that invents the classes it was told about but
+  not given, while an executor handed a truncated concept produces a plausible wrong formula that
+  compiles, passes lint, uses only legal names, and is caught by nothing except an executable
+  verification. Treat these manifests as inputs to a gate, never as documentation.
 
 atomic_step_file_rule: >-
   One atomic step (A-step) processes EXACTLY ONE project file. The file does NOT have to be a code
