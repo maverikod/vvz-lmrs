@@ -1,3 +1,9 @@
+lmrs-container (0.1.14-1) unstable; urgency=medium
+
+  * Release 0.1.14: raise mcp-proxy-adapter floor to 8.10.25 (server and client).
+
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 13 Aug 2026 21:10:00 +0300
+
 lmrs-container (0.1.13-1) unstable; urgency=medium
 
   * Release 0.1.13: containerized LMRS (vLLM + LMCache + adapter server).
