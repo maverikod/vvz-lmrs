@@ -1,5 +1,21 @@
+lmrs-container (0.1.15-1) unstable; urgency=medium
+
+  * Release 0.1.15: mcp-proxy-adapter 8.10.26; release_build.sh no longer
+    overwrites debian/changelog history.
+
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 13 Aug 2026 23:05:00 +0300
+
 lmrs-container (0.1.14-1) unstable; urgency=medium
 
-  * Release 0.1.14: containerized LMRS (vLLM + LMCache + adapter server).
+  * Release 0.1.14: mcp-proxy-adapter 8.10.25; generated configs satisfy the
+    adapter's full startup validation schema; default model switched to
+    Qwen2.5-Coder-3B-Instruct-AWQ to leave the co-resident embedding server
+    its declared VRAM growth room.
 
  -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Thu, 13 Aug 2026 22:11:24 +0300
+
+lmrs-container (0.1.13-1) unstable; urgency=medium
+
+  * Release 0.1.13: containerized LMRS (vLLM + LMCache + adapter server).
+
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Wed, 05 Aug 2026 19:48:54 +0300
