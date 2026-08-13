@@ -136,14 +136,30 @@ fi
 command -v dpkg-buildpackage >/dev/null 2>&1 \
     || error "dpkg-buildpackage not found (install: dpkg-dev debhelper)"
 
-info "generating debian/changelog (${VERSION}-1)"
-cat > debian/changelog <<EOF
+# The changelog is a history, not a build artifact: an author-written entry for
+# this release (build.sh verifies one exists at the top) and every past entry
+# must survive the build. Only when the top entry is missing for this version —
+# a direct release_build.sh run — is a generic entry PREPENDED, never replacing
+# the file.
+TOP_CHANGELOG_VERSION="$(sed -n '1s/.*(\([^)-]*\).*/\1/p' debian/changelog 2>/dev/null || true)"
+if [[ "${TOP_CHANGELOG_VERSION}" == "${VERSION}" ]]; then
+    info "debian/changelog already carries a ${VERSION}-1 entry; keeping it"
+else
+    info "prepending a generated debian/changelog entry (${VERSION}-1)"
+    TMP_CHANGELOG="$(mktemp)"
+    cat > "${TMP_CHANGELOG}" <<EOF
 lmrs-container (${VERSION}-1) unstable; urgency=medium
 
   * Release ${VERSION}: containerized LMRS (vLLM + LMCache + adapter server).
 
  -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  $(date -R)
 EOF
+    if [[ -s debian/changelog ]]; then
+        printf '\n' >> "${TMP_CHANGELOG}"
+        cat debian/changelog >> "${TMP_CHANGELOG}"
+    fi
+    mv "${TMP_CHANGELOG}" debian/changelog
+fi
 
 info "dpkg-buildpackage -us -uc -b"
 dpkg-buildpackage -us -uc -b
