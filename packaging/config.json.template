@@ -87,11 +87,68 @@
     "enabled": true,
     "auto_discover": true,
     "commands_directory": "lmrs",
-    "custom_commands_path": "lmrs"
+    "custom_commands_path": "lmrs",
+    "auto_discovery": true,
+    "catalog_directory": "/var/lmrs/catalog",
+    "plugin_servers": [],
+    "auto_install_dependencies": false,
+    "enabled_commands": [],
+    "disabled_commands": []
   },
   "logging": {
     "level": "INFO",
     "log_dir": "/var/log/lmrs",
-    "file_output": true
+    "file_output": true,
+    "file": null,
+    "log_file": "lmrs.log",
+    "error_log_file": "lmrs_error.log",
+    "access_log_file": "lmrs_access.log",
+    "max_file_size": "10MB",
+    "backup_count": 5,
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "date_format": "%Y-%m-%d %H:%M:%S",
+    "console_output": true
+  },
+  "transport": {
+    "type": "https",
+    "port": 8012,
+    "verify_client": false,
+    "chk_hostname": false
+  },
+  "proxy_registration": {
+    "enabled": false,
+    "protocol": "http",
+    "proxy_url": "http://localhost:3005/register",
+    "server_id": null,
+    "server_name": "Local Model Runtime Service",
+    "description": "Local Model Runtime Service",
+    "version": "0",
+    "registration_timeout": 30,
+    "retry_attempts": 3,
+    "retry_delay": 5,
+    "auto_register_on_startup": false,
+    "auto_unregister_on_shutdown": false
+  },
+  "debug": {
+    "enabled": false,
+    "level": "WARNING"
+  },
+  "security": {
+    "enabled": false,
+    "tokens": {},
+    "roles": {},
+    "roles_file": null
+  },
+  "roles": {
+    "enabled": false,
+    "config_file": null,
+    "default_policy": {
+      "deny_by_default": false,
+      "require_role_match": false,
+      "case_sensitive": false,
+      "allow_wildcard": false
+    },
+    "auto_load": false,
+    "validation_enabled": false
   }
 }
