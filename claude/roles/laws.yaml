@@ -38,6 +38,40 @@ laws:
     evidence that the pack does not apply here, not a reason to stop. Real blockers are missing
     evidence, missing access, a failing gate, or a decision only the user can make; a missing agent
     type is none of those.
+  project_boundary: >-
+    [TRIGGER: the first action of any task, and every action that reaches anything outside the home
+    project] The session has exactly ONE home project: the one whose directory the session was
+    started in, named in this bundle's project profile. Everything belonging to it is INSIDE the
+    boundary — its local checkout and branches, its registered CAS project, its build artifacts and
+    published packages, and its deployed service on the fleet host: containers, configuration,
+    data, logs, systemd units. Inside, you hold FULL developer authority and do not ask permission
+    to use it: read, edit, refactor, commit, build, publish, deploy, restart, reconfigure, wipe and
+    recreate state. The HOST IS NOT THE BOUNDARY. `root@192.168.254.26` is PART OF THE DEVELOPMENT
+    PROCESS, not a separate production estate: building, deploying, restarting, and running the
+    live acceptance pipeline there against the home project's own service is ordinary work and
+    needs no permission, `root` included. That same host also carries PRODUCTION DATABASES and the
+    live services of OTHER projects — which is exactly why the line is drawn per PROJECT and not
+    per host. Unattended action, root or not, is permitted ONLY over the home project's own
+    resources. OUTSIDE the boundary every other project is
+    STRICTLY READ-ONLY — on every host, through every surface: local checkouts, CAS projects, git
+    remotes, running services, containers, databases, configuration, deployed files. You may read,
+    search, analyze, reproduce, and diagnose as much as the task needs. You may NOT write: no file
+    edit, no commit, no branch, no build, no deploy, no restart, no migration, no configuration
+    change — not a one-line obviously-correct fix, not a "temporary" change you intend to revert,
+    and not even when the defect you found there is exactly what blocks your own work. A foreign
+    project's DATABASE on `root@192.168.254.26` is production data: read it only when the task needs it,
+    never write, never migrate, never truncate, never "clean up", and never restart the service
+    that owns it. Root access is not permission: the boundary is OWNERSHIP, not privilege, and a
+    credential that lets you write says nothing about whether you may — on that host the same
+    `root` shell reaches both your own service and someone else's production data, and only the
+    project boundary tells them apart. When the work appears to require a change outside,
+    the only legitimate move is to REGISTER it: file the bug or task in the plan manager against
+    that project with the reproduction, the evidence, and the exact proposed change; report it to
+    the user in the same message; then either continue without that change or state plainly that
+    you are blocked on it. Hunting bugs in another project is legitimate work and ends at that
+    registration. The same applies to shared infrastructure owned by another project — the proxy,
+    the analysis server, another team's database. If ownership of something is unclear, treat it as
+    outside the boundary and ask before touching it.
   local_workspace_truth: >-
     Under the default `local` profile the local checkout is the source of truth. Read files
     locally, edit only in the workspace, and do not invent hidden remote state. Under `cas` the
@@ -160,6 +194,49 @@ laws:
     container must run the tag equal to the released version, never `latest` and never a stale
     per-host `LMRS_IMAGE` pin that outlives the packaged default. Report the release by naming
     the version and every artifact that now carries it.
+  service_packaging_standard: >-
+    [TRIGGER: packaging or deploying a service; creating a new one; touching its Dockerfile, its
+    Debian package, `postinst`, the settings file, the config template, the argument surface, its
+    networks, its systemd unit, or its live pipeline] The house standard is
+    `docs/service_packaging_standard.md`, written from `ai-editor` as the reference
+    implementation; every project follows the same shape so that an operator who installed one
+    installed them all. READ that file before the first such change — if this project has no copy,
+    read the reference copy in the `ai-editor` project (reading another project is allowed,
+    writing is not — see `project_boundary`) and add a copy here. Its non-negotiable requirements,
+    binding even when the file is missing: (1) a service ships as THREE artefacts and nothing else
+    — the Docker image from `docker/build.sh`, the Debian package `<svc>-docker` from
+    `docker/build-deb.sh`, and `/etc/default/<svc>` shipped as a dpkg CONFFILE; the image carries
+    no host configuration and the package carries no secrets. (2) The PACKAGE owns identity and
+    access: an idempotent `postinst` creates the service user and group, the directories, and the
+    permission table; key material is never group-writable and never world-readable; the package
+    never ships keys, only the access rule it re-applies on every install; the container runs as
+    the service user, never as root, and that is verified with
+    `docker inspect <svc> --format '{{.Config.User}}'`. (3) Configuration is TEMPLATED, never
+    hand-edited: `${SVC_*}` placeholders resolved at container start, a preflight that refuses to
+    start while any placeholder is unresolved and names the missing variable, and a fresh install
+    that ends up fully configured and RUNNING — if a human must open an editor before the service
+    starts, the package is incomplete. Hosts, ports, protocols, every certificate path, the server
+    id, and the docker networks are placeholders, never literals. (4) Settings change through an
+    ARGUMENT SURFACE (`<svc>ctl set` / `show`), which writes the settings file, re-resolves the
+    config and recreates the container so the change is live; an unknown key or a malformed value
+    is rejected loudly with NOTHING written, because a partially applied settings change is worse
+    than a refused one; `show` prints effective values and where each came from. (5) Peers are
+    addressed by DOCKER NETWORK NAME and stable network alias — an IP address in a config is a
+    defect; the package ensures the networks exist, and resolution is verified from INSIDE the
+    container, not by reading the config. (6) Deployment is `image-spec` + `docker-run.sh` +
+    a systemd unit: point `image-spec` at the new tag and restart; keep the previous `image-spec`
+    and image on the host so rollback is one edit and one restart. (7) A deploy is NOT DONE UNTIL
+    IT IS PROVEN, with real output rather than reasoning: `health` over the real transport
+    reporting the expected version, an import check proving the application package is genuinely
+    inside the image, `stat` output matching the permission table, the container on its networks
+    resolving peers by name, and the live pipeline green against the deployed instance. (8) The
+    live pipeline is one check per file, auto-discovered; its coverage is driven by the server's
+    own declared schema and reports what is DECLARED BUT UNTESTED; it asserts real behaviour and
+    reports every divergence from the documentation; an unreachable deployed service is RED and
+    never "skipped"; checks register unconditionally; destructive checks use a dedicated sandbox
+    project, never real data, and clean up even when they fail — see `live_api_contract_coverage`
+    and `pipeline_cli_contract`. The standard's checklist for a new service is an acceptance gate,
+    not advice.
   pipeline_cli_contract: >-
     [TRIGGER: any verification, deploy, or server start] The project MUST ship a pipeline
     package that becomes a plain CLI application after `pip install -e .`. The command is named

@@ -52,6 +52,13 @@ Declare the working mode (`planning`, `analysis`, `refactoring`) from `claude/mo
 - Keep the plan visible with the task/todo tools on multi-step work, and re-read
   contract files after context compaction instead of recalling them.
 - `.claude/` is Claude Code harness configuration, not part of this bundle.
+- One home project owns this session — the one you were started in. Inside it you have full
+  developer authority on any host, `root` on the deploy host included: that host is part of the
+  development process, so deploying and restarting your own service there needs no permission.
+  The same host carries production databases and other projects' live services, which is why the
+  line is per project, not per host: every other project is strictly read-only everywhere, its
+  data is never written, and a defect found there is registered in the plan manager, never fixed
+  in place — see `laws.project_boundary`.
 - This contract is `CLAUDE.md` plus `claude/`, and nothing else. Role packs left in this
   repository by earlier systems — `.cursor/agents/`, `docs/agents/`, `docs/PROJECT_RULES.md`,
   `AGENTS.md` — do not govern your work; see `laws.contract_scope`.
