@@ -1,3 +1,10 @@
+lmrs-container (0.1.16-1) unstable; urgency=medium
+
+  * Release 0.1.16: routine adapter-currency release; mcp-proxy-adapter
+    pin confirmed at 8.10.26, no dependency or code changes.
+
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Fri, 14 Aug 2026 14:54:30 +0300
+
 lmrs-container (0.1.15-1) unstable; urgency=medium
 
   * Release 0.1.15: mcp-proxy-adapter 8.10.26; release_build.sh no longer
