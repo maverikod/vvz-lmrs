@@ -1,3 +1,12 @@
+lmrs-container (0.1.17-1) unstable; urgency=medium
+
+  * Release 0.1.17: mcp-proxy-adapter pin raised to 8.10.29 (8.10.27 was
+    pulled: it shipped a stray top-level `pipeline` module and console
+    script that collided with every consumer project's own `pipeline`
+    CLI); no other dependency or code changes.
+
+ -- Vasiliy Zdanovskiy <vasilyvz@gmail.com>  Fri, 14 Aug 2026 19:19:23 +0300
+
 lmrs-container (0.1.16-1) unstable; urgency=medium
 
   * Release 0.1.16: routine adapter-currency release; mcp-proxy-adapter
